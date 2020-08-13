@@ -9,7 +9,7 @@
 What proportion of people on a subreddit delete their posts? This script pulls
 from the Pushshift and Reddit APIs and generates a file with columns for
 submissions deletion status of author and message, at time of Pushshift's
-indexing (often within 24 hours) and Reddit'S current version.
+indexing (often within 24 hours) and Reddit's current version.
 """
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
@@ -147,36 +147,65 @@ def query_pushshift(
         f"?limit={limit}&subreddit={subreddit}"
         f"&after={after}&before={before}&score={score}"
     )
-    info(f"{len(pushshift_url)=}")
+    print(f"{pushshift_url=}")
     data_total = get_JSON(pushshift_url)["data"]
     return data_total
 
 
 def export_df(name, df):
 
-    df.to_csv(f"{name}.csv", encoding="utf-8-sig")
+    df.to_csv(f"{name}.csv", encoding="utf-8-sig", index=False)
+    print(f"saved dataframe of shape {df.shape} to '{name}'")
 
 
 def main(argv):
     """Process arguments"""
-    arg_parser = argparse.ArgumentParser(description="TBD")
+    arg_parser = argparse.ArgumentParser(
+        description="Script for querying reddit APIs"
+    )
 
-    # positional arguments
-    arg_parser.add_argument("files", nargs="?", metavar="FILE")
     # optional arguments
+    arg_parser.add_argument(
+        "-a",
+        "--after",
+        type=str,
+        default="2018-04-01",
+        help="submissions after (default: %(default)s)",
+    )
+    arg_parser.add_argument(
+        "-b",
+        "--before",
+        type=str,
+        default="2018-04-30",
+        help="submissions before (default: %(default)s)",
+    )
     arg_parser.add_argument(
         "-k",
         "--keep",
         action="store_true",
         default=False,
-        help="keep existing CSV files -- when adding a new query",
+        help="keep existing CSV files and don't overwrite (default: %(default)s)",
     )
     arg_parser.add_argument(
         "-l",
         "--limit",
         type=int,
         default=5,
-        help="limit query results to N (default: %(default)s)",
+        help="limit to (default: %(default)s) results",
+    )
+    arg_parser.add_argument(
+        "-r",
+        "--subreddit",
+        type=str,
+        default="AmItheAsshole",
+        help="subreddit to query (default: %(default)s)",
+    )
+    arg_parser.add_argument(
+        "-s",
+        "--score",
+        type=str,
+        default=">0",
+        help="score threshold (default: %(default)s)",
     )
     arg_parser.add_argument(
         "-L",
@@ -190,9 +219,9 @@ def main(argv):
         "--verbose",
         action="count",
         default=0,
-        help="Increase verbosity (specify multiple times for more)",
+        help="increase logging verbosity (specify multiple times for more)",
     )
-    arg_parser.add_argument("--version", action="version", version="TBD")
+    arg_parser.add_argument("--version", action="version", version="0.3")
     args = arg_parser.parse_args(argv)
 
     log_level = logging.ERROR  # 40
@@ -220,22 +249,20 @@ def main(argv):
 
 if __name__ == "__main__":
     args = main(sys.argv[1:])
+    after = args.after.replace("-", "")
+    before = args.before.replace("-", "")
 
     queries = (
         {
-            "name": "reddit-2018-AItA",
+            "name": (
+                f"reddit_{after}-{before}_{args.subreddit}"
+                f"_s{args.score}_l{args.limit}"
+            ),
             "limit": args.limit,
-            "after": "2018-04-01",
-            "before": "2018-04-30",
-            "subreddit": "AmItheAsshole",
-        },
-        {
-            "name": "reddit-2018-AItA-100",
-            "limit": args.limit,
-            "after": "2018-04-01",
-            "before": "2018-04-30",
-            "subreddit": "AmItheAsshole",
-            "score": ">100",
+            "before": args.before,
+            "after": args.after,
+            "subreddit": args.subreddit,
+            "score": args.score,
         },
     )
 
