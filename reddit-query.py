@@ -6,30 +6,35 @@
 #
 
 """
-What proportion of people on a subreddit delete their posts?
-This script pulls from the Pushshift and Reddit APIs and generates a file with columns for submissions deletion status of author and message, at time of Pushshift's indexing (often within 24 hours) and Reddit'S current version.
+What proportion of people on a subreddit delete their posts? This script pulls
+from the Pushshift and Reddit APIs and generates a file with columns for
+submissions deletion status of author and message, at time of Pushshift's
+indexing (often within 24 hours) and Reddit'S current version.
 """
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
-import logging
-from os.path import abspath, basename, exists, split, splitext
-import pandas as pd
-import sys
 import datetime as dt
+import logging
+import sys
+from os.path import abspath, basename, exists, split, splitext
+
+import pandas as pd
 
 # https://www.reddit.com/dev/api/
 import praw  # https://praw.readthedocs.io/en/latest
 
-# https://github.com/pushshift/api
-# import psaw  # https://github.com/dmarx/psaw no exclude:not
+from web_api_tokens import (
+    REDDIT_CLIENT_ID,
+    REDDIT_CLIENT_SECRET,
+    REDDIT_USER_AGENT,
+)
 
 # https://github.com/reagle/thunderdell
 from web_utils import get_JSON
-from web_api_tokens import (
-    REDDIT_USER_AGENT,
-    REDDIT_CLIENT_ID,
-    REDDIT_CLIENT_SECRET,
-)
+
+# https://github.com/pushshift/api
+# import psaw  # https://github.com/dmarx/psaw no exclude:not
+
 
 REDDIT = praw.Reddit(
     user_agent=REDDIT_USER_AGENT,
@@ -138,7 +143,11 @@ def query_pushshift(
     # include: `selftext` parameter
     # exclude: `selftext:not` not supported by PSAW?
 
-    pushshift_url = f"https://api.pushshift.io/reddit/submission/search/?limit={limit}&subreddit={subreddit}&after={after}&before={before}&score={score}"
+    pushshift_url = (
+        f"https://api.pushshift.io/reddit/submission/search/"
+        f"?limit={limit}&subreddit={subreddit}"
+        f"&after={after}&before={before}&score={score}"
+    )
     info(f"{len(pushshift_url)=}")
     data_total = get_JSON(pushshift_url)["data"]
     return data_total
@@ -162,6 +171,13 @@ def main(argv):
         action="store_true",
         default=False,
         help="keep existing CSV files -- when adding a new query",
+    )
+    arg_parser.add_argument(
+        "-l",
+        "--limit",
+        type=int,
+        default=5,
+        help="limit query results to N (default: %(default)s)",
     )
     arg_parser.add_argument(
         "-L",
@@ -192,7 +208,7 @@ def main(argv):
     if args.log_to_file:
         print("logging to file")
         logging.basicConfig(
-            filename="reddit-query.log",
+            filename="reddit-query.py.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
@@ -209,14 +225,14 @@ if __name__ == "__main__":
     queries = (
         {
             "name": "reddit-2018-AItA",
-            "limit": 10,
+            "limit": args.limit,
             "after": "2018-04-01",
             "before": "2018-04-30",
             "subreddit": "AmItheAsshole",
         },
         {
             "name": "reddit-2018-AItA-100",
-            "limit": 10,
+            "limit": args.limit,
             "after": "2018-04-01",
             "before": "2018-04-30",
             "subreddit": "AmItheAsshole",
