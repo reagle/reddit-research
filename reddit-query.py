@@ -16,9 +16,8 @@ import argparse  # http://docs.python.org/dev/library/argparse.html
 import datetime as dt
 import logging
 import sys
-from os.path import abspath, basename, exists, split, splitext
-
 import pandas as pd
+from pathlib import Path, PurePath
 
 # https://www.reddit.com/dev/api/
 import praw  # https://praw.readthedocs.io/en/latest
@@ -208,7 +207,7 @@ def main(argv):
     if args.log_to_file:
         print("logging to file")
         logging.basicConfig(
-            filename="reddit-query.py.log",
+            filename=f"{str(PurePath(__file__).name)}.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
