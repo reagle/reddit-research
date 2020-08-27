@@ -19,6 +19,7 @@ import sys
 import pandas as pd
 import time
 from pathlib import Path, PurePath
+from tqdm import tqdm
 
 # https://www.reddit.com/dev/api/
 import praw  # https://praw.readthedocs.io/en/latest
@@ -84,7 +85,7 @@ def check_for_deleted(results):
     REDDIT_API_URL = "https://api.reddit.com/api/info/?id=t3_"
 
     results_checked = []
-    for r in results:
+    for r in tqdm(results):
         info(f"{r['id']=} {r['author']=} {r['title']=}\n")
         created_utc = dt.datetime.fromtimestamp(r["created_utc"]).strftime(
             "%Y%m%d %H:%M:%S"
