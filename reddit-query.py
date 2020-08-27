@@ -17,6 +17,7 @@ import datetime as dt
 import logging
 import sys
 import pandas as pd
+import time
 from pathlib import Path, PurePath
 
 # https://www.reddit.com/dev/api/
@@ -85,7 +86,7 @@ def check_for_deleted(results):
     results_checked = []
     for r in results:
         info(f"{r['id']=} {r['author']=} {r['title']=}\n")
-        created_utc = dt.date.fromtimestamp(r["created_utc"]).strftime(
+        created_utc = dt.datetime.fromtimestamp(r["created_utc"]).strftime(
             "%Y%m%d %H:%M:%S"
         )
         elapsed_hours = round((r["retrieved_on"] - r["created_utc"]) / 3600)
@@ -105,8 +106,8 @@ def check_for_deleted(results):
                 is_deleted,  # del_text_r(eddit)
                 is_removed,  # rem_text_r(eddit)
                 r["url"],
-                PUSHSHIFT_API_URL + r["id"],
-                REDDIT_API_URL + r["id"],
+                # PUSHSHIFT_API_URL + r["id"],
+                # REDDIT_API_URL + r["id"],
             )
         )
     debug(results_checked)
@@ -126,8 +127,8 @@ def check_for_deleted(results):
             "del_text_r",
             "rem_text_r",
             "url",
-            "url_api_p",
-            "url_api_r",
+            # "url_api_p",
+            # "url_api_r",
         ],
     )
     return posts_df
@@ -136,7 +137,9 @@ def check_for_deleted(results):
 def query_pushshift(
     name, limit, after, before, subreddit, query="", exclude="", score=">0",
 ):
-    """given search parameters, query pushshift and return JSON"""
+    """Given search parameters, query pushshift and return JSON.
+
+    after/before can be epoch, integer[s|m|h|d] or %Y%m%d"""
 
     # TODO
     # include: `selftext` parameter
@@ -148,14 +151,39 @@ def query_pushshift(
         f"&after={after}&before={before}&score={score}"
     )
     print(f"{pushshift_url=}")
-    data_total = get_JSON(pushshift_url)["data"]
-    return data_total
+    list_of_dicts = get_JSON(pushshift_url)["data"]
+    return list_of_dicts
+
+
+def collect_pushshift_results(
+    name, limit, after, before, subreddit, query="", exclude="", score=">0",
+):
+    """Pushshift limited to 100 results, so need multiple queries to
+    collect results in date range up to limit."""
+
+    results = results_all = query_pushshift(
+        name, limit, after, before, subreddit, query, exclude, score
+    )
+    while len(results) != 0 and len(results_all) < limit:
+        time.sleep(1)
+        after_new = results[-1]["created_utc"]  # + 1?
+        after_new_human = time.strftime(
+            "%a, %d %b %Y %H:%M:%S", time.gmtime(after_new)
+        )
+        info(f"{after_new_human=}")
+        results = query_pushshift(
+            name, limit, after_new, before, subreddit, query, exclude, score
+        )
+        results_all.extend(results)
+        info(f"{len(results_all)=} {len(results)=}")
+
+    return results_all[0:limit]
 
 
 def export_df(name, df):
 
     df.to_csv(f"{name}.csv", encoding="utf-8-sig", index=False)
-    print(f"saved dataframe of shape {df.shape} to '{name}'")
+    print(f"saved dataframe of shape {df.shape} to '{name}.csv'")
 
 
 def main(argv):
@@ -249,6 +277,8 @@ def main(argv):
 
 if __name__ == "__main__":
     args = main(sys.argv[1:])
+
+    # remove hyphens for the filename
     after = args.after.replace("-", "")
     before = args.before.replace("-", "")
 
@@ -272,6 +302,6 @@ if __name__ == "__main__":
             info(f"{query['name']}.csv already exists")
             continue
         else:
-            ps_results = query_pushshift(**query)
+            ps_results = collect_pushshift_results(**query)
             posts_df = check_for_deleted(ps_results)
             export_df(query["name"], posts_df)
