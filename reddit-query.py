@@ -233,7 +233,7 @@ def main(argv):
         "--score",
         type=str,
         default=">0",
-        help="score threshold (default: %(default)s)",
+        help=r"score threshold '[<>]\d+]' (default: %(default)s)'",
     )
     arg_parser.add_argument(
         "-L",
@@ -278,15 +278,20 @@ def main(argv):
 if __name__ == "__main__":
     args = main(sys.argv[1:])
 
-    # remove hyphens for the filename
+    # synatactical tweaks to filename
     after = args.after.replace("-", "")
     before = args.before.replace("-", "")
+    score = args.score
+    if score[0] == ">":
+        score = score[1:] + "+"
+    elif score[0] == "<":
+        score = score[1:] + "-"
 
     queries = (
         {
             "name": (
                 f"reddit_{after}-{before}_{args.subreddit}"
-                f"_s{args.score}_l{args.limit}"
+                f"_s{score}_l{args.limit}"
             ),
             "limit": args.limit,
             "before": args.before,
