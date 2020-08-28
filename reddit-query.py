@@ -159,6 +159,8 @@ def query_pushshift(
         optional_params += f"&before={before}"
     if num_comments:
         optional_params += f"&num_comments={num_comments}"
+    if not args.moderated_include:
+        optional_params += f"&selftext:not=[removed]"
 
     pushshift_url = (
         f"https://api.pushshift.io/reddit/submission/search/"
@@ -236,12 +238,19 @@ def main(argv):
         help="limit to (default: %(default)s) results",
     )
     arg_parser.add_argument(
+        "-m",
+        "--moderated_include",
+        action="store_true",
+        default=False,
+        help="include moderated ['removed'] submissions (default: %(default)s)",
+    )
+    arg_parser.add_argument(
         "-n",
         "--num_comments",
         type=str,
         default=False,
-        help=r"""number of comments threshold """
-        """'[<>]\d+]' (default: %(default)s). """
+        help="""number of comments threshold """
+        r"""'[<>]\d+]' (default: %(default)s). """
         """Note: this is updated as Pushshift ingests, `score` is not.""",
     )
     arg_parser.add_argument(
@@ -314,7 +323,7 @@ if __name__ == "__main__":
             num_comments = num_comments[1:] + "+"
         elif num_comments[0] == "<":
             num_comments = num_comments[1:] + "-"
-        num_comments += "n"
+        num_comments = "n" + num_comments
     else:
         num_comments = "n_"
 
