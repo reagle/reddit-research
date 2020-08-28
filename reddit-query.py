@@ -8,7 +8,7 @@
 """
 What proportion of people on a subreddit delete their posts? This script pulls
 from the Pushshift and Reddit APIs and generates a file with columns for
-submissions deletion status of author and message, at time of Pushshift's
+submissions' deletion status of author and message, at time of Pushshift's
 indexing (often within 24 hours) and Reddit's current version.
 """
 
