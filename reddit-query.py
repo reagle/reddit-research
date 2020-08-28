@@ -71,7 +71,7 @@ def get_reddit_info(id):
     return author, is_deleted, is_removed
 
 
-def check_for_deleted(results):
+def check_for_deleted(pushshift_results):
     """Given pushshift query results, return dataframe of info about
     submissions.
     """
@@ -90,28 +90,28 @@ def check_for_deleted(results):
     REDDIT_API_URL = "https://api.reddit.com/api/info/?id=t3_"
 
     results_checked = []
-    for r in tqdm(results):
-        debug(f"{r['id']=} {r['author']=} {r['title']=}\n")
-        created_utc = dt.datetime.fromtimestamp(r["created_utc"]).strftime(
+    for pr in tqdm(pushshift_results):
+        debug(f"{pr['id']=} {pr['author']=} {pr['title']=}\n")
+        created_utc = dt.datetime.fromtimestamp(pr["created_utc"]).strftime(
             "%Y%m%d %H:%M:%S"
         )
-        elapsed_hours = round((r["retrieved_on"] - r["created_utc"]) / 3600)
-        author, is_deleted, is_removed = get_reddit_info(r["id"])
+        elapsed_hours = round((pr["retrieved_on"] - pr["created_utc"]) / 3600)
+        author_r, is_deleted_r, is_removed_r = get_reddit_info(pr["id"])
         results_checked.append(
             (
-                author,  # author_r(eddit)
-                r["author"] == "[deleted]",  # del_author_p(ushshift)
-                author == "[deleted]",  # del_author_r(eddit)
-                r["title"],  # title (pushshift)
-                r["id"],  # id (pushshift)
+                author_r,  # author_r(eddit)
+                pr["author"] == "[deleted]",  # del_author_p(ushshift)
+                author_r == "[deleted]",  # del_author_r(eddit)
+                pr["title"],  # title (pushshift)
+                pr["id"],  # id (pushshift)
                 created_utc,
                 elapsed_hours,  # elapsed hours when pushshift indexed
-                r["score"],
-                r["num_comments"],
-                r.get("selftext", "") == "[deleted]",  # del_text_p(ushshift)
-                is_deleted,  # del_text_r(eddit)
-                is_removed,  # rem_text_r(eddit)
-                r["url"],
+                pr["score"],  # at time of ingest
+                pr["num_comments"],  # updated as comments ingested?
+                pr.get("selftext", "") == "[deleted]",  # del_text_p(ushshift)
+                is_deleted_r,  # del_text_r(eddit)
+                is_removed_r,  # rem_text_r(eddit)
+                pr["url"],
                 # PUSHSHIFT_API_URL + r["id"],
                 # REDDIT_API_URL + r["id"],
             )
@@ -141,7 +141,7 @@ def check_for_deleted(results):
 
 
 def query_pushshift(
-    name, limit, after, before, subreddit, query="", exclude="", score=">0",
+    name, limit, after, before, subreddit, query="", num_comments=">0",
 ):
     """Given search parameters, query pushshift and return JSON.
 
@@ -157,28 +157,26 @@ def query_pushshift(
         optional_params += f"&after={after}"
     if before:
         optional_params += f"&before={before}"
-    if score:
-        optional_params += f"&score={score}"
-    # TODO: add num_comments
+    if num_comments:
+        optional_params += f"&num_comments={num_comments}"
 
     pushshift_url = (
         f"https://api.pushshift.io/reddit/submission/search/"
         f"?limit={limit}&subreddit={subreddit}{optional_params}"
     )
-    # f"&after={after}&before={before}&score={score}"
     print(f"{pushshift_url=}")
     list_of_dicts = get_JSON(pushshift_url)["data"]
     return list_of_dicts
 
 
 def collect_pushshift_results(
-    name, limit, after, before, subreddit, query="", exclude="", score=">0",
+    name, limit, after, before, subreddit, query="", num_comments=">0",
 ):
     """Pushshift limited to 100 results, so need multiple queries to
     collect results in date range up to limit."""
 
     results = results_all = query_pushshift(
-        name, limit, after, before, subreddit, query, exclude, score
+        name, limit, after, before, subreddit, query, num_comments
     )
     while len(results) != 0 and len(results_all) < limit:
         time.sleep(1)
@@ -188,7 +186,7 @@ def collect_pushshift_results(
         )
         info(f"****** {after_new_human=} ********")
         results = query_pushshift(
-            name, limit, after_new, before, subreddit, query, exclude, score
+            name, limit, after_new, before, subreddit, query, num_comments
         )
         results_all.extend(results)
         debug(f"{len(results_all)=} {len(results)=}")
@@ -238,18 +236,20 @@ def main(argv):
         help="limit to (default: %(default)s) results",
     )
     arg_parser.add_argument(
+        "-n",
+        "--num_comments",
+        type=str,
+        default=False,
+        help=r"""number of comments threshold """
+        """'[<>]\d+]' (default: %(default)s). """
+        """Note: this is updated as Pushshift ingests, `score` is not.""",
+    )
+    arg_parser.add_argument(
         "-r",
         "--subreddit",
         type=str,
         default="AmItheAsshole",
         help="subreddit to query (default: %(default)s)",
-    )
-    arg_parser.add_argument(
-        "-s",
-        "--score",
-        type=str,
-        default=">0",
-        help=r"score threshold '[<>]\d+]' (default: %(default)s)'",
     )
     arg_parser.add_argument(
         "--skip",
@@ -302,25 +302,32 @@ if __name__ == "__main__":
 
     # syntactical tweaks to filename
     if args.after and args.before:
-        date = f"{args.after.replace('-','')}-{ars.before.replace('-','')}"
+        date = f"{args.after.replace('-','')}-{args.before.replace('-','')}"
     elif args.after:
         date = f"{args.after.replace('-','')}-NOW"
     elif args.before:
-        date = f"THEN-{ars.before.replace('-','')}"
-    score = args.score
-    if score[0] == ">":
-        score = score[1:] + "+"
-    elif score[0] == "<":
-        score = score[1:] + "-"
+        date = f"THEN-{args.before.replace('-','')}"
+
+    if args.num_comments:
+        num_comments = args.num_comments
+        if num_comments[0] == ">":
+            num_comments = num_comments[1:] + "+"
+        elif num_comments[0] == "<":
+            num_comments = num_comments[1:] + "-"
+        num_comments += "n"
+    else:
+        num_comments = "n_"
 
     queries = (
         {
-            "name": (f"reddit_{date}_{args.subreddit}_s{score}_l{args.limit}"),
+            "name": (
+                f"reddit_{date}_{args.subreddit}_{num_comments}_l{args.limit}"
+            ),
             "limit": args.limit,
             "before": args.before,
             "after": args.after,
             "subreddit": args.subreddit,
-            "score": args.score,
+            "num_comments": args.num_comments,
         },
     )
 
