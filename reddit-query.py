@@ -54,15 +54,20 @@ debug = logging.debug
 def get_reddit_info(id):
     """Given id, returns info from reddit."""
 
-    author = "[deleted]"
-    is_deleted = False
-    is_removed = False
+    if not args.skip:
+        author = "[deleted]"
+        is_deleted = False
+        is_removed = False
 
-    submission = REDDIT.submission(id=id)
-    author = "[deleted]" if not submission.author else submission.author
-    debug(f"{author=}")
-    is_deleted = submission.selftext == "[deleted]"
-    is_removed = submission.selftext == "[removed]"
+        submission = REDDIT.submission(id=id)
+        author = "[deleted]" if not submission.author else submission.author
+        debug(f"{author=}")
+        is_deleted = submission.selftext == "[deleted]"
+        is_removed = submission.selftext == "[removed]"
+    else:
+        author = "NA"
+        is_deleted = "NA"
+        is_removed = "NA"
     return author, is_deleted, is_removed
 
 
@@ -86,7 +91,7 @@ def check_for_deleted(results):
 
     results_checked = []
     for r in tqdm(results):
-        info(f"{r['id']=} {r['author']=} {r['title']=}\n")
+        debug(f"{r['id']=} {r['author']=} {r['title']=}\n")
         created_utc = dt.datetime.fromtimestamp(r["created_utc"]).strftime(
             "%Y%m%d %H:%M:%S"
         )
@@ -140,17 +145,27 @@ def query_pushshift(
 ):
     """Given search parameters, query pushshift and return JSON.
 
-    after/before can be epoch, integer[s|m|h|d] or %Y%m%d"""
+    # https://github.com/pushshift/api
+    """
 
     # TODO
     # include: `selftext` parameter
     # exclude: `selftext:not` not supported by PSAW?
 
+    optional_params = ""
+    if after:
+        optional_params += f"&after={after}"
+    if before:
+        optional_params += f"&before={before}"
+    if score:
+        optional_params += f"&score={score}"
+    # TODO: add num_comments
+
     pushshift_url = (
         f"https://api.pushshift.io/reddit/submission/search/"
-        f"?limit={limit}&subreddit={subreddit}"
-        f"&after={after}&before={before}&score={score}"
+        f"?limit={limit}&subreddit={subreddit}{optional_params}"
     )
+    # f"&after={after}&before={before}&score={score}"
     print(f"{pushshift_url=}")
     list_of_dicts = get_JSON(pushshift_url)["data"]
     return list_of_dicts
@@ -171,12 +186,12 @@ def collect_pushshift_results(
         after_new_human = time.strftime(
             "%a, %d %b %Y %H:%M:%S", time.gmtime(after_new)
         )
-        info(f"{after_new_human=}")
+        info(f"****** {after_new_human=} ********")
         results = query_pushshift(
             name, limit, after_new, before, subreddit, query, exclude, score
         )
         results_all.extend(results)
-        info(f"{len(results_all)=} {len(results)=}")
+        debug(f"{len(results_all)=} {len(results)=}")
 
     return results_all[0:limit]
 
@@ -198,15 +213,15 @@ def main(argv):
         "-a",
         "--after",
         type=str,
-        default="2018-04-01",
-        help="submissions after (default: %(default)s)",
+        default=False,
+        help=f"""submissions after: epoch, integer[s|m|h|d], or Y-m-d""",
     )
     arg_parser.add_argument(
         "-b",
         "--before",
         type=str,
-        default="2018-04-30",
-        help="submissions before (default: %(default)s)",
+        default=False,
+        help="""submissions before: epoch, integer[s|m|h|d], or Y-m-d""",
     )
     arg_parser.add_argument(
         "-k",
@@ -235,6 +250,12 @@ def main(argv):
         type=str,
         default=">0",
         help=r"score threshold '[<>]\d+]' (default: %(default)s)'",
+    )
+    arg_parser.add_argument(
+        "--skip",
+        action="store_true",
+        default=False,
+        help="skip reddit queries and return after pushshift (default: %(default)s)",
     )
     arg_parser.add_argument(
         "-L",
@@ -279,9 +300,13 @@ def main(argv):
 if __name__ == "__main__":
     args = main(sys.argv[1:])
 
-    # synatactical tweaks to filename
-    after = args.after.replace("-", "")
-    before = args.before.replace("-", "")
+    # syntactical tweaks to filename
+    if args.after and args.before:
+        date = f"{args.after.replace('-','')}-{ars.before.replace('-','')}"
+    elif args.after:
+        date = f"{args.after.replace('-','')}-NOW"
+    elif args.before:
+        date = f"THEN-{ars.before.replace('-','')}"
     score = args.score
     if score[0] == ">":
         score = score[1:] + "+"
@@ -290,10 +315,7 @@ if __name__ == "__main__":
 
     queries = (
         {
-            "name": (
-                f"reddit_{after}-{before}_{args.subreddit}"
-                f"_s{score}_l{args.limit}"
-            ),
+            "name": (f"reddit_{date}_{args.subreddit}_s{score}_l{args.limit}"),
             "limit": args.limit,
             "before": args.before,
             "after": args.after,
@@ -305,7 +327,7 @@ if __name__ == "__main__":
     for query in queries:
         print(f"{query=}")
         if args.keep and exists(f"{query['name']}.csv"):
-            info(f"{query['name']}.csv already exists")
+            debug(f"{query['name']}.csv already exists")
             continue
         else:
             ps_results = collect_pushshift_results(**query)
