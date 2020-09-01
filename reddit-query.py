@@ -342,7 +342,7 @@ if __name__ == "__main__":
 
     for query in queries:
         print(f"{query=}")
-        if args.keep and exists(f"{query['name']}.csv"):
+        if args.keep and Path(f"{query['name']}.csv").exists():
             debug(f"{query['name']}.csv already exists")
             continue
         else:
