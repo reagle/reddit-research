@@ -15,8 +15,10 @@ indexing (often within 24 hours) and Reddit's current version.
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import datetime as dt
 import logging
-import sys
+import numpy as np
 import pandas as pd
+import random
+import sys
 import time
 from pathlib import Path, PurePath
 from tqdm import tqdm
@@ -35,7 +37,6 @@ from web_utils import get_JSON
 
 # https://github.com/pushshift/api
 # import psaw  # https://github.com/dmarx/psaw no exclude:not
-
 
 REDDIT = praw.Reddit(
     user_agent=REDDIT_USER_AGENT,
@@ -148,9 +149,15 @@ def query_pushshift(
     # https://github.com/pushshift/api
     """
 
-    # TODO
-    # include: `selftext` parameter
-    # exclude: `selftext:not` not supported by PSAW?
+    if isinstance(after, str):
+        after_human = after
+    else:
+        after_human = time.strftime("%Y%m%d %H:%M:%S", time.gmtime(after))
+    if isinstance(before, str):
+        before_human = before
+    else:
+        before_human = time.strftime("%Y%m%d %H:%M:%S", time.gmtime(before))
+    critical(f"******* between {after_human} and {before_human}")
 
     optional_params = ""
     if after:
@@ -171,7 +178,62 @@ def query_pushshift(
     return list_of_dicts
 
 
+def ordered_lin_sample(items, limit):
+    """Linear sample from items with order preserved"""
+
+    info(f"{len(items)=}")
+    info(f"{limit=}")
+    sampled_index = np.linspace(0, len(items) - 1, limit).astype(int).tolist()
+    info(f"{sampled_index=}")
+    sampled_items = [items[token] for token in sampled_index]
+    return sampled_items
+
+
+def ordered_random_sample(items, limit):
+    """Random sample from items with order preserved"""
+
+    index = range(len(items))
+    sampled_index = sorted(random.sample(index, limit))
+    info(f"{sampled_index=}")
+    sampled_items = [items[token] for token in sampled_index]
+    return sampled_items
+
+
 def collect_pushshift_results(
+    name, limit, after, before, subreddit, query="", num_comments=">0",
+):
+    """Pushshift limited to 100 results, so need multiple queries to
+    collect results in date range up to or sampled from limit."""
+
+    results = results_all = query_pushshift(
+        name, limit, after, before, subreddit, query, num_comments
+    )
+    if args.sample:  # collect whole range and then sample to limit
+        while len(results) != 0:
+            time.sleep(1)
+            after_new = results[-1]["created_utc"]  # + 1?
+            results = query_pushshift(
+                name, limit, after_new, before, subreddit, query, num_comments
+            )
+            results_all.extend(results)
+        print(f"{len(results_all)=}")
+        results_all = ordered_lin_sample(results_all, limit)
+        print(f"returning linspace sample of size {len(results_all)}")
+    else:  # collect only up to limit
+        while len(results) != 0 and len(results_all) < limit:
+            time.sleep(1)
+            after_new = results[-1]["created_utc"]  # + 1?
+            results = query_pushshift(
+                name, limit, after_new, before, subreddit, query, num_comments
+            )
+            results_all.extend(results)
+        results_all = results_all[0:limit]
+        print(f"returning random sample of size {len(results_all)}")
+
+    return results_all
+
+
+def collect_pushshift_results_old(
     name, limit, after, before, subreddit, query="", num_comments=">0",
 ):
     """Pushshift limited to 100 results, so need multiple queries to
@@ -261,6 +323,13 @@ def main(argv):
         help="subreddit to query (default: %(default)s)",
     )
     arg_parser.add_argument(
+        "--sample",
+        action="store_true",
+        default=False,
+        help="""sample complete date range up to limit, rather than """
+        """first submissions within limit (default: %(default)s)""",
+    )
+    arg_parser.add_argument(
         "--skip",
         action="store_true",
         default=False,
@@ -316,7 +385,6 @@ if __name__ == "__main__":
         date = f"{args.after.replace('-','')}-NOW"
     elif args.before:
         date = f"THEN-{args.before.replace('-','')}"
-
     if args.num_comments:
         num_comments = args.num_comments
         if num_comments[0] == ">":
@@ -326,11 +394,16 @@ if __name__ == "__main__":
         num_comments = "n" + num_comments
     else:
         num_comments = "n_"
+    if args.sample:
+        sample = "_sampled"
+    else:
+        sample = ""
 
     queries = (
         {
             "name": (
-                f"reddit_{date}_{args.subreddit}_{num_comments}_l{args.limit}"
+                f"""reddit_{date}_{args.subreddit}_{num_comments}"""
+                f"""_l{args.limit}{sample}"""
             ),
             "limit": args.limit,
             "before": args.before,
