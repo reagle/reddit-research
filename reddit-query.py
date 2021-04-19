@@ -142,7 +142,13 @@ def check_for_deleted(pushshift_results):
 
 
 def query_pushshift(
-    name, limit, after, before, subreddit, query="", num_comments=">0",
+    name,
+    limit,
+    after,
+    before,
+    subreddit,
+    query="",
+    num_comments=">0",
 ):
     """Given search parameters, query pushshift and return JSON.
 
@@ -200,7 +206,13 @@ def ordered_random_sample(items, limit):
 
 
 def collect_pushshift_results(
-    name, limit, after, before, subreddit, query="", num_comments=">0",
+    name,
+    limit,
+    after,
+    before,
+    subreddit,
+    query="",
+    num_comments=">0",
 ):
     """Pushshift limited to 100 results, so need multiple queries to
     collect results in date range up to or sampled from limit."""
@@ -234,7 +246,13 @@ def collect_pushshift_results(
 
 
 def collect_pushshift_results_old(
-    name, limit, after, before, subreddit, query="", num_comments=">0",
+    name,
+    limit,
+    after,
+    before,
+    subreddit,
+    query="",
+    num_comments=">0",
 ):
     """Pushshift limited to 100 results, so need multiple queries to
     collect results in date range up to limit."""
