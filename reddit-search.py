@@ -4,6 +4,8 @@
 # (c) Copyright 2020 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 #
+# Given a spreadsheet with phrases, facilitate a search of those appearing in a
+# column by opening browser windows to relevant search engines
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging
