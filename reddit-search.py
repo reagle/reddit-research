@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Facilitate searching Reddit for quotes
 # (c) Copyright 2020 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 #
 # Given a spreadsheet with phrases, facilitate a search of those appearing in a
-# column by opening browser windows to relevant search engines
+# column by opening browser windows to relevant search engines.
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging
@@ -25,27 +24,6 @@ error = logging.error
 warning = logging.warning
 info = logging.info
 debug = logging.debug
-
-
-def grab_quotes(file_name, column, do_recheck):
-    suffix = Path(file_name).suffix
-    if suffix == ".xls":
-        df = pd.read_excel(file_name)
-        # key, subreddit, type, original, found
-        # key, subreddit, type, original, spintax, spinrewriter, found
-        # key, subreddit, type, original, wordai, found
-        for counter, row in df.iterrows():
-            quotes_search(row, column, do_recheck)
-
-    elif suffix == ".csv":
-        df = pd.read_csv(file_name, delimiter=",")
-        # "key", "directive", "method", "original", "found", "url", "species", "source", "comment"
-        for counter, row in df.iterrows():
-            quotes_search(row, column, do_recheck)
-    else:
-        print(f"{file_name}")
-        raise ValueError("unknown file type/extension")
-        sys.exit()
 
 
 def quotes_search(row, heading, do_recheck):
@@ -90,6 +68,27 @@ def quotes_search(row, heading, do_recheck):
             sys.exit()
 
 
+def grab_quotes(file_name, column, do_recheck):
+    suffix = Path(file_name).suffix
+    if suffix in [".xls", ".xlsx", ".odf", ".ods", ".odt"]:
+        df = pd.read_excel(file_name)
+        # key, subreddit, type, original, found
+        # key, subreddit, type, original, spintax, spinrewriter, found
+        # key, subreddit, type, original, wordai, found
+        for counter, row in df.iterrows():
+            quotes_search(row, column, do_recheck)
+
+    elif suffix in [".csv"]:
+        df = pd.read_csv(file_name, delimiter=",")
+        # "key", "directive", "method", "original", "found", "url", "species", "source", "comment"
+        for counter, row in df.iterrows():
+            quotes_search(row, column, do_recheck)
+    else:
+        print(f"{file_name}")
+        raise ValueError("unknown file type/extension")
+        sys.exit()
+
+
 def main(argv):
     """Process arguments"""
     arg_parser = argparse.ArgumentParser(
@@ -107,7 +106,7 @@ def main(argv):
     # positional arguments
     arg_parser.add_argument(
         "file_name",
-        nargs="?",
+        nargs="1",
         metavar="FILE",
     )
     # optional arguments
@@ -153,7 +152,7 @@ def main(argv):
     if args.log_to_file:
         print("logging to file")
         logging.basicConfig(
-            filename="quote-searching.log",
+            filename="reddit-search.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
