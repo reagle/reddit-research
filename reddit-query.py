@@ -85,9 +85,7 @@ def check_for_deleted(pushshift_results):
     """
 
     # Use these for manual confirmation of results
-    PUSHSHIFT_API_URL = (
-        "https://api.pushshift.io/reddit/submission/search?ids="
-    )
+    PUSHSHIFT_API_URL = "https://api.pushshift.io/reddit/submission/search?ids="
     REDDIT_API_URL = "https://api.reddit.com/api/info/?id=t3_"
 
     results_checked = []
@@ -263,9 +261,7 @@ def collect_pushshift_results_old(
     while len(results) != 0 and len(results_all) < limit:
         time.sleep(1)
         after_new = results[-1]["created_utc"]  # + 1?
-        after_new_human = time.strftime(
-            "%a, %d %b %Y %H:%M:%S", time.gmtime(after_new)
-        )
+        after_new_human = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime(after_new))
         info(f"****** {after_new_human=} ********")
         results = query_pushshift(
             name, limit, after_new, before, subreddit, query, num_comments
@@ -284,9 +280,7 @@ def export_df(name, df):
 
 def main(argv):
     """Process arguments"""
-    arg_parser = argparse.ArgumentParser(
-        description="Script for querying reddit APIs"
-    )
+    arg_parser = argparse.ArgumentParser(description="Script for querying reddit APIs")
 
     # optional arguments
     arg_parser.add_argument(
