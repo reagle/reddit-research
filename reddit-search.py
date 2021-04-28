@@ -27,7 +27,7 @@ debug = logging.debug
 
 
 def quotes_search(row, heading, do_recheck):
-    """use search engines to find quotes"""
+    """Open browser on each search engine to help find quotes."""
 
     system("cls") if name == "nt" else system("clear")
     if row[heading] == "" or not "found" in row:
@@ -69,6 +69,8 @@ def quotes_search(row, heading, do_recheck):
 
 
 def grab_quotes(file_name, column, do_recheck):
+    """Read a column of quotes from a spreadsheet."""
+
     suffix = Path(file_name).suffix
     if suffix in [".xls", ".xlsx", ".odf", ".ods", ".odt"]:
         df = pd.read_excel(file_name)
@@ -80,7 +82,7 @@ def grab_quotes(file_name, column, do_recheck):
 
     elif suffix in [".csv"]:
         df = pd.read_csv(file_name, delimiter=",")
-        # "key", "directive", "method", "original", "found", "url", "species", "source", "comment"
+        # key, directive, method, original, found, url, species, source, comment
         for counter, row in df.iterrows():
             quotes_search(row, column, do_recheck)
     else:
@@ -95,7 +97,7 @@ def main(argv):
         formatter_class=argparse.RawTextHelpFormatter,
         description="""        Given a spreadsheet with phrases, facilitate a
         search of those appearing in a column by opening browser windows to
-        relevant search engines.
+        relevant search engines. For example:
 
         > reddit-search.py reddit-mask-quotes.csv -c original
         > reddit-search.py reddit-mask-spinrewriter.xls -c spinrewriter
@@ -137,7 +139,7 @@ def main(argv):
         default=0,
         help="Increase verbosity (specify multiple times for more)",
     )
-    arg_parser.add_argument("--version", action="version", version="0.1")
+    arg_parser.add_argument("--version", action="version", version="0.2")
     args = arg_parser.parse_args(argv)
 
     log_level = logging.ERROR  # 40

@@ -85,7 +85,9 @@ def check_for_deleted(pushshift_results):
     """
 
     # Use these for manual confirmation of results
-    PUSHSHIFT_API_URL = "https://api.pushshift.io/reddit/submission/search?ids="
+    PUSHSHIFT_API_URL = (
+        "https://api.pushshift.io/reddit/submission/search?ids="
+    )
     REDDIT_API_URL = "https://api.reddit.com/api/info/?id=t3_"
 
     results_checked = []
@@ -148,10 +150,9 @@ def query_pushshift(
     query="",
     num_comments=">0",
 ):
-    """Given search parameters, query pushshift and return JSON.
+    """Given search parameters, query pushshift and return JSON."""
 
     # https://github.com/pushshift/api
-    """
 
     if isinstance(after, str):
         after_human = after
@@ -183,7 +184,7 @@ def query_pushshift(
 
 
 def ordered_lin_sample(items, limit):
-    """Linear sample from items with order preserved"""
+    """Linear sample from items with order preserved."""
 
     info(f"{len(items)=}")
     info(f"{limit=}")
@@ -194,7 +195,7 @@ def ordered_lin_sample(items, limit):
 
 
 def ordered_random_sample(items, limit):
-    """Random sample from items with order preserved"""
+    """Random sample from items with order preserved."""
 
     index = range(len(items))
     sampled_index = sorted(random.sample(index, limit))
@@ -261,7 +262,9 @@ def collect_pushshift_results_old(
     while len(results) != 0 and len(results_all) < limit:
         time.sleep(1)
         after_new = results[-1]["created_utc"]  # + 1?
-        after_new_human = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime(after_new))
+        after_new_human = time.strftime(
+            "%a, %d %b %Y %H:%M:%S", time.gmtime(after_new)
+        )
         info(f"****** {after_new_human=} ********")
         results = query_pushshift(
             name, limit, after_new, before, subreddit, query, num_comments
@@ -280,7 +283,9 @@ def export_df(name, df):
 
 def main(argv):
     """Process arguments"""
-    arg_parser = argparse.ArgumentParser(description="Script for querying reddit APIs")
+    arg_parser = argparse.ArgumentParser(
+        description="Script for querying reddit APIs"
+    )
 
     # optional arguments
     arg_parser.add_argument(
