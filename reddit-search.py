@@ -108,7 +108,7 @@ def main(argv):
     # positional arguments
     arg_parser.add_argument(
         "file_name",
-        nargs="1",
+        nargs=1,
         metavar="FILE",
     )
     # optional arguments
