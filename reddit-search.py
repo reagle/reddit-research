@@ -71,6 +71,7 @@ def quotes_search(row, heading, do_recheck):
 def grab_quotes(file_name, column, do_recheck):
     """Read a column of quotes from a spreadsheet."""
 
+    info(f"{file_name=}, {column=}, {do_recheck=}")
     suffix = Path(file_name).suffix
     if suffix in [".xls", ".xlsx", ".odf", ".ods", ".odt"]:
         df = pd.read_excel(file_name)
@@ -168,4 +169,4 @@ def main(argv):
 if __name__ == "__main__":
     args = main(sys.argv[1:])
     debug(f"{args=}")
-    grab_quotes(args.file_name, args.column, args.recheck)
+    grab_quotes(args.file_name[0], args.column, args.recheck)
