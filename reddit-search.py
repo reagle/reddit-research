@@ -101,8 +101,8 @@ def main(argv):
         relevant search engines. For example:
 
         > reddit-search.py reddit-mask-quotes.csv -c original
-        > reddit-search.py reddit-mask-spinrewriter.xls -c spinrewriter
-        > reddit-search.py reddit-mask-wordai.xls -c wordai
+        > reddit-search.py reddit-mask-spinrewriter.xlsx -c spinrewriter
+        > reddit-search.py reddit-mask-wordai.xlsx -c wordai
         """,
     )
 
