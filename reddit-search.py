@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 # (c) Copyright 2020 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
-#
-# Given a spreadsheet with phrases, facilitate a search of those appearing in a
-# column by opening browser windows to relevant search engines.
+# Given a spreadsheet with phrases, facilitate a search of those
+# appearing in a column by opening browser windows to relevant search engines.
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging
@@ -30,7 +29,7 @@ def quotes_search(row, heading, do_recheck):
     """Open browser on each search engine to help find quotes."""
 
     system("cls") if name == "nt" else system("clear")
-    if row[heading] == "" or not "found" in row:
+    if row[heading] == "" or "found" not in row:
         return
     info(f"{row['found']=}")
     if do_recheck or row["found"] == "" or pd.isnull(row["found"]):
@@ -45,20 +44,31 @@ def quotes_search(row, heading, do_recheck):
         debug(f"{row['key']}, {row['original']}\n")
 
         # Google query
-        query_google = f"""https://www.google.com/search?q=site:reddit.com {subreddit} {original_quote}"""
+        query_google = (
+            f"""https://www.google.com/search"""
+            f"""?q=site:reddit.com {subreddit} {original_quote}"""
+        )
         debug(f"Google query:            {query_google}")
         webbrowser.open(query_google)
         time.sleep(0.5)
 
         # Reddit query
-        query_reddit = f"""https://www.reddit.com/{subreddit}search/?q={original_quote}&restrict_sr=on&include_over_18=on"""
+        query_reddit = (
+            f"""https://www.reddit.com/{subreddit}search/"""
+            f"""?q={original_quote}&restrict_sr=on&include_over_18=on"""
+        )
         debug(f"Reddit query:            {query_reddit}")
         webbrowser.open(query_reddit)
         time.sleep(0.5)
 
         # Pushshift query
         # or another interface: https://camas.github.io/reddit-search/
-        query_pushshift = f"""https://redditsearch.io/?term={original_quote}&dataviz=false&aggs=false&subreddits={subreddit[2:-1]}&searchtype=posts,comments&search=true&start=0&end=1594758200&size=100"""
+        query_pushshift = (
+            f"""https://redditsearch.io/"""
+            f"""?term={original_quote}&dataviz=false&aggs=false"""
+            f"""&subreddits={subreddit[2:-1]}&searchtype=posts,comments"""
+            f"""&search=true&start=0&end=1594758200&size=100"""
+        )
         debug(f"Pushshift query:            {query_pushshift}")
         webbrowser.open(query_pushshift)
 
@@ -99,7 +109,6 @@ def main(argv):
         description="""        Given a spreadsheet with phrases, facilitate a
         search of those appearing in a column by opening browser windows to
         relevant search engines. For example:
-
         > reddit-search.py reddit-mask-quotes.csv -c original
         > reddit-search.py reddit-mask-spinrewriter.xlsx -c spinrewriter
         > reddit-search.py reddit-mask-wordai.xlsx -c wordai
@@ -118,13 +127,13 @@ def main(argv):
         "--recheck",
         action="store_true",
         default=False,
-        help="recheck sites with non-NULL values in 'found' column",
+        help="recheck non-NULL values in 'found' column",
     )
     arg_parser.add_argument(
         "-c",
         "--column",
         default="original",
-        help="sheet column to query",
+        help="sheet column to query [default: 'original']",
     )
     arg_parser.add_argument(
         "-L",
