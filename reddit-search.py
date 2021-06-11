@@ -27,7 +27,7 @@ info = logging.info
 debug = logging.debug
 
 
-def is_url_found(query, target_url):
+def auto_search(subreddit, quote, target_url):
     """Does the URL appear in the query results?"""
     response = requests.get(query)
     if target_url in response.text:
@@ -56,18 +56,14 @@ def quotes_search(row, heading, do_recheck):
 
         # Google query
         query_google = (
-            f"""https://www.google.com/search"""
-            f"""?q=site:reddit.com {subreddit} {original_quote}"""
+            """https://www.google.com/search"""
+            """?q=site:reddit.com {subreddit} {original_quote}"""
         )
-        print(f"on Google: {is_url_found(query_google, row['url'])}")
-        query_google_exact = (
-            f"""https://www.google.com/search"""
-            f'''?q=site:reddit.com {subreddit} "{original_quote}"'''
+        auto_search(subreddit, original_quote, row["url"])
+        query_google_final = query_google.format(
+            subreddit=subreddit, original_quote=original_quote
         )
-        print(
-            f"on Google exact: {is_url_found(query_google_exact, row['url'])}"
-        )
-        debug(f"Google query:            {query_google}")
+        debug(f"Google query:       {query_google_final}")
         webbrowser.open(query_google)
         time.sleep(0.5)
 
@@ -76,7 +72,7 @@ def quotes_search(row, heading, do_recheck):
             f"""https://www.reddit.com/{subreddit}search/"""
             f"""?q={original_quote}&restrict_sr=on&include_over_18=on"""
         )
-        debug(f"Reddit query:            {query_reddit}")
+        debug(f"Reddit query:       {query_reddit_final}")
         webbrowser.open(query_reddit)
         time.sleep(0.5)
 
@@ -88,7 +84,7 @@ def quotes_search(row, heading, do_recheck):
             f"""&subreddits={subreddit[2:-1]}&searchtype=posts,comments"""
             f"""&search=true&start=0&end=1594758200&size=100"""
         )
-        debug(f"Pushshift query:            {query_pushshift}")
+        debug(f"Pushshift query:       {query_pushshift_final}")
         webbrowser.open(query_pushshift)
 
         character = input("`enter` to continue | `q` to quit: ")
