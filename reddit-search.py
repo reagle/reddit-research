@@ -12,8 +12,10 @@ import time
 import webbrowser
 from os import name, system
 from pathlib import Path  # https://docs.python.org/3/library/pathlib.html
+from urllib.parse import urlparse
 
 import pandas as pd
+import requests
 
 HOME = str(Path("~").expanduser())
 
@@ -23,6 +25,15 @@ error = logging.error
 warning = logging.warning
 info = logging.info
 debug = logging.debug
+
+
+def is_url_found(query, target_url):
+    """Does the URL appear in the query results?"""
+    response = requests.get(query)
+    if target_url in response.text:
+        debug(f"found at {query=}")
+        return True
+    return False
 
 
 def quotes_search(row, heading, do_recheck):
@@ -47,6 +58,14 @@ def quotes_search(row, heading, do_recheck):
         query_google = (
             f"""https://www.google.com/search"""
             f"""?q=site:reddit.com {subreddit} {original_quote}"""
+        )
+        print(f"on Google: {is_url_found(query_google, row['url'])}")
+        query_google_exact = (
+            f"""https://www.google.com/search"""
+            f'''?q=site:reddit.com {subreddit} "{original_quote}"'''
+        )
+        print(
+            f"on Google exact: {is_url_found(query_google_exact, row['url'])}"
         )
         debug(f"Google query:            {query_google}")
         webbrowser.open(query_google)
@@ -84,7 +103,7 @@ def grab_quotes(file_name, column, do_recheck):
     info(f"{file_name=}, {column=}, {do_recheck=}")
     suffix = Path(file_name).suffix
     if suffix in [".xls", ".xlsx", ".odf", ".ods", ".odt"]:
-        df = pd.read_excel(file_name)
+        df = pd.read_excel(file_name, keep_default_na=False)
         # key, subreddit, type, original, found
         # key, subreddit, type, original, spintax, spinrewriter, found
         # key, subreddit, type, original, wordai, found
@@ -92,7 +111,7 @@ def grab_quotes(file_name, column, do_recheck):
             quotes_search(row, column, do_recheck)
 
     elif suffix in [".csv"]:
-        df = pd.read_csv(file_name, delimiter=",")
+        df = pd.read_csv(file_name, delimiter=",", keep_default_na=False)
         # key, directive, method, original, found, url, species, source, comment
         for counter, row in df.iterrows():
             quotes_search(row, column, do_recheck)
