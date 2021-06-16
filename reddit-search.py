@@ -160,8 +160,11 @@ def main(argv):
     arg_parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description="""        Given a spreadsheet with phrases, facilitate a
-        search of those appearing in a column by opening browser windows to
-        relevant search engines. For example:
+        search of those appearing in a column (default: 'original') by
+        automatically searching at and opening browser windows to search
+        engines. If you've disguised the phrase and wish to test its efficacy,
+        include the URL of the source in the url column. For example:
+
         > reddit-search.py reddit-mask-quotes.csv -c original
         > reddit-search.py reddit-mask-spinrewriter.xlsx -c spinrewriter
         > reddit-search.py reddit-mask-wordai.xlsx -c wordai
