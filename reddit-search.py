@@ -8,13 +8,11 @@
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging
 import sys
-import time
 import webbrowser
 from os import name, system
 from pathlib import Path  # https://docs.python.org/3/library/pathlib.html
 
 # from phantomjs import Phantom # TODO: use this for searching DOM?
-from urllib.parse import urlparse
 
 import pandas as pd
 import requests
@@ -146,7 +144,6 @@ def grab_quotes(file_name, column, do_recheck):
 
     elif suffix in [".csv"]:
         df = pd.read_csv(file_name, delimiter=",", keep_default_na=False)
-        # key, directive, method, original, found, url, species, source, comment
         for counter, row in df.iterrows():
             quotes_search(row, column, do_recheck)
     else:
@@ -159,15 +156,18 @@ def main(argv):
     """Process arguments"""
     arg_parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description="""        Given a spreadsheet with phrases, facilitate a
-        search of those appearing in a column (default: 'original') by
-        automatically searching at and opening browser windows to search
-        engines. If you've disguised the phrase and wish to test its efficacy,
-        include the URL of the source in the url column. For example:
+        description="""        Facilitate a search of phrases appearing in a
+        spreadsheet column (default: 'original') by generating queries against
+        search engines and opening the results in browser tabs. Search engines
+        include Google, Reddit, and RedditSearch/Pushshift.
 
-        > reddit-search.py reddit-mask-quotes.csv -c original
-        > reddit-search.py reddit-mask-spinrewriter.xlsx -c spinrewriter
-        > reddit-search.py reddit-mask-wordai.xlsx -c wordai
+        > reddit-search.py demo-phrases.csv -c original
+
+        If you wish to test the efficacy of a disguised/spun phrase, also
+        include a column of the spun phrase and the 'url' of the source. This
+        will automatically check the results for that URL.
+
+        > reddit-search.py demo-phrases.csv -c weakspins
         """,
     )
 
