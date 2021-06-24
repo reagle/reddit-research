@@ -11,11 +11,14 @@ import sys
 import webbrowser
 from os import name, system
 from pathlib import Path  # https://docs.python.org/3/library/pathlib.html
+import urllib
+
+import pandas as pd
+
+import requests
 
 # from phantomjs import Phantom # TODO: use this for searching DOM?
 
-import pandas as pd
-import requests
 
 HOME = str(Path("~").expanduser())
 
@@ -38,9 +41,6 @@ def auto_search(query, subreddit, quote, target_url):
         print("auto_search: N/A")
         return
 
-    # remove url scheme and netloc (e.g., new.reddit.com vs old.reddit.com)
-    target_url = "/".join(target_url.split("/")[3:])
-
     if "redditsearch.io" in query:  # use pushshift for auto_search
         query = (
             "https://api.pushshift.io/reddit/submission/search/"
@@ -50,12 +50,21 @@ def auto_search(query, subreddit, quote, target_url):
     query_inexact = query.format(subreddit=subreddit, quote=quote)
     info(f"{query_inexact=}")
     response = requests.get(query_inexact, headers=HEADERS)
-    # breakpoint()
+
+    # remove url scheme and netloc from https://old.reddit.com/...
+    target_url = "/".join(target_url.split("/")[3:])  # TODO use urllib.parse
+    # if reddit, just check on t3 message ID and title
+    if target_url.startswith("r/"):
+        target_url = "/".join(target_url.split("/")[3:5])
     if target_url in response.text:
-        print(f"auto_search: found inexact at {query_inexact[0:30]}...")
+        print(
+            f"auto_search: found inexact at "
+            f"{query_inexact.replace(' ', '+')}"  # TODO: properly quote
+        )
         return
 
-    if "google.com" in query:  # Google does well with exact searches
+    # Google does well with exact searches, so run again as exact
+    if "google.com" in query:
         info("google query EXACT")
         info(f"{query=}")
         query_exact = query.format(subreddit=subreddit, quote=f'"{quote}"')
