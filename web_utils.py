@@ -15,7 +15,8 @@ import json
 import logging
 import os
 import re
-from xml.sax.saxutils import escape, unescape
+from typing import Any, Match, Tuple
+from xml.sax.saxutils import escape  # unescape
 
 import requests  # http://docs.python-requests.org/en/latest/
 
@@ -27,13 +28,13 @@ info = logging.info
 dbg = logging.debug
 
 
-def escape_XML(s):  # http://wiki.python.org/moin/EscapingXml
+def escape_XML(text: str) -> str:  # http://wiki.python.org/moin/EscapingXml
     """Escape XML character entities; & < > are defaulted"""
     extras = {"\t": "  "}
-    return escape(s, extras)
+    return escape(text, extras)
 
 
-def unescape_XML(text):  # .0937s 4.11%
+def unescape_XML(text: str) -> str:  # .0937s 4.11%
     """
     Removes HTML or XML character references and entities from text.
     http://effbot.org/zone/re-sub.htm#unescape-htmlentitydefs
@@ -41,7 +42,7 @@ def unescape_XML(text):  # .0937s 4.11%
 
     """
 
-    def fixup(m):
+    def fixup(m: Match):
         text = m.group(0)
         if text[:2] == "&#":
             # character reference
@@ -64,13 +65,13 @@ def unescape_XML(text):  # .0937s 4.11%
 
 
 def get_HTML(
-    url,
-    referer="",
-    data=None,
-    cookie=None,
-    retry_counter=0,
-    cache_control=None,
-):
+    url: str,
+    referer: str = "",
+    data: str = None,
+    cookie: str = None,
+    retry_counter: int = 0,
+    cache_control: str = None,
+) -> Tuple[bytes, Any, str, requests.models.Response]:
     """Return [HTML content, response] of a given URL."""
 
     from lxml import etree
@@ -94,14 +95,14 @@ def get_HTML(
 
 
 def get_JSON(
-    url,
-    referer="",
-    data=None,
-    cookie=None,
-    retry_counter=0,
-    cache_control=None,
-    requested_content_type="application/json",
-):
+    url: str,
+    referer: str = "",
+    data: str = None,
+    cookie: str = None,
+    retry_counter: int = 0,
+    cache_control: str = None,
+    requested_content_type: str = "application/json",
+) -> list | dict:  # different services return [... or {...
     """Return [JSON content, response] of a given URL."""
 
     AGENT_HEADERS = {"User-Agent": "Thunderdell/BusySponge"}
@@ -120,7 +121,7 @@ def get_JSON(
         raise IOError("URL content is not JSON.")
 
 
-def get_text(url):
+def get_text(url: str) -> str:
     """Textual version of url"""
 
     import os

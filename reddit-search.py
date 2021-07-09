@@ -5,13 +5,19 @@
 # Given a spreadsheet with phrases, facilitate a search of those
 # appearing in a column by opening browser windows to relevant search engines.
 
+"""Facilitate a search of phrases appearing in a
+spreadsheet column (default: 'original') by generating queries against
+search engines and opening the results in browser tabs. Search engines
+include Google, Reddit, and RedditSearch/Pushshift."""
+
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging
 import sys
 import webbrowser
 from os import name, system
 from pathlib import Path  # https://docs.python.org/3/library/pathlib.html
-import urllib
+
+# import urllib
 
 import pandas as pd
 
@@ -32,7 +38,9 @@ debug = logging.debug
 HEADERS = {"User-Agent": "Reddit Search https://github.com/reagle/reddit"}
 
 
-def auto_search(query, subreddit, quote, target_url):
+def auto_search(
+    query: str, subreddit: str, quote: str, target_url: str
+) -> None:
     """Does the URL appear in the query results?"""
 
     info(f"{subreddit=}")
@@ -75,7 +83,7 @@ def auto_search(query, subreddit, quote, target_url):
             return
 
 
-def quotes_search(row, heading, do_recheck):
+def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
     """Open browser on each search engine to help find quotes."""
 
     system("cls") if name == "nt" else system("clear")
@@ -137,7 +145,7 @@ def quotes_search(row, heading, do_recheck):
             sys.exit()
 
 
-def grab_quotes(file_name, column, do_recheck):
+def grab_quotes(file_name: str, column: str, do_recheck: bool) -> None:
     """Read a column of quotes from a spreadsheet."""
 
     info(f"{file_name=}, {column=}, {do_recheck=}")
@@ -161,7 +169,7 @@ def grab_quotes(file_name, column, do_recheck):
         sys.exit()
 
 
-def main(argv):
+def main(argv) -> argparse.Namespace:
     """Process arguments"""
     arg_parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,

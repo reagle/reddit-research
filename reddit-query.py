@@ -15,17 +15,17 @@ indexing (often within 24 hours) and Reddit's current version.
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import datetime as dt
 import logging
-import numpy as np
-import pandas as pd
 import random
 import sys
 import time
 from pathlib import Path, PurePath
-from tqdm import tqdm
+
+import numpy as np
+import pandas as pd
 
 # https://www.reddit.com/dev/api/
 import praw  # https://praw.readthedocs.io/en/latest
-
+from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
 from web_api_tokens import (
     REDDIT_CLIENT_ID,
     REDDIT_CLIENT_SECRET,
@@ -34,6 +34,7 @@ from web_api_tokens import (
 
 # https://github.com/reagle/thunderdell
 from web_utils import get_JSON
+from typing import Any, Tuple
 
 # https://github.com/pushshift/api
 # import psaw  # https://github.com/dmarx/psaw no exclude:not
@@ -52,12 +53,12 @@ info = logging.info
 debug = logging.debug
 
 
-def get_reddit_info(id):
+def get_reddit_info(id) -> Tuple[Any, Any, Any]:
     """Given id, returns info from reddit."""
 
     if not args.skip:
         author = "[deleted]"
-        is_deleted = False
+        is_deleted = False  # TODO: should these be "FALSE" strings?
         is_removed = False
 
         submission = REDDIT.submission(id=id)
@@ -72,7 +73,7 @@ def get_reddit_info(id):
     return author, is_deleted, is_removed
 
 
-def check_for_deleted(pushshift_results):
+def check_for_deleted(pushshift_results) -> Any:
     """Given pushshift query results, return dataframe of info about
     submissions.
     """
@@ -85,10 +86,10 @@ def check_for_deleted(pushshift_results):
     """
 
     # Use these for manual confirmation of results
-    PUSHSHIFT_API_URL = (
-        "https://api.pushshift.io/reddit/submission/search?ids="
-    )
-    REDDIT_API_URL = "https://api.reddit.com/api/info/?id=t3_"
+    # PUSHSHIFT_API_URL = (
+    #     "https://api.pushshift.io/reddit/submission/search?ids="
+    # )
+    # REDDIT_API_URL = "https://api.reddit.com/api/info/?id=t3_"
 
     results_checked = []
     for pr in tqdm(pushshift_results):
@@ -149,7 +150,7 @@ def query_pushshift(
     subreddit,
     query="",
     num_comments=">0",
-):
+) -> Any:
     """Given search parameters, query pushshift and return JSON."""
 
     # https://github.com/pushshift/api
@@ -183,7 +184,7 @@ def query_pushshift(
     return list_of_dicts
 
 
-def ordered_lin_sample(items, limit):
+def ordered_lin_sample(items, limit) -> list:
     """Linear sample from items with order preserved."""
 
     info(f"{len(items)=}")
@@ -194,7 +195,7 @@ def ordered_lin_sample(items, limit):
     return sampled_items
 
 
-def ordered_random_sample(items, limit):
+def ordered_random_sample(items, limit) -> list:
     """Random sample from items with order preserved."""
 
     index = range(len(items))
@@ -212,7 +213,7 @@ def collect_pushshift_results(
     subreddit,
     query="",
     num_comments=">0",
-):
+) -> Any:
     """Pushshift limited to 100 results, so need multiple queries to
     collect results in date range up to or sampled from limit."""
 
@@ -252,7 +253,7 @@ def collect_pushshift_results_old(
     subreddit,
     query="",
     num_comments=">0",
-):
+) -> Any:
     """Pushshift limited to 100 results, so need multiple queries to
     collect results in date range up to limit."""
 
@@ -275,13 +276,13 @@ def collect_pushshift_results_old(
     return results_all[0:limit]
 
 
-def export_df(name, df):
+def export_df(name, df) -> None:
 
     df.to_csv(f"{name}.csv", encoding="utf-8-sig", index=False)
     print(f"saved dataframe of shape {df.shape} to '{name}.csv'")
 
 
-def main(argv):
+def main(argv) -> argparse.Namespace:
     """Process arguments"""
     arg_parser = argparse.ArgumentParser(
         description="Script for querying reddit APIs"
@@ -307,7 +308,10 @@ def main(argv):
         "--keep",
         action="store_true",
         default=False,
-        help="keep existing CSV files and don't overwrite (default: %(default)s)",
+        help=(
+            "keep existing CSV files and don't overwrite"
+            "(default: %(default)s)"
+        ),
     )
     arg_parser.add_argument(
         "-l",
@@ -321,7 +325,10 @@ def main(argv):
         "--moderated_include",
         action="store_true",
         default=False,
-        help="include moderated ['removed'] submissions (default: %(default)s)",
+        help=(
+            "include moderated ['removed'] submissions "
+            "(default: %(default)s)"
+        ),
     )
     arg_parser.add_argument(
         "-n",
@@ -350,7 +357,10 @@ def main(argv):
         "--skip",
         action="store_true",
         default=False,
-        help="skip reddit queries and return after pushshift (default: %(default)s)",
+        help=(
+            "skip reddit queries and return after pushshift "
+            "(default: %(default)s)"
+        ),
     )
     arg_parser.add_argument(
         "-L",
