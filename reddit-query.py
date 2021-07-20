@@ -234,7 +234,9 @@ def collect_pushshift_results(
             )
             results_all.extend(results)
         results_all = ordered_firsts_sample(results_all, limit)
-        print(f"returning {len(results_all)} posts from random sample")
+        print(
+            f"returning {len(results_all)} posts from random sample in range"
+        )
     else:  # collect only firsts up to limit
         while len(results) != 0 and len(results_all) < limit:
             time.sleep(1)
@@ -244,7 +246,7 @@ def collect_pushshift_results(
             )
             results_all.extend(results)
         results_all = results_all[0:limit]
-        print(f"returning {len(results_all)} (first) posts")
+        print(f"returning {len(results_all)} (first) posts in range")
 
     return results_all
 
