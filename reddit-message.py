@@ -88,7 +88,6 @@ def select_users(df) -> list[str]:
 def message_users(users, greeting) -> None:
     """Post message to users"""
 
-    print(f"{users=}")
     for user in users:
         print(f"messaging user {user}")
         REDDIT.redditor(user).message("test", greeting)
@@ -172,6 +171,5 @@ if __name__ == "__main__":
     df = pd.read_csv(args.input_filename[0])
     users = select_users(df)
     print(f"to {users=}")
-    sys.exit()
-
-    message_users(users, greeting)
+    if not args.dry_run:
+        message_users(users, greeting)

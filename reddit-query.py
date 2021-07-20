@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 
 # https://www.reddit.com/dev/api/
+from cachier import cachier  # https://github.com/shaypal5/cachier
 import praw  # https://praw.readthedocs.io/en/latest
 from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
 
@@ -62,7 +63,7 @@ def get_reddit_info(id) -> Tuple[str, str, str]:
         is_deleted = "False"
         is_removed = "False"
 
-        submission = REDDIT.submission(id=id)
+        submission = REDDIT.submission(id=id)  # TODO: cache?
         author = "[deleted]" if not submission.author else submission.author
         debug(f"{author=}")
         is_deleted = submission.selftext == "[deleted]"
@@ -103,6 +104,7 @@ def check_for_deleted(pushshift_results) -> Any:
         results_checked.append(
             (
                 author_r,  # author_r(eddit)
+                pr["author"],  # author_p(ushshift)
                 pr["author"] == "[deleted]",  # del_author_p(ushshift)
                 author_r == "[deleted]",  # del_author_r(eddit)
                 pr["title"],  # title (pushshift)
@@ -124,6 +126,7 @@ def check_for_deleted(pushshift_results) -> Any:
         results_checked,
         columns=[
             "author_r",
+            "author_p",
             "del_author_p",  # on pushshift
             "del_author_r",  # on reddit
             "title",
@@ -143,6 +146,7 @@ def check_for_deleted(pushshift_results) -> Any:
     return posts_df
 
 
+@cachier(stale_after=dt.timedelta(days=7))
 def query_pushshift(
     name,
     limit,
@@ -230,7 +234,7 @@ def collect_pushshift_results(
             )
             results_all.extend(results)
         results_all = ordered_firsts_sample(results_all, limit)
-        print(f"returning random sample of size {len(results_all)}")
+        print(f"returning {len(results_all)} posts from random sample")
     else:  # collect only firsts up to limit
         while len(results) != 0 and len(results_all) < limit:
             time.sleep(1)
@@ -240,7 +244,7 @@ def collect_pushshift_results(
             )
             results_all.extend(results)
         results_all = results_all[0:limit]
-        print(f"returning firsts in sample of size {len(results_all)}")
+        print(f"returning {len(results_all)} (first) posts")
 
     return results_all
 
@@ -272,6 +276,14 @@ def main(argv) -> argparse.Namespace:
         default=False,
         help="""submissions before: epoch, integer[s|m|h|d], or Y-m-d""",
     )
+    # # TODO: add cache clearing mechanism
+    # arg_parser.add_argument(
+    #     "-c",
+    #     "--clear_cache",
+    #     type=bool,
+    #     default=False,
+    #     help="""clear web I/O cache (default: %(default)s).""",
+    # )
     arg_parser.add_argument(
         "-k",
         "--keep",

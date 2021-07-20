@@ -10,6 +10,7 @@
 Web functionality I frequently make use of.
 """
 
+import datetime as dt
 import html.entities
 import json
 import logging
@@ -19,6 +20,7 @@ from typing import Any, Match, Tuple, Union
 from xml.sax.saxutils import escape  # unescape
 
 import requests  # http://docs.python-requests.org/en/latest/
+from cachier import cachier
 
 HOMEDIR = os.path.expanduser("~")
 
@@ -64,6 +66,7 @@ def unescape_XML(text: str) -> str:  # .0937s 4.11%
     return re.sub(r"&#?\w+;", fixup, text)
 
 
+@cachier(stale_after=dt.timedelta(days=7))
 def get_HTML(
     url: str,
     referer: str = "",
@@ -94,6 +97,7 @@ def get_HTML(
     return HTML_bytes, HTML_parsed, HTML_unicode, r
 
 
+@cachier(stale_after=dt.timedelta(days=7))
 def get_JSON(
     url: str,
     referer: str = "",
@@ -109,7 +113,7 @@ def get_JSON(
     info(f"{url=}")
     try:
         r = requests.get(url, headers=AGENT_HEADERS, verify=True)
-        r.raise_for_status()
+        r.raise_for_status()  # TODO: cache?
     except requests.exceptions.RequestException as e:
         raise SystemExit(f"{e}")
     returned_content_type = r.headers["content-type"].split(";")[0]
@@ -121,6 +125,7 @@ def get_JSON(
         raise IOError("URL content is not JSON.")
 
 
+@cachier(stale_after=dt.timedelta(days=7))
 def get_text(url: str) -> str:
     """Textual version of url"""
 
