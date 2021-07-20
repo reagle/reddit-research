@@ -19,7 +19,7 @@ import random
 import sys
 import time
 from pathlib import Path, PurePath
-from typing import Any, Tuple
+from typing import Any, Tuple  # , Union
 
 import numpy as np
 import pandas as pd
@@ -38,7 +38,7 @@ from web_api_tokens import (
 from web_utils import get_JSON
 
 # https://github.com/pushshift/api
-# import psaw  # https://github.com/dmarx/psaw no exclude:not
+# import psaw  # Pushshift API https://github.com/dmarx/psaw no exclude:not
 
 REDDIT = praw.Reddit(
     user_agent=REDDIT_USER_AGENT,
@@ -54,13 +54,13 @@ info = logging.info
 debug = logging.debug
 
 
-def get_reddit_info(id) -> Tuple[Any, Any, Any]:
+def get_reddit_info(id) -> Tuple[str, str, str]:
     """Given id, returns info from reddit."""
 
     if not args.skip:
         author = "[deleted]"
-        is_deleted = False  # TODO: should these be "FALSE" strings?
-        is_removed = False
+        is_deleted = "False"
+        is_removed = "False"
 
         submission = REDDIT.submission(id=id)
         author = "[deleted]" if not submission.author else submission.author
@@ -181,12 +181,12 @@ def query_pushshift(
         f"?limit={limit}&subreddit={subreddit}{optional_params}"
     )
     print(f"{pushshift_url=}")
-    list_of_dicts = get_JSON(pushshift_url)["data"]
-    return list_of_dicts
+    json = get_JSON(pushshift_url)["data"]
+    return json
 
 
-def ordered_lin_sample(items, limit) -> list:
-    """Linear sample from items with order preserved."""
+def ordered_firsts_sample(items, limit) -> list:
+    """Lfirsts in ple from items with order preserved."""
 
     info(f"{len(items)=}")
     info(f"{limit=}")
@@ -229,10 +229,9 @@ def collect_pushshift_results(
                 name, limit, after_new, before, subreddit, query, num_comments
             )
             results_all.extend(results)
-        print(f"{len(results_all)=}")
-        results_all = ordered_lin_sample(results_all, limit)
-        print(f"returning linspace sample of size {len(results_all)}")
-    else:  # collect only up to limit
+        results_all = ordered_firsts_sample(results_all, limit)
+        print(f"returning random sample of size {len(results_all)}")
+    else:  # collect only firsts up to limit
         while len(results) != 0 and len(results_all) < limit:
             time.sleep(1)
             after_new = results[-1]["created_utc"]  # + 1?
@@ -241,40 +240,9 @@ def collect_pushshift_results(
             )
             results_all.extend(results)
         results_all = results_all[0:limit]
-        print(f"returning random sample of size {len(results_all)}")
+        print(f"returning firsts in sample of size {len(results_all)}")
 
     return results_all
-
-
-def collect_pushshift_results_old(
-    name,
-    limit,
-    after,
-    before,
-    subreddit,
-    query="",
-    num_comments=">0",
-) -> Any:
-    """Pushshift limited to 100 results, so need multiple queries to
-    collect results in date range up to limit."""
-
-    results = results_all = query_pushshift(
-        name, limit, after, before, subreddit, query, num_comments
-    )
-    while len(results) != 0 and len(results_all) < limit:
-        time.sleep(1)
-        after_new = results[-1]["created_utc"]  # + 1?
-        after_new_human = time.strftime(
-            "%a, %d %b %Y %H:%M:%S", time.gmtime(after_new)
-        )
-        info(f"****** {after_new_human=} ********")
-        results = query_pushshift(
-            name, limit, after_new, before, subreddit, query, num_comments
-        )
-        results_all.extend(results)
-        debug(f"{len(results_all)=} {len(results)=}")
-
-    return results_all[0:limit]
 
 
 def export_df(name, df) -> None:
