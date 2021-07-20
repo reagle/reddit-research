@@ -19,6 +19,7 @@ import random
 import sys
 import time
 from pathlib import Path, PurePath
+from typing import Any, Tuple
 
 import numpy as np
 import pandas as pd
@@ -26,6 +27,7 @@ import pandas as pd
 # https://www.reddit.com/dev/api/
 import praw  # https://praw.readthedocs.io/en/latest
 from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
+
 from web_api_tokens import (
     REDDIT_CLIENT_ID,
     REDDIT_CLIENT_SECRET,
@@ -34,7 +36,6 @@ from web_api_tokens import (
 
 # https://github.com/reagle/thunderdell
 from web_utils import get_JSON
-from typing import Any, Tuple
 
 # https://github.com/pushshift/api
 # import psaw  # https://github.com/dmarx/psaw no exclude:not

@@ -15,7 +15,7 @@ import json
 import logging
 import os
 import re
-from typing import Any, Match, Tuple
+from typing import Any, Match, Tuple, Union
 from xml.sax.saxutils import escape  # unescape
 
 import requests  # http://docs.python-requests.org/en/latest/
@@ -102,7 +102,7 @@ def get_JSON(
     retry_counter: int = 0,
     cache_control: str = None,
     requested_content_type: str = "application/json",
-) -> list | dict:  # different services return [... or {...
+) -> Union[list, dict]:  # different services return [... or {...
     """Return [JSON content, response] of a given URL."""
 
     AGENT_HEADERS = {"User-Agent": "Thunderdell/BusySponge"}

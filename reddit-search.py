@@ -17,11 +17,11 @@ import webbrowser
 from os import name, system
 from pathlib import Path  # https://docs.python.org/3/library/pathlib.html
 
+import pandas as pd
+import requests
+
 # import urllib
 
-import pandas as pd
-
-import requests
 
 # from phantomjs import Phantom # TODO: use this for searching DOM?
 
