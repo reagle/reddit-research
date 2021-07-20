@@ -79,9 +79,9 @@ def select_users(df) -> list[str]:
     """Return a list of users who match condition"""
     users = []
     for counter, row in df.iterrows():
-        if row["del_author_r"] is False and row["del_text_r"] is True:
-            users.append(row["author_r"])
-            info(f"found {row['author_r']}")
+        if row["del_author_p"] is False and row["del_text_r"] is True:
+            users.append(row["author_p"])
+            info(f"found {row['author_p']}")
     return users
 
 
@@ -90,7 +90,11 @@ def message_users(users, greeting) -> None:
 
     for user in users:
         print(f"messaging user {user}")
-        REDDIT.redditor(user).message("test", greeting)
+        try:
+            REDDIT.redditor(user).message("Deleted your post?", greeting)
+        except praw.exceptions.RedditAPIException as error:
+            print(f"can't fetch {user}: {error} ")
+        time.sleep(2)
 
 
 def main(argv) -> argparse.Namespace:
