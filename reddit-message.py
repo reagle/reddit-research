@@ -34,7 +34,7 @@ from pathlib import PurePath
 # https://www.reddit.com/dev/api/
 import praw  # https://praw.readthedocs.io/en/latest
 
-# from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
+from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
 
 from web_api_tokens import (
     REDDIT_CLIENT_SECRET,
@@ -88,13 +88,16 @@ def select_users(df) -> list[str]:
 def message_users(users, greeting) -> None:
     """Post message to users"""
 
-    for user in users:
-        print(f"messaging user {user}")
+    RATE_LIMIT = 30
+    for user in tqdm(users):
+        tqdm.write(f"messaging user {user}")
         try:
             REDDIT.redditor(user).message("Deleted your post?", greeting)
         except praw.exceptions.RedditAPIException as error:
-            print(f"can't fetch {user}: {error} ")
-        time.sleep(2)
+            tqdm.write(f"can't fetch {user}: {error} ")
+            if "RATELIMIT" in str(error):
+                raise error
+        time.sleep(RATE_LIMIT)
 
 
 def main(argv) -> argparse.Namespace:
@@ -171,9 +174,9 @@ if __name__ == "__main__":
     args = main(sys.argv[1:])
 
     greeting = open(args.greeting_filename, "r").read()
-    print(f"sending:\n{greeting[0:200]}...\n")
+    print(f"message:\n{greeting[0:200]}...\n")
     df = pd.read_csv(args.input_filename[0])
     users = select_users(df)
-    print(f"to {users=}")
+    print(f"to {len(users)} {users=}")
     if not args.dry_run:
         message_users(users, greeting)
