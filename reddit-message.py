@@ -75,17 +75,25 @@ def read_df(file_name) -> Any:
     print(f"read dataframe of shape {df.shape} from '{file_name}.csv'")
 
 
-def select_users(df) -> list[str]:
+def select_deleted_users(args, df) -> list[str]:
     """Return a list of users who match condition"""
     users = []
     for counter, row in df.iterrows():
+        info(f'{row["author_p"]=}')
+        # skip if args.throwaway and account isn't throwaway
+        if args.throwaway_only and "throwaw" not in row["author_p"].lower():
+            info("  skipping")
+            continue
+        # include if there's a mismatch and it's subsequently deleted
         if row["del_author_p"] is False and row["del_text_r"] is True:
+            info("  adding")
             users.append(row["author_p"])
-            info(f"found {row['author_p']}")
+        else:
+            info("  not deleted")
     return users
 
 
-def message_users(users, greeting) -> None:
+def message_users(args, users, greeting) -> None:
     """Post message to users"""
 
     RATE_LIMIT = 30
@@ -128,6 +136,13 @@ def main(argv) -> argparse.Namespace:
         default="greeting.txt",
         metavar="FILENAME",
         help="text of message",
+    )
+    arg_parser.add_argument(
+        "-t",
+        "--throwaway-only",
+        action="store_true",
+        default=False,
+        help="message throway accounts only",
     )
     arg_parser.add_argument(
         "-L",
@@ -176,7 +191,7 @@ if __name__ == "__main__":
     greeting = open(args.greeting_filename, "r").read()
     print(f"message:\n{greeting[0:200]}...\n")
     df = pd.read_csv(args.input_filename[0])
-    users = select_users(df)
+    users = select_deleted_users(args, df)
     print(f"to {len(users)} {users=}")
     if not args.dry_run:
-        message_users(users, greeting)
+        message_users(args, users, greeting)

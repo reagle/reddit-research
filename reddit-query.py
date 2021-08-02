@@ -103,7 +103,7 @@ def check_for_deleted(pushshift_results) -> Any:
         elapsed_hours = round((pr["retrieved_on"] - pr["created_utc"]) / 3600)
         author_r, is_deleted_r, is_removed_r = get_reddit_info(pr["id"])
         results_checked.append(
-            (
+            (  # comments correspond to headings in dataframe below
                 author_r,  # author_r(eddit)
                 pr["author"],  # author_p(ushshift)
                 pr["author"] == "[deleted]",  # del_author_p(ushshift)
