@@ -55,6 +55,7 @@ info = logging.info
 debug = logging.debug
 
 
+@cachier(stale_after=dt.timedelta(days=7))
 def get_reddit_info(id) -> Tuple[str, str, str]:
     """Given id, returns info from reddit."""
 
@@ -63,7 +64,7 @@ def get_reddit_info(id) -> Tuple[str, str, str]:
         is_deleted = "False"
         is_removed = "False"
 
-        submission = REDDIT.submission(id=id)  # TODO: cache?
+        submission = REDDIT.submission(id=id)
         author = "[deleted]" if not submission.author else submission.author
         debug(f"{author=}")
         is_deleted = submission.selftext == "[deleted]"
