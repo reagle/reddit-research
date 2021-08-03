@@ -96,7 +96,7 @@ def select_deleted_users(args, df) -> list[str]:
 def message_users(args, users, greeting) -> None:
     """Post message to users"""
 
-    RATE_LIMIT = 30
+    RATE_LIMIT_SLEEP = 30
     for user in tqdm(users):
         tqdm.write(f"messaging user {user}")
         try:
@@ -105,7 +105,7 @@ def message_users(args, users, greeting) -> None:
             tqdm.write(f"can't fetch {user}: {error} ")
             if "RATELIMIT" in str(error):
                 raise error
-        time.sleep(RATE_LIMIT)
+        time.sleep(RATE_LIMIT_SLEEP)
 
 
 def main(argv) -> argparse.Namespace:

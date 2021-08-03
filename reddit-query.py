@@ -76,7 +76,7 @@ def get_reddit_info(id) -> Tuple[str, str, str]:
     return author, is_deleted, is_removed
 
 
-def check_for_deleted(pushshift_results) -> Any:
+def construct_df(pushshift_results) -> Any:
     """Given pushshift query results, return dataframe of info about
     submissions.
     """
@@ -161,6 +161,9 @@ def query_pushshift(
 
     # https://github.com/pushshift/api
 
+    RATE_LIMIT_SLEEP = 2
+    time.sleep(RATE_LIMIT_SLEEP)
+
     if isinstance(after, str):
         after_human = after
     else:
@@ -223,12 +226,14 @@ def collect_pushshift_results(
     """Pushshift limited to 100 results, so need multiple queries to
     collect results in date range up to or sampled from limit."""
 
+    query_iteration = 1
     results = results_all = query_pushshift(
         name, limit, after, before, subreddit, query, num_comments
     )
     if args.sample:  # collect whole range and then sample to limit
         while len(results) != 0:
-            time.sleep(1)
+            critical(f"{query_iteration=}")
+            query_iteration += 1
             after_new = results[-1]["created_utc"]  # + 1?
             results = query_pushshift(
                 name, limit, after_new, before, subreddit, query, num_comments
@@ -236,18 +241,19 @@ def collect_pushshift_results(
             results_all.extend(results)
         results_all = ordered_firsts_sample(results_all, limit)
         print(
-            f"returning {len(results_all)} posts from random sample in range"
+            f"returning {len(results_all)} posts from random sample in range\n"
         )
     else:  # collect only firsts up to limit
         while len(results) != 0 and len(results_all) < limit:
-            time.sleep(1)
+            critical(f"{query_iteration=}")
+            query_iteration += 1
             after_new = results[-1]["created_utc"]  # + 1?
             results = query_pushshift(
                 name, limit, after_new, before, subreddit, query, num_comments
             )
             results_all.extend(results)
         results_all = results_all[0:limit]
-        print(f"returning {len(results_all)} (first) posts in range")
+        print(f"returning {len(results_all)} (first) posts in range\n")
 
     return results_all
 
@@ -342,8 +348,17 @@ def main(argv) -> argparse.Namespace:
         action="store_true",
         default=False,
         help=(
-            "skip reddit queries and return after pushshift "
-            "(default: %(default)s)"
+            "skip all reddit queries; pushshift only" "(default: %(default)s)"
+        ),
+    )
+    arg_parser.add_argument(
+        "-t",
+        "--throwaway-only",
+        action="store_true",
+        default=False,
+        help=(
+            "throwaways checked; otherwise pushshift only",
+            "(default: %(default)s)",
         ),
     )
     arg_parser.add_argument(
@@ -431,5 +446,5 @@ if __name__ == "__main__":
             continue
         else:
             ps_results = collect_pushshift_results(**query)
-            posts_df = check_for_deleted(ps_results)
+            posts_df = construct_df(ps_results)
             export_df(query["name"], posts_df)
