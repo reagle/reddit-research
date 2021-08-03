@@ -23,10 +23,8 @@ from typing import Any, Tuple  # , Union
 
 import numpy as np
 import pandas as pd
-
-# https://www.reddit.com/dev/api/
-from cachier import cachier  # https://github.com/shaypal5/cachier
 import praw  # https://praw.readthedocs.io/en/latest
+from cachier import cachier  # https://github.com/shaypal5/cachier
 from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
 
 from web_api_tokens import (
@@ -38,6 +36,7 @@ from web_api_tokens import (
 # https://github.com/reagle/thunderdell
 from web_utils import get_JSON
 
+# https://www.reddit.com/dev/api/
 # https://github.com/pushshift/api
 # import psaw  # Pushshift API https://github.com/dmarx/psaw no exclude:not
 
@@ -55,25 +54,39 @@ info = logging.info
 debug = logging.debug
 
 
+def is_throwaway(user_name):
+    user_name = user_name.lower()
+    if "throw" in user_name and "away" in user_name:
+        return True
+    else:
+        return False
+
+
 @cachier(stale_after=dt.timedelta(days=7))
-def get_reddit_info(id) -> Tuple[str, str, str]:
+def get_reddit_info(id, author_pushshift) -> Tuple[str, str, str]:
     """Given id, returns info from reddit."""
 
-    if not args.skip:
-        author = "[deleted]"
+    if (not args.skip) or (
+        args.throwaway_only and is_throwaway(author_pushshift)
+    ):
+        author_reddit = "[deleted]"
         is_deleted = "False"
         is_removed = "False"
 
         submission = REDDIT.submission(id=id)
-        author = "[deleted]" if not submission.author else submission.author
-        debug(f"{author=}")
+        author_reddit = (
+            "[deleted]" if not submission.author else submission.author
+        )
+        debug(f"reddit found {author_pushshift=}")
         is_deleted = submission.selftext == "[deleted]"
         is_removed = submission.selftext == "[removed]"
     else:
-        author = "NA"
+        debug(f"reddit skipped {author_pushshift=}")
+        author_reddit = "NA"
         is_deleted = "NA"
         is_removed = "NA"
-    return author, is_deleted, is_removed
+
+    return author_reddit, is_deleted, is_removed
 
 
 def construct_df(pushshift_results) -> Any:
@@ -101,7 +114,9 @@ def construct_df(pushshift_results) -> Any:
             "%Y%m%d %H:%M:%S"
         )
         elapsed_hours = round((pr["retrieved_on"] - pr["created_utc"]) / 3600)
-        author_r, is_deleted_r, is_removed_r = get_reddit_info(pr["id"])
+        author_r, is_deleted_r, is_removed_r = get_reddit_info(
+            pr["id"], pr["author"]
+        )
         results_checked.append(
             (  # comments correspond to headings in dataframe below
                 author_r,  # author_r(eddit)
@@ -404,7 +419,7 @@ def main(argv) -> argparse.Namespace:
 if __name__ == "__main__":
     args = main(sys.argv[1:])
 
-    # syntactical tweaks to filename
+    # mostly yntactical tweaks to filename
     if args.after and args.before:
         date = f"{args.after.replace('-','')}-{args.before.replace('-','')}"
     elif args.after:
@@ -424,12 +439,17 @@ if __name__ == "__main__":
         sample = "_sampled"
     else:
         sample = ""
+    if args.throwaway_only:
+        args.skip = True
+        throwaway = "throwaway"
+    else:
+        throwaway = ""
 
     queries = (
         {
             "name": (
                 f"""reddit_{date}_{args.subreddit}_{num_comments}"""
-                f"""_l{args.limit}{sample}"""
+                f"""_l{args.limit}{sample}_{throwaway}"""
             ),
             "limit": args.limit,
             "before": args.before,

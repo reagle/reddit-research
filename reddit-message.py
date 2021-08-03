@@ -12,37 +12,38 @@ Reads data from a CSV file.
 """
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
-from typing import Any
 
 # import datetime as dt
 import logging
-
-import pandas as pd
-
-# import random
 import sys
 import time
 
 # import time
 from pathlib import PurePath
 
+# import random
+# from random import randint
+from typing import Any
+
+import pandas as pd
+
+# https://www.reddit.com/dev/api/
+import praw  # https://praw.readthedocs.io/en/latest
+from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
+
+from web_api_tokens import (
+    REDDIT_CLIENT_ID,
+    REDDIT_CLIENT_SECRET,
+    REDDIT_PASSWORD,
+    REDDIT_USER_AGENT,
+    REDDIT_USERNAME,
+)
+
 # from typing import Any, Tuple
 
 # import numpy as np
 # import pandas as pd
 
-# https://www.reddit.com/dev/api/
-import praw  # https://praw.readthedocs.io/en/latest
-
-from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
-
-from web_api_tokens import (
-    REDDIT_CLIENT_SECRET,
-    REDDIT_CLIENT_ID,
-    REDDIT_USER_AGENT,
-    REDDIT_PASSWORD,
-    REDDIT_USERNAME,
-)
 
 # https://github.com/reagle/thunderdell
 # from web_utils import get_JSON
@@ -96,7 +97,7 @@ def select_deleted_users(args, df) -> list[str]:
 def message_users(args, users, greeting) -> None:
     """Post message to users"""
 
-    RATE_LIMIT_SLEEP = 30
+    RATE_LIMIT_SLEEP = 40
     for user in tqdm(users):
         tqdm.write(f"messaging user {user}")
         try:
