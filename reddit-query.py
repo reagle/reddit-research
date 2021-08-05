@@ -293,7 +293,8 @@ def main(argv) -> argparse.Namespace:
         "--after",
         type=str,
         default=False,
-        help=f"""submissions after: epoch, integer[s|m|h|d], or Y-m-d""",
+        help=f"""submissions after: epoch, integer[s|m|h|d], or Y-m-d"""
+        """Using it with before starts in 1970!""",
     )
     arg_parser.add_argument(
         "-b",
@@ -316,7 +317,7 @@ def main(argv) -> argparse.Namespace:
         action="store_true",
         default=False,
         help=(
-            "keep existing CSV files and don't overwrite"
+            "keep existing CSV files and don't overwrite "
             "(default: %(default)s)"
         ),
     )
@@ -325,7 +326,7 @@ def main(argv) -> argparse.Namespace:
         "--limit",
         type=int,
         default=5,
-        help="limit to (default: %(default)s) results",
+        help="limit to (default: %(default)s) results ",
     )
     arg_parser.add_argument(
         "-m",
@@ -364,19 +365,16 @@ def main(argv) -> argparse.Namespace:
         "--skip",
         action="store_true",
         default=False,
-        help=(
-            "skip all reddit queries; pushshift only" "(default: %(default)s)"
-        ),
+        help="skip all reddit queries; pushshift only "
+        "(default: %(default)s)",
     )
     arg_parser.add_argument(
         "-t",
         "--throwaway-only",
         action="store_true",
         default=False,
-        help=(
-            "throwaways checked; otherwise pushshift only",
-            "(default: %(default)s)",
-        ),
+        help="throwaways checked; otherwise pushshift only "
+        "(default: %(default)s)",
     )
     arg_parser.add_argument(
         "-L",
@@ -425,9 +423,9 @@ if __name__ == "__main__":
     if args.after and args.before:
         date = f"{args.after.replace('-','')}-{args.before.replace('-','')}"
     elif args.after:
-        date = f"{args.after.replace('-','')}-NOW"
+        date = f"{args.after.replace('-','')}-NOW"  # TODO: make with {NOW}
     elif args.before:
-        date = f"THEN-{args.before.replace('-','')}"
+        date = f"THEN-{args.before.replace('-','')}"  # TODO: make with {NOW}
     if args.num_comments:
         num_comments = args.num_comments
         if num_comments[0] == ">":
