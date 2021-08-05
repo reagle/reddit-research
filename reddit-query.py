@@ -44,6 +44,7 @@ REDDIT = praw.Reddit(
     user_agent=REDDIT_USER_AGENT,
     client_id=REDDIT_CLIENT_ID,
     client_secret=REDDIT_CLIENT_SECRET,
+    ratelimit_seconds=600,
 )
 
 exception = logging.exception
@@ -254,6 +255,7 @@ def collect_pushshift_results(
                 name, limit, after_new, before, subreddit, query, num_comments
             )
             results_all.extend(results)
+        print(f"pushshift returned {len(results_all)} total")
         results_all = ordered_firsts_sample(results_all, limit)
         print(
             f"returning {len(results_all)} posts from random sample in range\n"

@@ -57,6 +57,7 @@ REDDIT = praw.Reddit(
     client_secret=REDDIT_CLIENT_SECRET,
     username=REDDIT_USERNAME,
     password=REDDIT_PASSWORD,
+    ratelimit_seconds=600,
 )
 
 NOW = time.strftime("%Y%m%d", time.localtime())
@@ -69,28 +70,44 @@ info = logging.info
 debug = logging.debug
 
 
-def read_df(file_name) -> Any:
+def read_df(file_name: str) -> Any:
     """Retrun a dataframe given in a filename."""
 
     df.from_csv(f"{file_name}.csv", encoding="utf-8-sig", index=False)
     print(f"read dataframe of shape {df.shape} from '{file_name}.csv'")
 
 
-def select_deleted_users(args, df) -> list[str]:
-    """Return a list of users who match condition"""
-    users = []
+def is_throwaway(user_name: str) -> bool:
+    user_name = user_name.lower()
+    return "throw" in user_name and "away" in user_name
+
+
+def select_users(args, df) -> list[str]:
+    """Return a list of users who deleted post (and, optionally, throwaway)"""
+    users = set()
+    users_del = set()
+    users_throw = set()
     for counter, row in df.iterrows():
+        users.add(row["author_p"])
         info(f'{row["author_p"]=}')
-        # skip if args.throwaway and account isn't throwaway
-        if args.throwaway_only and "throwaw" not in row["author_p"].lower():
-            info("  skipping")
-            continue
-        # include if there's a mismatch and it's subsequently deleted
+        if is_throwaway(row["author_p"]):
+            warning("  adding to users_throw")
+            users_throw.add(row["author_p"])
         if row["del_author_p"] is False and row["del_text_r"] is True:
-            info("  adding")
-            users.append(row["author_p"])
-        else:
-            info("  not deleted")
+            warning("  adding to users_del")
+            users_del.add(row["author_p"])
+    users_del_throw = users_del & users_throw
+    print(f"posts={df.shape[0]=}")
+    print(f"{len(users)=}")
+    print(f"{len(users_del)=}")
+    print(f"{len(users_throw)=}")
+    print(f"{len(users_del_throw)=}")
+    if args.deleted and args.throwaway_only:
+        return users_del_throw
+    if args.throwaway_only:
+        return users_throw
+    if args.deleted:
+        return users_del
     return users
 
 
@@ -118,6 +135,12 @@ def main(argv) -> argparse.Namespace:
     # non-positional arguments
     arg_parser.add_argument(
         "-d",
+        "--deleted",
+        action="store_true",
+        default=False,
+        help="select deleted users",
+    )
+    arg_parser.add_argument(
         "--dry-run",
         action="store_true",
         default=False,
@@ -136,14 +159,21 @@ def main(argv) -> argparse.Namespace:
         "--greeting-filename",
         default="greeting.txt",
         metavar="FILENAME",
-        help="text of message",
+        help="input greeting file",
+    )
+    arg_parser.add_argument(
+        "-s",
+        "--show",
+        action="store_true",
+        default=False,
+        help="show all users on terminal",
     )
     arg_parser.add_argument(
         "-t",
         "--throwaway-only",
         action="store_true",
         default=False,
-        help="message throway accounts only",
+        help="select throway accounts only",
     )
     arg_parser.add_argument(
         "-L",
@@ -190,9 +220,10 @@ if __name__ == "__main__":
     args = main(sys.argv[1:])
 
     greeting = open(args.greeting_filename, "r").read()
-    print(f"message:\n{greeting[0:200]}...\n")
     df = pd.read_csv(args.input_filename[0])
-    users = select_deleted_users(args, df)
-    print(f"to {len(users)} {users=}")
+    users = select_users(args, df)
+    if args.show:
+        print(f"message:\n{greeting[0:50]}...\n")
+        print(f"{users=}")
     if not args.dry_run:
         message_users(args, users, greeting)
