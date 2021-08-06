@@ -89,7 +89,7 @@ def select_users(args, df) -> list[str]:
     users_throw = set()
     for counter, row in df.iterrows():
         users.add(row["author_p"])
-        info(f'{row["author_p"]=}')
+        warning(f'{row["author_p"]=}')
         if is_throwaway(row["author_p"]):
             warning("  adding to users_throw")
             users_throw.add(row["author_p"])
@@ -97,6 +97,11 @@ def select_users(args, df) -> list[str]:
             warning("  adding to users_del")
             users_del.add(row["author_p"])
     users_del_throw = users_del & users_throw
+    info(f"{users_del_throw=}")
+    users_pseudo = users - users_throw
+    info(f"{users_pseudo=}")
+    users_del_pseudo = users_pseudo & users_del
+    info(f"{users_del_pseudo=}")
     print(f"posts={df.shape[0]=}")
     print(f"{len(users)=}")
     print(f"{len(users_del)=}  {len(users_del)/len(users):2.0%}")
@@ -105,12 +110,18 @@ def select_users(args, df) -> list[str]:
         f"{len(users_del_throw)=}  "
         f"{len(users_del_throw)/len(users_throw):2.0%}"
     )
+    print(f"{len(users_pseudo)=}  {len(users_pseudo)/len(users):2.0%}")
+    print(f"{len(users_del_pseudo)=}  {len(users_del_pseudo)/len(users):2.0%}")
     if args.deleted and args.throwaway_only:
         return users_del_throw
-    if args.throwaway_only:
-        return users_throw
+    if args.deleted and args.pseudonyms_only:
+        return users_del_pseudo
     if args.deleted:
         return users_del
+    if args.throwaway_only:
+        return users_throw
+    if args.pseudonyms_only:
+        return users_pseudo
     return users
 
 
@@ -163,6 +174,13 @@ def main(argv) -> argparse.Namespace:
         default="greeting.txt",
         metavar="FILENAME",
         help="input greeting file",
+    )
+    arg_parser.add_argument(
+        "-p",
+        "--pseudonyms_only",
+        action="store_true",
+        default=False,
+        help="select pseudonyms (non-throwaway) only",
     )
     arg_parser.add_argument(
         "-s",
@@ -225,8 +243,9 @@ if __name__ == "__main__":
     greeting = open(args.greeting_filename, "r").read()
     df = pd.read_csv(args.input_filename[0])
     users = select_users(args, df)
+    print(f"{len(users)} users to message")
     if args.show:
         print(f"message:\n{greeting[0:50]}...\n")
-        print(f"{users=}")
+        print(f" {users=}")
     if not args.dry_run:
         message_users(args, users, greeting)
