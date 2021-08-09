@@ -165,7 +165,6 @@ def construct_df(pushshift_results) -> Any:
 
 @cachier(stale_after=dt.timedelta(days=7))
 def query_pushshift(
-    name,
     limit,
     after,
     before,
@@ -231,7 +230,6 @@ def ordered_random_sample(items, limit) -> list:
 
 
 def collect_pushshift_results(
-    name,
     limit,
     after,
     before,
@@ -244,7 +242,7 @@ def collect_pushshift_results(
 
     query_iteration = 1
     results = results_all = query_pushshift(
-        name, limit, after, before, subreddit, query, num_comments
+        limit, after, before, subreddit, query, num_comments
     )
     if args.sample:  # collect whole range and then sample to limit
         while len(results) != 0:
@@ -252,7 +250,7 @@ def collect_pushshift_results(
             query_iteration += 1
             after_new = results[-1]["created_utc"]  # + 1?
             results = query_pushshift(
-                name, limit, after_new, before, subreddit, query, num_comments
+                limit, after_new, before, subreddit, query, num_comments
             )
             results_all.extend(results)
         print(f"pushshift returned {len(results_all)} total")
@@ -266,7 +264,7 @@ def collect_pushshift_results(
             query_iteration += 1
             after_new = results[-1]["created_utc"]  # + 1?
             results = query_pushshift(
-                name, limit, after_new, before, subreddit, query, num_comments
+                limit, after_new, before, subreddit, query, num_comments
             )
             results_all.extend(results)
         results_all = results_all[0:limit]
@@ -422,36 +420,33 @@ if __name__ == "__main__":
             num_comments = num_comments[1:] + "+"
         elif num_comments[0] == "<":
             num_comments = num_comments[1:] + "-"
-        num_comments = "n" + num_comments
+        num_comments = "_nc" + num_comments
     else:
-        num_comments = "n_"
+        num_comments = ""
     if args.sample:
         sample = "_sampled"
     else:
         sample = ""
     if args.throwaway_only:
         args.skip = True
-        throwaway = "throwaway"
+        throwaway = "_throwaway"
     else:
         throwaway = ""
 
-    queries = (
-        {
-            "name": (
-                f"""reddit_{date}_{args.subreddit}_{num_comments}"""
-                f"""_l{args.limit}{sample}_{throwaway}"""
-                # f"""_l{args.limit}_n{number}{sample}_{throwaway}"""
-            ),
-            "limit": args.limit,
-            "before": args.before,
-            "after": args.after,
-            "subreddit": args.subreddit,
-            "num_comments": args.num_comments,
-        },
-    )
+    query = {
+        "limit": args.limit,
+        "before": args.before,
+        "after": args.after,
+        "subreddit": args.subreddit,
+        "num_comments": args.num_comments,
+    }
 
-    for query in queries:
-        print(f"{query=}")
-        ps_results = collect_pushshift_results(**query)
-        posts_df = construct_df(ps_results)
-        export_df(query["name"], posts_df)
+    print(f"{query=}")
+    ps_results = collect_pushshift_results(**query)
+    posts_df = construct_df(ps_results)
+    number_results = len(posts_df)
+    result_name = (
+        f"""reddit_{date}_{args.subreddit}{num_comments}"""
+        f"""_l{args.limit}_n{number_results}{sample}{throwaway}"""
+    )
+    export_df(result_name, posts_df)
