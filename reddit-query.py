@@ -18,7 +18,7 @@ import logging
 import random
 import sys
 import time
-from pathlib import Path, PurePath
+from pathlib import PurePath
 from typing import Any, Tuple  # , Union
 
 import numpy as np
@@ -312,16 +312,6 @@ def main(argv) -> argparse.Namespace:
     #     help="""clear web I/O cache (default: %(default)s).""",
     # )
     arg_parser.add_argument(
-        "-k",
-        "--keep",
-        action="store_true",
-        default=False,
-        help=(
-            "keep existing CSV files and don't overwrite "
-            "(default: %(default)s)"
-        ),
-    )
-    arg_parser.add_argument(
         "-l",
         "--limit",
         type=int,
@@ -461,10 +451,6 @@ if __name__ == "__main__":
 
     for query in queries:
         print(f"{query=}")
-        if args.keep and Path(f"{query['name']}.csv").exists():
-            debug(f"{query['name']}.csv already exists")
-            continue
-        else:
-            ps_results = collect_pushshift_results(**query)
-            posts_df = construct_df(ps_results)
-            export_df(query["name"], posts_df)
+        ps_results = collect_pushshift_results(**query)
+        posts_df = construct_df(ps_results)
+        export_df(query["name"], posts_df)
