@@ -440,6 +440,7 @@ if __name__ == "__main__":
             "name": (
                 f"""reddit_{date}_{args.subreddit}_{num_comments}"""
                 f"""_l{args.limit}{sample}_{throwaway}"""
+                # f"""_l{args.limit}_n{number}{sample}_{throwaway}"""
             ),
             "limit": args.limit,
             "before": args.before,
