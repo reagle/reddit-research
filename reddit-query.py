@@ -40,6 +40,10 @@ from web_utils import get_JSON
 # https://github.com/pushshift/api
 # import psaw  # Pushshift API https://github.com/dmarx/psaw no exclude:not
 
+NOW = time.localtime()
+NOW_STR = time.strftime("%Y%m%d")
+
+
 REDDIT = praw.Reddit(
     user_agent=REDDIT_USER_AGENT,
     client_id=REDDIT_CLIENT_ID,
@@ -67,9 +71,17 @@ def is_throwaway(user_name):
 def get_reddit_info(id, author_pushshift) -> Tuple[str, str, str]:
     """Given id, returns info from reddit."""
 
-    if (not args.skip) or (
-        args.throwaway_only and is_throwaway(author_pushshift)
-    ):
+    author_reddit = "NA"
+    is_deleted = "NA"
+    is_removed = "NA"
+    if args.skip:
+        debug(f"reddit skipped because args.skip {author_pushshift=}")
+    elif args.throwaway_only and not is_throwaway(author_pushshift):
+        debug(
+            f"reddit skipped because args.throwaway but not throwaway "
+            f"{author_pushshift=}"
+        )
+    else:
         author_reddit = "[deleted]"
         is_deleted = "False"
         is_removed = "False"
@@ -81,11 +93,6 @@ def get_reddit_info(id, author_pushshift) -> Tuple[str, str, str]:
         debug(f"reddit found {author_pushshift=}")
         is_deleted = submission.selftext == "[deleted]"
         is_removed = submission.selftext == "[removed]"
-    else:
-        debug(f"reddit skipped {author_pushshift=}")
-        author_reddit = "NA"
-        is_deleted = "NA"
-        is_removed = "NA"
 
     return author_reddit, is_deleted, is_removed
 
@@ -407,13 +414,13 @@ def main(argv) -> argparse.Namespace:
 if __name__ == "__main__":
     args = main(sys.argv[1:])
 
-    # mostly yntactical tweaks to filename
+    # syntactical tweaks to filename
     if args.after and args.before:
         date = f"{args.after.replace('-','')}-{args.before.replace('-','')}"
     elif args.after:
-        date = f"{args.after.replace('-','')}-NOW"  # TODO: make with {NOW}
+        date = f"{args.after.replace('-','')}-{NOW_STR}"
     elif args.before:
-        date = f"THEN-{args.before.replace('-','')}"  # TODO: make with {NOW}
+        raise RuntimeError("--before cannot be used with --after")
     if args.num_comments:
         num_comments = args.num_comments
         if num_comments[0] == ">":
@@ -428,7 +435,6 @@ if __name__ == "__main__":
     else:
         sample = ""
     if args.throwaway_only:
-        args.skip = True
         throwaway = "_throwaway"
     else:
         throwaway = ""
