@@ -46,7 +46,7 @@ def auto_search(
     info(f"{subreddit=}")
     info(f"{query=}")
     if not target_url:  # there's nothing to test against in results
-        print("auto_search: N/A")
+        print("auto_search: N/A, no URL to test against.")
         return
 
     if "redditsearch.io" in query:  # use pushshift for auto_search
@@ -95,7 +95,7 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
         quote = row[heading]
         print(f"{quote}\n")
         if row["subreddit"]:
-            subreddit = f"{row['subreddit']}"
+            subreddit = f"{row['subreddit']}".strip()
         else:
             subreddit = ""
         debug("-------------------------")
