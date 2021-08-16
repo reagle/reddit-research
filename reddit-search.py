@@ -98,29 +98,30 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
             subreddit = f"{row['subreddit']}".strip()
         else:
             subreddit = ""
+        prefixed_subreddit = "r/" + subreddit if subreddit else ""
         debug("-------------------------")
         debug(f"{row['original']}\n")
 
         # Google query
         query_google = (
             """https://www.google.com/search"""
-            """?q=site:reddit.com r/{subreddit} {quote}"""
+            """?q=site:reddit.com {subreddit} {quote}"""
         )
         auto_search(query_google, subreddit, quote, row["url"])
         query_google_final = query_google.format(
-            subreddit=subreddit, quote=quote
+            subreddit=prefixed_subreddit, quote=quote
         )
         debug(f"Google query:       {query_google_final}")
         webbrowser.open(query_google_final)
 
         # Reddit query
         query_reddit = (
-            """https://old.reddit.com/r/{subreddit}/search/"""
+            """https://old.reddit.com/{subreddit}/search/"""
             """?q={quote}&restrict_sr=on&include_over_18=on"""
         )
         auto_search(query_reddit, subreddit, quote, row["url"])
         query_reddit_final = query_reddit.format(
-            subreddit=subreddit, quote=quote
+            subreddit=prefixed_subreddit, quote=quote
         )
         debug(f"Reddit query:       {query_reddit_final}")
         webbrowser.open(query_reddit_final)
