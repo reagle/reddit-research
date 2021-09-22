@@ -2,17 +2,16 @@
 # -*- coding: utf-8 -*-
 # (c) Copyright 2020 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
-# Given a spreadsheet with phrases, facilitate a search of those
-# appearing in a column by opening browser windows to relevant search engines.
 
-"""Facilitate a search of phrases appearing in a
-spreadsheet column (default: 'original') by generating queries against
-search engines and opening the results in browser tabs. Search engines
-include Google, Reddit, and RedditSearch/Pushshift."""
+"""Facilitate a search of phrases appearing in a spreadsheet by generating
+queries against search engines and opening the results in browser tabs. Can
+automate detection (for testing disguise) if source URL is provided.
+."""
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging
 import sys
+import textwrap
 import webbrowser
 from os import name, system
 from pathlib import Path  # https://docs.python.org/3/library/pathlib.html
@@ -100,7 +99,7 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
             subreddit = ""
         prefixed_subreddit = "r/" + subreddit if subreddit else ""
         debug("-------------------------")
-        debug(f"{row['original']}\n")
+        debug(f"{row['phrase']}\n")
 
         # Google query
         query_google = (
@@ -153,9 +152,6 @@ def grab_quotes(file_name: str, column: str, do_recheck: bool) -> None:
     suffix = Path(file_name).suffix
     if suffix in [".xls", ".xlsx", ".odf", ".ods", ".odt"]:
         df = pd.read_excel(file_name, keep_default_na=False)
-        # key, subreddit, type, original, found
-        # key, subreddit, type, original, spintax, spinrewriter, found
-        # key, subreddit, type, original, wordai, found
         for counter, row in df.iterrows():
             print(f"{row=}")
             quotes_search(row, column, do_recheck)
@@ -174,19 +170,22 @@ def main(argv) -> argparse.Namespace:
     """Process arguments"""
     arg_parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description="""        Facilitate a search of phrases appearing in a
-        spreadsheet column (default: 'original') by generating queries against
-        search engines and opening the results in browser tabs. Search engines
-        include Google, Reddit, and RedditSearch/Pushshift.
+        description=textwrap.dedent(
+            """
+        Facilitate a search of phrases appearing in a spreadsheet column
+        (default: 'phrase') by generating queries against search engines and
+        opening the results in browser tabs. Search engines include Google,
+        Reddit, and RedditSearch/Pushshift.
 
-        > reddit-search.py demo-phrases.csv -c original
+        > reddit-search.py demo-phrases.csv -c phrase
 
         If you wish to test the efficacy of a disguised/spun phrase, also
         include a column of the spun phrase and the 'url' of the source. This
         will automatically check the results for that URL.
 
         > reddit-search.py demo-phrases.csv -c weakspins
-        """,
+        """
+        ),
     )
 
     # positional arguments
@@ -206,8 +205,8 @@ def main(argv) -> argparse.Namespace:
     arg_parser.add_argument(
         "-c",
         "--column",
-        default="original",
-        help="sheet column to query [default: 'original']",
+        default="phrase",
+        help="sheet column to query [default: 'phrase']",
     )
     arg_parser.add_argument(
         "-L",
