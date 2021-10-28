@@ -6,7 +6,7 @@
 """Facilitate a search of phrases appearing in a spreadsheet by generating
 queries against search engines and opening the results in browser tabs. Can
 automate detection (for testing disguise) if source URL is provided.
-."""
+"""
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging
