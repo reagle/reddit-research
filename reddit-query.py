@@ -22,7 +22,7 @@ import time
 from pathlib import PurePath
 from typing import Any, Tuple  # , Union
 
-import numpy as np
+# import numpy as np
 import pandas as pd
 import praw  # https://praw.readthedocs.io/en/latest
 from cachier import cachier  # https://github.com/shaypal5/cachier
@@ -36,6 +36,8 @@ from web_api_tokens import (
 
 # https://github.com/reagle/thunderdell
 from web_utils import get_JSON
+from reddit_sample import get_offsets
+
 
 # https://www.reddit.com/dev/api/
 # https://github.com/pushshift/api
@@ -43,6 +45,7 @@ from web_utils import get_JSON
 
 NOW = time.localtime()
 NOW_STR = time.strftime("%Y%m%d")
+PUSHSHIFT_LIMIT = 100
 
 
 REDDIT = praw.Reddit(
@@ -60,7 +63,7 @@ info = logging.info
 debug = logging.debug
 
 
-def is_throwaway(user_name):
+def is_throwaway(user_name) -> bool:
     user_name = user_name.lower()
     if "throw" in user_name and "away" in user_name:
         return True
@@ -186,8 +189,8 @@ def query_pushshift(
 
     # no need to pass different limit params beyond 100 (Pushshift's limit)
     # as it creates unnecessary keys in get_JSON cache
-    if limit >= 100:
-        limit_param = f"limit=100&"
+    if limit >= PUSHSHIFT_LIMIT:
+        limit_param = f"limit={PUSHSHIFT_LIMIT}&"
     else:
         limit_param = f"limit={limit}&"
 
@@ -222,15 +225,15 @@ def query_pushshift(
     return json
 
 
-def ordered_firsts_sample(items, limit) -> list:
-    """Lfirsts in ple from items with order preserved."""
+# def ordered_firsts_sample(items, limit) -> list:
+#     """Lfirsts in ple from items with order preserved."""
 
-    info(f"{len(items)=}")
-    info(f"{limit=}")
-    sampled_index = np.linspace(0, len(items) - 1, limit).astype(int).tolist()
-    info(f"{sampled_index=}")
-    sampled_items = [items[token] for token in sampled_index]
-    return sampled_items
+#     info(f"{len(items)=}")
+#     info(f"{limit=}")
+#     sampled_index = np.linspace(0, len(items) - 1, limit).astype(int).tolist()
+#     info(f"{sampled_index=}")
+#     sampled_items = [items[token] for token in sampled_index]
+#     return sampled_items
 
 
 def ordered_random_sample(items, limit) -> list:
@@ -260,20 +263,24 @@ def collect_pushshift_results(
     results = results_all = query_pushshift(
         limit, after, before, subreddit, query, num_comments
     )
-    if args.sample:  # collect whole range and then sample to limit
-        while len(results) != 0:
-            critical(f"{query_iteration=}")
+    if args.sample:  # munge a sample using time offsets
+
+        sample_size = limit  # rename this for clarity when sambling
+        # NOTE: num_comments will won't work with sampling estimates
+
+        offsets = get_offsets(after, before, sample_size, PUSHSHIFT_LIMIT)
+        print(f"{offsets=}")
+        for offset in offsets:
             query_iteration += 1
-            after_new = results[-1]["created_utc"]  # + 1?
+            offset_datetime = after.shift(hours=offset)
+            print(f"{offset_datetime=}")
+            offset_epoch = offset_datetime.int_timestamp
+            print(f"  {offset_epoch=}")
             results = query_pushshift(
-                limit, after_new, before, subreddit, query, num_comments
+                limit, offset_epoch, before, subreddit, query, num_comments
             )
             results_all.extend(results)
-        print(f"pushshift returned {len(results_all)} total")
-        results_all = ordered_firsts_sample(results_all, limit)
-        print(
-            f"returning {len(results_all)} posts from random sample in range\n"
-        )
+
     else:  # collect only firsts up to limit
         while len(results) != 0 and len(results_all) < limit:
             critical(f"{query_iteration=}")

@@ -21,7 +21,6 @@ from lxml import etree
 from typing import Any, Match, Tuple, Union
 from xml.sax.saxutils import escape  # unescape
 
-
 import requests  # http://docs.python-requests.org/en/latest/
 from cachier import cachier
 
