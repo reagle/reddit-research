@@ -211,7 +211,7 @@ def query_pushshift(
         optional_params += f"&before={before}"
     if num_comments:
         optional_params += f"&num_comments={num_comments}"
-    # # BUG: Pushshift ignores brackets so this ignores "removed"
+    # # BUG: Pushshift ignores brackets so this ignores prose "removed"
     # if not args.moderated_include:
     #     optional_params += f"&selftext:not=[removed]"
 
@@ -256,8 +256,9 @@ def collect_pushshift_results(
     query="",
     num_comments=">0",
 ) -> Any:
-    """Pushshift limited to 100 results, so need multiple queries to
-    collect results in date range up to or sampled from limit."""
+    """Pushshift limited to PUSHSHIFT_LIMIT (100) results,
+    so need multiple queries to collect results in date range up to
+    or sampled at limit."""
 
     query_iteration = 1
     results = results_all = query_pushshift(
@@ -265,8 +266,8 @@ def collect_pushshift_results(
     )
     if args.sample:  # munge a sample using time offsets
 
-        sample_size = limit  # rename this for clarity when sambling
-        # NOTE: num_comments will won't work with sampling estimates
+        sample_size = limit  # rename this for clarity when sampling
+        # NOTE: num_comments won't work with sampling estimates
 
         offsets = get_offsets(after, before, sample_size, PUSHSHIFT_LIMIT)
         print(f"{offsets=}")
