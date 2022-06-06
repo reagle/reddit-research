@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # DESCRIPTION
-# (c) Copyright 2020 by Joseph Reagle
+# This file is part of Reddit Tools
+# <https://github.com/reagle/reddit/>
+# (c) Copyright 2020-2022 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
-#
 
 """
 Message Redditors who still have their accounts and deleted their posts to an

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # DESCRIPTION
-# (c) Copyright 2020 by Joseph Reagle
+# This file is part of Reddit Tools
+# <https://github.com/reagle/reddit/>
+# (c) Copyright 2020-2022 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
-#
 
 """
 What proportion of people on a subreddit delete their posts? This script pulls
@@ -67,7 +68,7 @@ def is_throwaway(user_name):
         return False
 
 
-@cachier(stale_after=dt.timedelta(days=7))
+@cachier(pickle_reload=False)  #
 def get_reddit_info(id, author_pushshift) -> Tuple[str, str, str]:
     """Given id, returns info from reddit."""
 
@@ -170,7 +171,7 @@ def construct_df(pushshift_results) -> Any:
     return posts_df
 
 
-@cachier(stale_after=dt.timedelta(days=7))
+@cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def query_pushshift(
     limit,
     after,
@@ -183,8 +184,12 @@ def query_pushshift(
 
     # https://github.com/pushshift/api
 
-    RATE_LIMIT_SLEEP = 2
-    time.sleep(RATE_LIMIT_SLEEP)
+    # no need to pass different limit params beyond 100 (Pushshift's limit)
+    # as it creates unnecessary keys in get_JSON cache
+    if limit >= 100:
+        limit_param = f"limit=100&"
+    else:
+        limit_param = f"limit={limit}&"
 
     if isinstance(after, str):
         after_human = after
@@ -203,14 +208,16 @@ def query_pushshift(
         optional_params += f"&before={before}"
     if num_comments:
         optional_params += f"&num_comments={num_comments}"
-    if not args.moderated_include:
-        optional_params += f"&selftext:not=[removed]"
+    # # BUG: Pushshift ignores brackets so this ignores "removed"
+    # if not args.moderated_include:
+    #     optional_params += f"&selftext:not=[removed]"
 
     pushshift_url = (
         f"https://api.pushshift.io/reddit/submission/search/"
-        f"?limit={limit}&subreddit={subreddit}{optional_params}"
+        f"?{limit_param}subreddit={subreddit}{optional_params}"
     )
     print(f"{pushshift_url=}")
+
     json = get_JSON(pushshift_url)["data"]
     return json
 
@@ -230,6 +237,8 @@ def ordered_random_sample(items, limit) -> list:
     """Random sample from items with order preserved."""
 
     index = range(len(items))
+    # deterministic random sampling so cache can be used
+    random.seed(5)
     sampled_index = sorted(random.sample(index, limit))
     info(f"{sampled_index=}")
     sampled_items = [items[token] for token in sampled_index]
@@ -323,16 +332,17 @@ def main(argv) -> argparse.Namespace:
         default=5,
         help="limit to (default: %(default)s) results ",
     )
-    arg_parser.add_argument(
-        "-m",
-        "--moderated_include",
-        action="store_true",
-        default=False,
-        help=(
-            "include moderated ['removed'] submissions "
-            "(default: %(default)s)"
-        ),
-    )
+    # # # BUG: Pushshift ignores brackets so this ignores "removed"
+    # arg_parser.add_argument(
+    #     "-m",
+    #     "--moderated_include",
+    #     action="store_true",
+    #     default=False,
+    #     help=(
+    #         "include moderated ['removed'] submissions "
+    #         "(default: %(default)s)"
+    #     ),
+    # )
     arg_parser.add_argument(
         "-n",
         "--num_comments",

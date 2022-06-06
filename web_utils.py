@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# This file is part of Thunderdell/BusySponge
-# <http://reagle.org/joseph/2009/01/thunderdell>
-# (c) Copyright 2009-2017 by Joseph Reagle
+# This file is part of Reddit Tools
+# <https://github.com/reagle/reddit/>
+# (c) Copyright 2020-2022 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 #
 """
 Web functionality I frequently make use of.
 """
 
-import datetime as dt
+# import datetime as dt
 import html.entities
 import json
 import logging
 import os
 import re
+import time
+from lxml import etree
 from typing import Any, Match, Tuple, Union
 from xml.sax.saxutils import escape  # unescape
+
 
 import requests  # http://docs.python-requests.org/en/latest/
 from cachier import cachier
@@ -66,21 +69,24 @@ def unescape_XML(text: str) -> str:  # .0937s 4.11%
     return re.sub(r"&#?\w+;", fixup, text)
 
 
-@cachier(stale_after=dt.timedelta(days=7))
+@cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def get_HTML(
     url: str,
     referer: str = "",
     data: str = None,
     cookie: str = None,
     retry_counter: int = 0,
+    rate_limit: int = 2,
     cache_control: str = None,
 ) -> Tuple[bytes, Any, str, requests.models.Response]:
     """Return [HTML content, response] of a given URL."""
 
-    from lxml import etree
+    time.sleep(rate_limit)
 
-    agent_headers = {"User-Agent": "Thunderdell/BusySponge"}
-    r = requests.get(url, headers=agent_headers, verify=True)
+    AGENT_HEADERS = {
+        "User-Agent": "Reddit Tools https://github.com/reagle/reddit/"
+    }
+    r = requests.get(url, headers=AGENT_HEADERS, verify=True)
     # info(f"{r.headers['content-type']=}")
     if "html" in r.headers["content-type"]:
         HTML_bytes = r.content
@@ -97,25 +103,42 @@ def get_HTML(
     return HTML_bytes, HTML_parsed, HTML_unicode, r
 
 
-@cachier(stale_after=dt.timedelta(days=7))
+@cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def get_JSON(
     url: str,
     referer: str = "",
     data: str = None,
     cookie: str = None,
     retry_counter: int = 0,
+    rate_limit: int = 2,
     cache_control: str = None,
     requested_content_type: str = "application/json",
 ) -> Union[list, dict]:  # different services return [... or {...
-    """Return [JSON content, response] of a given URL."""
+    """Return [JSON content, response] of a given URL.
 
-    AGENT_HEADERS = {"User-Agent": "Thunderdell/BusySponge"}
+    Default rate limit is 2 seconds per request, though Pushshift
+    can limit me down to 3 minutes!
+    https://www.reddit.com/r/pushshift/comments/shg1sy/rate_limit/
+    """
+
+    time.sleep(rate_limit)
+
+    # TODO: put limiter here? https://github.com/shaypal5/cachier/issues/65
+    AGENT_HEADERS = {
+        "User-Agent": "Reddit Tools https://github.com/reagle/reddit/"
+    }
     info(f"{url=}")
+    # TODO: use a HTTPAdapter with max_retires
+    # https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/#retry-on-failure
+
     try:
         r = requests.get(url, headers=AGENT_HEADERS, verify=True)
-        r.raise_for_status()  # TODO: cache?
-    except requests.exceptions.RequestException as e:
-        raise SystemExit(f"{e}")
+        r.raise_for_status()
+    except requests.exceptions.RequestException as err:
+        critical(f"{err=} -- waiting 5 minutes, try again, quit if fail")
+        time.sleep(300)  # wait 5 minutes
+        r = requests.get(url, headers=AGENT_HEADERS, verify=True)
+        r.raise_for_status()
     returned_content_type = r.headers["content-type"].split(";")[0]
     info(f"{requested_content_type=} == {returned_content_type=}?")
     if requested_content_type == returned_content_type:
@@ -125,7 +148,7 @@ def get_JSON(
         raise IOError("URL content is not JSON.")
 
 
-@cachier(stale_after=dt.timedelta(days=7))
+@cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def get_text(url: str) -> str:
     """Textual version of url"""
 
