@@ -16,6 +16,7 @@ indexing (often within 24 hours) and Reddit's current version.
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import datetime as dt
 import logging
+import pendulum
 import random
 import sys
 import time
@@ -177,8 +178,8 @@ def construct_df(pushshift_results) -> Any:
 @cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def query_pushshift(
     limit: int,
-    after: str,  # YYYY-MM-DD
-    before: str,  # YYYY-MM-DD
+    after: dt.datetime,
+    before: dt.datetime,
     subreddit: str,
     query: str = "",
     num_comments: str = ">0",
@@ -194,21 +195,18 @@ def query_pushshift(
     else:
         limit_param = f"limit={limit}&"
 
-    if isinstance(after, str):
-        after_human = after
-    else:
-        after_human = after.format("YYYY-MM-DD HH:mm:ss")
-    if isinstance(before, str):
-        before_human = before
-    else:
-        before_human = after.format("YYYY-MM-DD HH:mm:ss")
+    after_human = after.format("YYYY-MM-DD HH:mm:ss")
+    before_human = after.format("YYYY-MM-DD HH:mm:ss")
     critical(f"******* between {after_human} and {before_human}")
+    after_timestamp = after.timestamp()
+    before_timestamp = after.timestamp()
+    critical(f"******* between {after_timestamp} and {before_timestamp}")
 
     optional_params = ""
     if after:
-        optional_params += f"&after={after}"
+        optional_params += f"&after={after_timestamp}"
     if before:
-        optional_params += f"&before={before}"
+        optional_params += f"&before={before_timestamp}"
     if num_comments:
         optional_params += f"&num_comments={num_comments}"
     # # BUG: Pushshift ignores brackets so this ignores prose "removed"
@@ -225,15 +223,15 @@ def query_pushshift(
     return json
 
 
-# def ordered_firsts_sample(items, limit) -> list:
-#     """Lfirsts in ple from items with order preserved."""
+def ordered_firsts_sample(items, limit) -> list:
+    """Lfirsts in ple from items with order preserved."""
 
-#     info(f"{len(items)=}")
-#     info(f"{limit=}")
-#     sampled_index = np.linspace(0, len(items) - 1, limit).astype(int).tolist()
-#     info(f"{sampled_index=}")
-#     sampled_items = [items[token] for token in sampled_index]
-#     return sampled_items
+    info(f"{len(items)=}")
+    info(f"{limit=}")
+    sampled_index = np.linspace(0, len(items) - 1, limit).astype(int).tolist()
+    info(f"{sampled_index=}")
+    sampled_items = [items[token] for token in sampled_index]
+    return sampled_items
 
 
 def ordered_random_sample(items, limit) -> list:
@@ -265,6 +263,7 @@ def collect_pushshift_results(
         # TODO/BUG: num_comments won't work with sampling estimates
         #   because they'll throw off the estimates
 
+        query_iteration = 0
         offsets = get_offsets(after, before, limit, PUSHSHIFT_LIMIT)
         print(f"{offsets=}")
         for offset in offsets:
@@ -276,6 +275,7 @@ def collect_pushshift_results(
             results_all.extend(results)
 
     else:  # collect only first message starting with after up to limit
+        # I need an initial to see if there's anything in results
         query_iteration = 1
         results = results_all = query_pushshift(
             limit, after, before, subreddit, query, num_comments
