@@ -176,12 +176,12 @@ def construct_df(pushshift_results) -> Any:
 
 @cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def query_pushshift(
-    limit,
-    after,
-    before,
-    subreddit,
-    query="",
-    num_comments=">0",
+    limit: int,
+    after: str,  # YYYY-MM-DD
+    before: str,  # YYYY-MM-DD
+    subreddit: str,
+    query: str = "",
+    num_comments: str = ">0",
 ) -> Any:
     """Given search parameters, query pushshift and return JSON."""
 
@@ -197,11 +197,11 @@ def query_pushshift(
     if isinstance(after, str):
         after_human = after
     else:
-        after_human = time.strftime("%Y%m%d %H:%M:%S", time.gmtime(after))
+        after_human = after.format("YYYY-MM-DD HH:mm:ss")
     if isinstance(before, str):
         before_human = before
     else:
-        before_human = time.strftime("%Y%m%d %H:%M:%S", time.gmtime(before))
+        before_human = after.format("YYYY-MM-DD HH:mm:ss")
     critical(f"******* between {after_human} and {before_human}")
 
     optional_params = ""
@@ -249,40 +249,37 @@ def ordered_random_sample(items, limit) -> list:
 
 
 def collect_pushshift_results(
-    limit,
-    after,
-    before,
-    subreddit,
-    query="",
-    num_comments=">0",
+    limit: int,
+    after: str,  # YYYY-MM-DD
+    before: str,  # YYYY-MM-DD
+    subreddit: str,
+    query: str = "",
+    num_comments: str = ">0",
 ) -> Any:
     """Pushshift limited to PUSHSHIFT_LIMIT (100) results,
     so need multiple queries to collect results in date range up to
     or sampled at limit."""
 
-    query_iteration = 1
-    results = results_all = query_pushshift(
-        limit, after, before, subreddit, query, num_comments
-    )
-    if args.sample:  # munge a sample using time offsets
+    if args.sample:  # collect PUSHSHIFT_LIMIT at offsets
 
-        sample_size = limit  # rename this for clarity when sampling
-        # NOTE: num_comments won't work with sampling estimates
+        # TODO/BUG: num_comments won't work with sampling estimates
+        #   because they'll throw off the estimates
 
-        offsets = get_offsets(after, before, sample_size, PUSHSHIFT_LIMIT)
+        offsets = get_offsets(after, before, limit, PUSHSHIFT_LIMIT)
         print(f"{offsets=}")
         for offset in offsets:
             query_iteration += 1
-            offset_datetime = after.shift(hours=offset)
-            print(f"{offset_datetime=}")
-            offset_epoch = offset_datetime.int_timestamp
             print(f"  {offset_epoch=}")
             results = query_pushshift(
                 limit, offset_epoch, before, subreddit, query, num_comments
             )
             results_all.extend(results)
 
-    else:  # collect only firsts up to limit
+    else:  # collect only first message starting with after up to limit
+        query_iteration = 1
+        results = results_all = query_pushshift(
+            limit, after, before, subreddit, query, num_comments
+        )
         while len(results) != 0 and len(results_all) < limit:
             critical(f"{query_iteration=}")
             query_iteration += 1

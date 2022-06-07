@@ -6,10 +6,11 @@
 # (c) Copyright 2020-2022 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
-import arrow
+import datetime as dt
 import logging
 import math
 import os
+import pendulum
 import praw
 import random
 
@@ -38,34 +39,39 @@ log = logging.getLogger("web_utils")
 critical = logging.critical
 info = logging.info
 dbg = logging.debug
+info = print
+
+
+def is_overlapping(
+    offsets: list, PUSHSHIFT_LIMIT: int, results_per_hour: int
+) -> bool:
+    """If I grab PUSHSHIFT_LIMIT results at an offset, am enough
+    hours in the future from the last not get redundant results"""
+    last = None
+    hours_needed = math.ceil(PUSHSHIFT_LIMIT / results_per_hour)
+    info(f"{hours_needed=}")
+    for offset in offsets:
+        if last is None:
+            last = offset
+            continue
+        info(f"{offset=}, {last=}, {offset - last=}")
+        if offset - last > hours_needed:
+            info(f"  okay")
+        else:
+            info(f"  possible overlap!")
+            return True
+        last = offset
+    return False
 
 
 def get_offsets(
-    after: int, before: int, sample_size: int, PUSHSHIFT_LIMIT: int
-) -> list[int]:
-    """For sampling, return a set of time offsets, beginning with
-    after that should not overlap"""
-
-    def is_overlapping(
-        offsets: list, PUSHSHIFT_LIMIT: int, results_per_hour: int
-    ) -> bool:
-        """If I grab PUSHSHIFT_LIMIT results at an offset, am enough
-        hours in the future from the last not get redundant results"""
-        last = None
-        hours_needed = math.ceil(PUSHSHIFT_LIMIT / results_per_hour)
-        info(f"{hours_needed=}")
-        for offset in offsets:
-            if last is None:
-                last = offset
-                continue
-            info(f"{offset=}, {last=}, {offset - last=}")
-            if offset - last > hours_needed:
-                info(f"  okay")
-            else:
-                info(f"  possible overlap!")
-                return True
-            last = offset
-        return False
+    after: dt.datetime,
+    before: dt.datetime,
+    sample_size: int,
+    PUSHSHIFT_LIMIT: int,
+) -> list[dt.datetime]:
+    """For sampling, return a set of hourly offsets, beginning near
+    after, that should not overlap"""
 
     info(f"after = {after.format('YYYY-MM-DD HH:mm:ss ZZ')}")
     after_epoch = after.int_timestamp
@@ -77,6 +83,7 @@ def get_offsets(
     info(f"{duration.days} days")
     duration_hours = duration.days * 24
     info(f"{duration_hours} hours")
+    info(f"weeks {duration_hours/168}")
 
     pushshift_url = (
         f"https://api.pushshift.io/reddit/submission/search/"
@@ -115,18 +122,24 @@ def get_offsets(
         )
         raise RuntimeError
 
-    return offsets
+    offsets_timestamps = []
+    for offset in offsets:
+        offset_datetime = after.add(hours=offset)
+        offsets_timestamps.append(offset_datetime.int_timestamp)
+    info("{offsets_timestamps=}")
+    return offsets_timestamps
 
 
 if __name__ == "__main__":
-    after = arrow.get("2022-06-01", "YYYY-MM-DD")
-    before = arrow.get("2022-06-02", "YYYY-MM-DD")
+
+    start = "2022-06-01"
+    end = "2022-06-02"
+    after = pendulum.parse(start)
+    before = pendulum.parse(end)
+
     sample_size = 200
     PUSHSHIFT_LIMIT = 100
 
     print(f"{get_offsets(after, before, sample_size, PUSHSHIFT_LIMIT)=}")
     for offset in get_offsets(after, before, sample_size, PUSHSHIFT_LIMIT):
-        offset_datetime = after.shift(hours=offset)
-        print(f"{offset_datetime=}")
-        offset_datetime_epoch = offset_datetime.int_timestamp
-        print(f"  {offset_datetime_epoch=}")
+        print(f"{type(offset)=} {offset=}")
