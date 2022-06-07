@@ -38,8 +38,7 @@ HOMEDIR = os.path.expanduser("~")
 log = logging.getLogger("web_utils")
 critical = logging.critical
 info = logging.info
-dbg = logging.debug
-info = print
+debug = logging.debug
 
 
 def is_overlapping(
@@ -49,18 +48,20 @@ def is_overlapping(
     hours in the future from the last not get redundant results"""
     last = None
     hours_needed = math.ceil(PUSHSHIFT_LIMIT / results_per_hour)
-    info(f"{hours_needed=}")
+    info(f"{offsets=}")
+    info(f"  {hours_needed=}")
     for offset in offsets:
-        if last is None:
+        if last is None:  # initial offset, so proceed to next
             last = offset
             continue
-        info(f"{offset=}, {last=}, {offset - last=}")
+        info(f"  {offset=}, {last=}, {offset - last=}")
         if offset - last > hours_needed:
-            info(f"  okay")
+            info(f"    okay because greater than {hours_needed}")
+            last = offset
+            continue
         else:
-            info(f"  possible overlap!")
+            info(f"    possible overlap time!")
             return True
-        last = offset
     return False
 
 
@@ -74,10 +75,10 @@ def get_offsets(
     after, that should not overlap"""
 
     info(f"after = {after.format('YYYY-MM-DD HH:mm:ss ZZ')}")
-    after_epoch = after.int_timestamp
+    after_epoch = int(after.int_timestamp)
     info(f"{after_epoch=}")
     info(f"before = {before.format('YYYY-MM-DD HH:mm:ss ZZ')}")
-    before_epoch = before.int_timestamp
+    before_epoch = int(before.int_timestamp)
     info(f"{before_epoch=}")
     duration = before - after
     info(f"{duration.days} days")
@@ -109,8 +110,6 @@ def get_offsets(
     for seed in deterministic_seeds:
         random.seed(seed)
         offsets = sorted(random.sample(range(duration_hours), k=queries_total))
-        info(f"{offsets=} at hours from after")
-        info(f"{is_overlapping(offsets, PUSHSHIFT_LIMIT, results_per_hour)=}")
         if is_overlapping(offsets, PUSHSHIFT_LIMIT, results_per_hour):
             continue
         else:
@@ -122,22 +121,25 @@ def get_offsets(
         )
         raise RuntimeError
 
-    offsets_timestamps = []
-    for offset in offsets:
-        offset_datetime = after.add(hours=offset)
-        offsets_timestamps.append(offset_datetime.int_timestamp)
-    info("{offsets_timestamps=}")
-    return offsets_timestamps
+    offsets_in_datetime = []
+    for offset_as_hours in offsets:
+        offset_datetime = after.add(hours=offset_as_hours)
+        offsets_in_datetime.append(offset_datetime)
+    info(f"{offsets_in_datetime=}")
+    return offsets_in_datetime
 
 
 if __name__ == "__main__":
 
+    info = print
+
     start = "2022-06-01"
-    end = "2022-06-02"
+    end = "2022-06-03"
     after = pendulum.parse(start)
     before = pendulum.parse(end)
+    print(f"{before.timezone.name=}")
 
-    sample_size = 200
+    sample_size = 300
     PUSHSHIFT_LIMIT = 100
 
     print(f"{get_offsets(after, before, sample_size, PUSHSHIFT_LIMIT)=}")

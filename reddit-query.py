@@ -16,10 +16,12 @@ indexing (often within 24 hours) and Reddit's current version.
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import datetime as dt
 import logging
-import pendulum
-import random
+import pendulum  # https://pendulum.eustace.io/docs/
+
+# import random
 import sys
-import time
+
+# import time
 from pathlib import PurePath
 from typing import Any, Tuple  # , Union
 
@@ -44,8 +46,8 @@ from reddit_sample import get_offsets
 # https://github.com/pushshift/api
 # import psaw  # Pushshift API https://github.com/dmarx/psaw no exclude:not
 
-NOW = time.localtime()
-NOW_STR = time.strftime("%Y%m%d")
+NOW = pendulum.now("UTC")
+NOW_STR = NOW.format("YYYYMMDD")
 PUSHSHIFT_LIMIT = 100
 
 
@@ -96,8 +98,17 @@ def get_reddit_info(id, author_pushshift) -> Tuple[str, str, str]:
             "[deleted]" if not submission.author else submission.author
         )
         debug(f"reddit found {author_pushshift=}")
+        debug(f"{submission=}")
+        # https://www.reddit.com/r/pushshift/comments/v6vrmo/was_this_message_removed_or_deleted/
         is_deleted = submission.selftext == "[deleted]"
         is_removed = submission.selftext == "[removed]"
+
+        if submission.selftext == "[removed]":
+            is_removed = True
+        if submission.selftext == "[deleted]":
+            is_deleted = True
+        if submission.removed_by_category == "deleted":
+            is_deleted = True
 
     return author_reddit, is_deleted, is_removed
 
@@ -123,8 +134,8 @@ def construct_df(pushshift_results) -> Any:
     results_checked = []
     for pr in tqdm(pushshift_results):
         debug(f"{pr['id']=} {pr['author']=} {pr['title']=}\n")
-        created_utc = dt.datetime.fromtimestamp(pr["created_utc"]).strftime(
-            "%Y%m%d %H:%M:%S"
+        created_utc = pendulum.from_timestamp(pr["created_utc"]).format(
+            "YYYYMMDD HH:mm:ss"
         )
         elapsed_hours = round((pr["retrieved_on"] - pr["created_utc"]) / 3600)
         author_r, is_deleted_r, is_removed_r = get_reddit_info(
@@ -196,10 +207,10 @@ def query_pushshift(
         limit_param = f"limit={limit}&"
 
     after_human = after.format("YYYY-MM-DD HH:mm:ss")
-    before_human = after.format("YYYY-MM-DD HH:mm:ss")
+    before_human = before.format("YYYY-MM-DD HH:mm:ss")
     critical(f"******* between {after_human} and {before_human}")
-    after_timestamp = after.timestamp()
-    before_timestamp = after.timestamp()
+    after_timestamp = int(after.timestamp())
+    before_timestamp = int(before.timestamp())
     critical(f"******* between {after_timestamp} and {before_timestamp}")
 
     optional_params = ""
@@ -209,47 +220,20 @@ def query_pushshift(
         optional_params += f"&before={before_timestamp}"
     if num_comments:
         optional_params += f"&num_comments={num_comments}"
-    # # BUG: Pushshift ignores brackets so this ignores prose "removed"
-    # if not args.moderated_include:
-    #     optional_params += f"&selftext:not=[removed]"
 
     pushshift_url = (
         f"https://api.pushshift.io/reddit/submission/search/"
         f"?{limit_param}subreddit={subreddit}{optional_params}"
     )
     print(f"{pushshift_url=}")
-
     json = get_JSON(pushshift_url)["data"]
     return json
 
 
-def ordered_firsts_sample(items, limit) -> list:
-    """Lfirsts in ple from items with order preserved."""
-
-    info(f"{len(items)=}")
-    info(f"{limit=}")
-    sampled_index = np.linspace(0, len(items) - 1, limit).astype(int).tolist()
-    info(f"{sampled_index=}")
-    sampled_items = [items[token] for token in sampled_index]
-    return sampled_items
-
-
-def ordered_random_sample(items, limit) -> list:
-    """Random sample from items with order preserved."""
-
-    index = range(len(items))
-    # deterministic random sampling so cache can be used
-    random.seed(5)
-    sampled_index = sorted(random.sample(index, limit))
-    info(f"{sampled_index=}")
-    sampled_items = [items[token] for token in sampled_index]
-    return sampled_items
-
-
 def collect_pushshift_results(
     limit: int,
-    after: str,  # YYYY-MM-DD
-    before: str,  # YYYY-MM-DD
+    after: dt.datetime,
+    before: dt.datetime,
     subreddit: str,
     query: str = "",
     num_comments: str = ">0",
@@ -258,6 +242,8 @@ def collect_pushshift_results(
     so need multiple queries to collect results in date range up to
     or sampled at limit."""
 
+    info(f"!! {after=}, {before=}")
+    info(f"!! {after.timestamp()=}, {before.timestamp()=}")
     if args.sample:  # collect PUSHSHIFT_LIMIT at offsets
 
         # TODO/BUG: num_comments won't work with sampling estimates
@@ -266,11 +252,12 @@ def collect_pushshift_results(
         query_iteration = 0
         offsets = get_offsets(after, before, limit, PUSHSHIFT_LIMIT)
         print(f"{offsets=}")
-        for offset in offsets:
+        results_all = []
+        for after_offset in offsets:
+            info(f"!! {after_offset=}, {before=}")
             query_iteration += 1
-            print(f"  {offset_epoch=}")
             results = query_pushshift(
-                limit, offset_epoch, before, subreddit, query, num_comments
+                limit, after_offset, before, subreddit, query, num_comments
             )
             results_all.extend(results)
 
@@ -283,7 +270,7 @@ def collect_pushshift_results(
         while len(results) != 0 and len(results_all) < limit:
             critical(f"{query_iteration=}")
             query_iteration += 1
-            after_new = results[-1]["created_utc"]  # + 1?
+            after_new = pendulum.from_timestamp(results[-1]["created_utc"])
             results = query_pushshift(
                 limit, after_new, before, subreddit, query, num_comments
             )
@@ -291,6 +278,7 @@ def collect_pushshift_results(
         results_all = results_all[0:limit]
         print(f"returning {len(results_all)} (first) posts in range\n")
 
+    info(f"{results_all=}")
     return results_all
 
 
@@ -337,17 +325,6 @@ def main(argv) -> argparse.Namespace:
         default=5,
         help="limit to (default: %(default)s) results ",
     )
-    # # # BUG: Pushshift ignores brackets so this ignores "removed"
-    # arg_parser.add_argument(
-    #     "-m",
-    #     "--moderated_include",
-    #     action="store_true",
-    #     default=False,
-    #     help=(
-    #         "include moderated ['removed'] submissions "
-    #         "(default: %(default)s)"
-    #     ),
-    # )
     arg_parser.add_argument(
         "-n",
         "--num_comments",
@@ -383,7 +360,7 @@ def main(argv) -> argparse.Namespace:
         "--throwaway-only",
         action="store_true",
         default=False,
-        help="throwaways checked; otherwise pushshift only "
+        help="throwaways checked on Reddit; otherwise Pushshift only "
         "(default: %(default)s)",
     )
     arg_parser.add_argument(
@@ -431,9 +408,12 @@ if __name__ == "__main__":
 
     # syntactical tweaks to filename
     if args.after and args.before:
-        date = f"{args.after.replace('-','')}-{args.before.replace('-','')}"
+        after = pendulum.parse(args.after)
+        before = pendulum.parse(args.before)
+        date = f"{after.format('YYYYMMDD')}-{before.format('YYYYMMDD')}"
     elif args.after:
-        date = f"{args.after.replace('-','')}-{NOW_STR}"
+        after = pendulum.parse(args.after)
+        date = f"{after.format('YYYYMMDD')}-{NOW_STR}"
     elif args.before:
         raise RuntimeError("--before cannot be used with --after")
     if args.num_comments:
@@ -456,12 +436,11 @@ if __name__ == "__main__":
 
     query = {
         "limit": args.limit,
-        "before": args.before,
-        "after": args.after,
+        "before": before,
+        "after": after,
         "subreddit": args.subreddit,
         "num_comments": args.num_comments,
     }
-
     print(f"{query=}")
     ps_results = collect_pushshift_results(**query)
     posts_df = construct_df(ps_results)
