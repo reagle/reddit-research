@@ -152,7 +152,7 @@ def construct_df(pushshift_results) -> Any:
                 created_utc,
                 elapsed_hours,  # elapsed hours when pushshift indexed
                 pr["score"],  # at time of ingest
-                pr["num_comments"],  # updated as comments ingested?
+                pr["num_comments"],  # updated as comments ingested
                 pr.get("selftext", "") == "[deleted]",  # del_text_p(ushshift)
                 is_deleted_r,  # del_text_r(eddit)
                 is_removed_r,  # rem_text_r(eddit)
@@ -174,7 +174,7 @@ def construct_df(pushshift_results) -> Any:
             "created_utc",
             "elapsed_hours",
             "score_p",
-            "num_comments_p",
+            "comments_num_p",
             "del_text_p",
             "del_text_r",
             "rem_text_r",
@@ -193,7 +193,7 @@ def query_pushshift(
     before: dt.datetime,
     subreddit: str,
     query: str = "",
-    num_comments: str = ">0",
+    comments_num: str = ">0",
 ) -> Any:
     """Given search parameters, query pushshift and return JSON."""
 
@@ -218,8 +218,10 @@ def query_pushshift(
         optional_params += f"&after={after_timestamp}"
     if before:
         optional_params += f"&before={before_timestamp}"
-    if num_comments:
-        optional_params += f"&num_comments={num_comments}"
+    if comments_num:
+        # I prefer `comments_num`, but Reddit uses poorly
+        # named `num_comments`
+        optional_params += f"&num_comments={comments_num}"
 
     pushshift_url = (
         f"https://api.pushshift.io/reddit/submission/search/"
@@ -236,7 +238,7 @@ def collect_pushshift_results(
     before: dt.datetime,
     subreddit: str,
     query: str = "",
-    num_comments: str = ">0",
+    comments_num: str = ">0",
 ) -> Any:
     """Pushshift limited to PUSHSHIFT_LIMIT (100) results,
     so need multiple queries to collect results in date range up to
@@ -246,7 +248,7 @@ def collect_pushshift_results(
     info(f"!! {after.timestamp()=}, {before.timestamp()=}")
     if args.sample:  # collect PUSHSHIFT_LIMIT at offsets
 
-        # TODO/BUG: num_comments won't work with sampling estimates
+        # TODO/BUG: comments_num won't work with sampling estimates
         #   because they'll throw off the estimates
 
         query_iteration = 0
@@ -257,7 +259,7 @@ def collect_pushshift_results(
             info(f"!! {after_offset=}, {before=}")
             query_iteration += 1
             results = query_pushshift(
-                limit, after_offset, before, subreddit, query, num_comments
+                limit, after_offset, before, subreddit, query, comments_num
             )
             results_all.extend(results)
 
@@ -265,14 +267,14 @@ def collect_pushshift_results(
         # I need an initial to see if there's anything in results
         query_iteration = 1
         results = results_all = query_pushshift(
-            limit, after, before, subreddit, query, num_comments
+            limit, after, before, subreddit, query, comments_num
         )
         while len(results) != 0 and len(results_all) < limit:
             critical(f"{query_iteration=}")
             query_iteration += 1
             after_new = pendulum.from_timestamp(results[-1]["created_utc"])
             results = query_pushshift(
-                limit, after_new, before, subreddit, query, num_comments
+                limit, after_new, before, subreddit, query, comments_num
             )
             results_all.extend(results)
         results_all = results_all[0:limit]
@@ -326,8 +328,8 @@ def main(argv) -> argparse.Namespace:
         help="limit to (default: %(default)s) results ",
     )
     arg_parser.add_argument(
-        "-n",
-        "--num_comments",
+        "-c",
+        "--comments_num",
         type=str,
         default=False,
         help="""number of comments threshold """
@@ -416,15 +418,15 @@ if __name__ == "__main__":
         date = f"{after.format('YYYYMMDD')}-{NOW_STR}"
     elif args.before:
         raise RuntimeError("--before cannot be used with --after")
-    if args.num_comments:
-        num_comments = args.num_comments
-        if num_comments[0] == ">":
-            num_comments = num_comments[1:] + "+"
-        elif num_comments[0] == "<":
-            num_comments = num_comments[1:] + "-"
-        num_comments = "_nc" + num_comments
+    if args.comments_num:
+        comments_num = args.comments_num
+        if comments_num[0] == ">":
+            comments_num = comments_num[1:] + "+"
+        elif comments_num[0] == "<":
+            comments_num = comments_num[1:] + "-"
+        comments_num = "_c" + comments_num
     else:
-        num_comments = ""
+        comments_num = ""
     if args.sample:
         sample = "_sampled"
     else:
@@ -439,14 +441,14 @@ if __name__ == "__main__":
         "before": before,
         "after": after,
         "subreddit": args.subreddit,
-        "num_comments": args.num_comments,
+        "comments_num": args.comments_num,
     }
     print(f"{query=}")
     ps_results = collect_pushshift_results(**query)
     posts_df = construct_df(ps_results)
     number_results = len(posts_df)
     result_name = (
-        f"""reddit_{date}_{args.subreddit}{num_comments}"""
+        f"""reddit_{date}_{args.subreddit}{comments_num}"""
         f"""_l{args.limit}_n{number_results}{sample}{throwaway}"""
     )
     export_df(result_name, posts_df)
