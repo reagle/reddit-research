@@ -10,11 +10,12 @@ import datetime as dt
 import logging
 import math
 import os
-import pendulum
+import pendulum  # https://pendulum.eustace.io/docs/
 import praw
 import random
 
-# import sys
+# datetime: date, time, datetime, timedelta
+# pendulum: datetime, Duration (timedelta), Period (Duration)
 
 from web_api_tokens import (
     REDDIT_CLIENT_ID,
@@ -49,7 +50,7 @@ def is_overlapping(
     last = None
     hours_needed = math.ceil(PUSHSHIFT_LIMIT / results_per_hour)
     info(f"{offsets=}")
-    info(f"  {hours_needed=}")
+    info(f"  !!! {hours_needed=} between each offset")
     for offset in offsets:
         if last is None:  # initial offset, so proceed to next
             last = offset
@@ -65,83 +66,107 @@ def is_overlapping(
     return False
 
 
-def get_offsets(
+def get_pushshift_total(
+    subreddit: str,
     after: dt.datetime,
     before: dt.datetime,
-    sample_size: int,
-    PUSHSHIFT_LIMIT: int,
-) -> list[dt.datetime]:
-    """For sampling, return a set of hourly offsets, beginning near
-    after, that should not overlap"""
-
+) -> int:
     info(f"after = {after.format('YYYY-MM-DD HH:mm:ss ZZ')}")
     after_epoch = int(after.int_timestamp)
     info(f"{after_epoch=}")
     info(f"before = {before.format('YYYY-MM-DD HH:mm:ss ZZ')}")
     before_epoch = int(before.int_timestamp)
     info(f"{before_epoch=}")
-    duration = before - after
-    info(f"{duration.days} days")
-    duration_hours = duration.days * 24
-    info(f"{duration_hours} hours")
-    info(f"weeks {duration_hours/168}")
-
-    pushshift_url = (
+    PUSHSHIFT_META_URL = (
         f"https://api.pushshift.io/reddit/submission/search/"
-        f"?subreddit=Advice&after={after_epoch}&before={before_epoch}"
+        f"?subreddit={subreddit}&after={after_epoch}&before={before_epoch}"
         f"&size=0&metadata=true"
     )
-    info(f"{pushshift_url=}")
+    info(f"{PUSHSHIFT_META_URL=}")
+    results_total = get_JSON(PUSHSHIFT_META_URL)["metadata"]["total_results"]
+    info(f"{results_total=}")
+    return results_total
 
-    total_results = get_JSON(pushshift_url)["metadata"]["total_results"]
-    info(f"{total_results=}")
 
-    results_per_hour = math.ceil(total_results / duration_hours)
+def get_cacheable_randos(size: int, samples: int, seed: any):
+    random.seed(seed.to_datetime_string())
+    selections = []
+    bucket = list(range(size))
+    for _ in range(samples):
+        item = random.choice(bucket)
+        selections.append(item)
+        bucket.remove(item)
+    return sorted(selections)
+
+
+def get_offsets(
+    subreddit: str,
+    after: dt.datetime,
+    before: dt.datetime,
+    sample_size: int,
+    PUSHSHIFT_LIMIT: int,
+) -> list((int, list[dt.datetime])):
+    """For sampling, return a set of hourly offsets, beginning near
+    after, that should not overlap"""
+
+    duration = before - after
+    info(f"{duration.in_days()=}")
+    info(f"{duration.in_hours()=}")
+    info(f"{duration.in_weeks()=}")
+    results_total = get_pushshift_total(subreddit, after, before)
+    results_per_hour = math.ceil(results_total / duration.in_hours())
     info(f"{results_per_hour=} on average")
 
     info(f"{PUSHSHIFT_LIMIT=}")
     info(f"{sample_size=}")
     queries_total = math.ceil(sample_size / PUSHSHIFT_LIMIT)
     info(f"{queries_total=}")
-    info(f"{range(duration_hours)=}")
+    info(f"{range(duration.in_hours())=}")
 
-    SEED_LIMIT = 5
-    deterministic_seeds = range(SEED_LIMIT)  # 5 chances, otherwise too crowded
-    for seed in deterministic_seeds:
-        random.seed(seed)
-        offsets = sorted(random.sample(range(duration_hours), k=queries_total))
-        if is_overlapping(offsets, PUSHSHIFT_LIMIT, results_per_hour):
-            continue
-        else:
-            break
-    else:
+    offsets = get_cacheable_randos(
+        duration.in_hours(), queries_total, seed=after
+    )
+    if is_overlapping(offsets, PUSHSHIFT_LIMIT, results_per_hour):
         print(
-            f"I exhausted random sets of offsets at {SEED_LIMIT=}"
-            f"Quitting because I'm too likely to pull overlapping results"
+            f"{sample_size} samples are likely to overlap."
+            f" Increase range or decrease sample size"
         )
         raise RuntimeError
-
-    offsets_in_datetime = []
+    offsets_as_datetime = []
     for offset_as_hours in offsets:
-        offset_datetime = after.add(hours=offset_as_hours)
-        offsets_in_datetime.append(offset_datetime)
-    info(f"{offsets_in_datetime=}")
-    return offsets_in_datetime
+        offset_as_datetime = after.add(hours=offset_as_hours)
+        offsets_as_datetime.append(offset_as_datetime)
+    info(f"{len(offsets)=}")
+    return results_total, offsets_as_datetime
 
 
 if __name__ == "__main__":
 
     info = print
 
-    start = "2022-06-01"
-    end = "2022-06-03"
+    start = "2022-01-01"
+    end = "2022-06-01"
     after = pendulum.parse(start)
     before = pendulum.parse(end)
     print(f"{before.timezone.name=}")
 
-    sample_size = 300
+    sample_size = 5000
     PUSHSHIFT_LIMIT = 100
 
-    print(f"{get_offsets(after, before, sample_size, PUSHSHIFT_LIMIT)=}")
-    for offset in get_offsets(after, before, sample_size, PUSHSHIFT_LIMIT):
-        print(f"{type(offset)=} {offset=}")
+    total, offsets = get_offsets(
+        "AmItheAsshole", after, before, sample_size, PUSHSHIFT_LIMIT
+    )
+    for count, offset in enumerate(sorted(offsets)):
+        print(f"{count: <5} {offset.to_datetime_string()=}")
+    print(
+        f"\n{total=:,} messages between"
+        f" {after.to_datetime_string()} and {before.to_datetime_string()}\n"
+        f"   across {len(offsets)} offsets,"
+        f" at {PUSHSHIFT_LIMIT} messages per offset,"
+        f" for {sample_size} message samples\n"
+        f"   a {sample_size/total:.0%} sample"
+    )
+
+    # print(get_cacheable_randos(50, 5, seed=after))
+    # print(get_cacheable_randos(50, 10, seed=after))
+    # print(get_cacheable_randos(50, 50, seed=after))

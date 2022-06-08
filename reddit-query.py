@@ -41,7 +41,6 @@ from web_api_tokens import (
 from web_utils import get_JSON
 from reddit_sample import get_offsets
 
-
 # https://www.reddit.com/dev/api/
 # https://github.com/pushshift/api
 # import psaw  # Pushshift API https://github.com/dmarx/psaw no exclude:not
@@ -49,7 +48,6 @@ from reddit_sample import get_offsets
 NOW = pendulum.now("UTC")
 NOW_STR = NOW.format("YYYYMMDD")
 PUSHSHIFT_LIMIT = 100
-
 
 REDDIT = praw.Reddit(
     user_agent=REDDIT_USER_AGENT,
@@ -156,6 +154,7 @@ def construct_df(pushshift_results) -> Any:
                 pr.get("selftext", "") == "[deleted]",  # del_text_p(ushshift)
                 is_deleted_r,  # del_text_r(eddit)
                 is_removed_r,  # rem_text_r(eddit)
+                is_deleted_r and not is_removed_r,  # del_text_real_r
                 pr["url"],
                 # PUSHSHIFT_API_URL + r["id"],
                 # REDDIT_API_URL + r["id"],
@@ -178,6 +177,7 @@ def construct_df(pushshift_results) -> Any:
             "del_text_p",
             "del_text_r",
             "rem_text_r",
+            "del_text_real_r",
             "url",
             # "url_api_p",
             # "url_api_r",
@@ -252,8 +252,10 @@ def collect_pushshift_results(
         #   because they'll throw off the estimates
 
         query_iteration = 0
-        offsets = get_offsets(after, before, limit, PUSHSHIFT_LIMIT)
-        print(f"{offsets=}")
+        results_total, offsets = get_offsets(
+            subreddit, after, before, limit, PUSHSHIFT_LIMIT
+        )
+        info(f"{offsets=}")
         results_all = []
         for after_offset in offsets:
             info(f"!! {after_offset=}, {before=}")
@@ -412,12 +414,12 @@ if __name__ == "__main__":
     if args.after and args.before:
         after = pendulum.parse(args.after)
         before = pendulum.parse(args.before)
-        date = f"{after.format('YYYYMMDD')}-{before.format('YYYYMMDD')}"
+        date_str = f"{after.format('YYYYMMDD')}-{before.format('YYYYMMDD')}"
     elif args.after:
         after = pendulum.parse(args.after)
-        date = f"{after.format('YYYYMMDD')}-{NOW_STR}"
+        date_str = f"{after.format('YYYYMMDD')}-{NOW_STR}"
     elif args.before:
-        raise RuntimeError("--before cannot be used with --after")
+        raise RuntimeError("--before cannot be used without --after")
     if args.comments_num:
         comments_num = args.comments_num
         if comments_num[0] == ">":
@@ -448,7 +450,7 @@ if __name__ == "__main__":
     posts_df = construct_df(ps_results)
     number_results = len(posts_df)
     result_name = (
-        f"""reddit_{date}_{args.subreddit}{comments_num}"""
+        f"""reddit_{date_str}_{args.subreddit}{comments_num}"""
         f"""_l{args.limit}_n{number_results}{sample}{throwaway}"""
     )
     export_df(result_name, posts_df)
