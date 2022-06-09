@@ -6,7 +6,6 @@
 # (c) Copyright 2020-2022 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
-import datetime as dt
 import logging
 import math
 import os
@@ -17,6 +16,7 @@ import random
 # datetime: date, time, datetime, timedelta
 # pendulum: datetime, Duration (timedelta), Period (Duration)
 
+from typing import List, Tuple
 from web_api_tokens import (
     REDDIT_CLIENT_ID,
     REDDIT_CLIENT_SECRET,
@@ -72,8 +72,8 @@ def is_overlapping(
 
 def get_pushshift_total(
     subreddit: str,
-    after: dt.datetime,
-    before: dt.datetime,
+    after: pendulum.DateTime,
+    before: pendulum.DateTime,
 ) -> int:
     info(f"after = {after.format('YYYY-MM-DD HH:mm:ss ZZ')}")
     after_epoch = int(after.int_timestamp)
@@ -92,35 +92,18 @@ def get_pushshift_total(
     return results_total
 
 
-# def get_cacheable_randos_old(size: int, samples: int, seed: any):
-#     random.seed(seed.to_datetime_string())
-#     selections = []
-#     bucket = list(range(size))
-#     for _ in range(samples):
-#         item = random.choice(bucket)
-#         selections.append(item)
-#         bucket.remove(item)
-#     return sorted(selections)
-
-
-def get_cacheable_randos(size: int, samples: int, seed: str):
-    random.seed(seed)
-    bucket = list(range(size))
-    return sorted(random.sample(bucket, samples))
-
-
-def get_cacheable_randos_n(size: int, samples: int, seed: str):
+def get_cacheable_randos(size: int, samples: int, seed: int):
     random.seed(seed)
     return sorted(random.sample(range(size), samples))
 
 
 def get_offsets(
     subreddit: str,
-    after: dt.datetime,
-    before: dt.datetime,
+    after: pendulum.DateTime,
+    before: pendulum.DateTime,
     sample_size: int,
     PUSHSHIFT_LIMIT: int,
-) -> list((int, list[dt.datetime])):
+) -> Tuple[int, List[pendulum.DateTime]]:
     """For sampling, return a set of hourly offsets, beginning near
     after, that should not overlap"""
 
@@ -172,8 +155,8 @@ if __name__ == "__main__":
 
     start = "2022-01-01"
     end = "2022-06-01"
-    after = pendulum.parse(start)
-    before = pendulum.parse(end)
+    after: pendulum.DateTime = pendulum.parse(start)
+    before: pendulum.DateTime = pendulum.parse(end)
     print(f"{before.timezone.name=}")
 
     sample_size = 5000
@@ -194,6 +177,6 @@ if __name__ == "__main__":
     )
 
     print("\ndef get_cacheable_randos")
-    print(get_cacheable_randos(50, 5, seed=after.to_datetime_string()))
-    print(get_cacheable_randos(50, 10, seed=after.to_datetime_string()))
-    print(get_cacheable_randos(50, 20, seed=after.to_datetime_string()))
+    print(get_cacheable_randos(50, 5, seed=after.int_timestamp))
+    print(get_cacheable_randos(50, 10, seed=after.int_timestamp))
+    print(get_cacheable_randos(50, 20, seed=after.int_timestamp))

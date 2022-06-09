@@ -14,8 +14,7 @@ indexing (often within 24 hours) and Reddit's current version.
 """
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
-from collections import Counter
-import datetime as dt
+import collections
 import logging
 import pendulum  # https://pendulum.eustace.io/docs/
 
@@ -24,7 +23,7 @@ import sys
 
 # import time
 from pathlib import PurePath
-from typing import Any, Tuple  # , Union
+from typing import Any, Counter, Tuple  # , Union
 
 # import numpy as np
 import pandas as pd
@@ -103,7 +102,7 @@ def get_reddit_info(id, author_pushshift) -> Tuple[str, str, str]:
         is_removed = submission.selftext == "[removed]"
 
         if submission.selftext == "[removed]":
-            is_removed = True
+            is_removed = True  # TODO why not in quotes?
         if submission.selftext == "[deleted]":
             is_deleted = True
         if submission.removed_by_category == "deleted":
@@ -112,7 +111,7 @@ def get_reddit_info(id, author_pushshift) -> Tuple[str, str, str]:
     return author_reddit, is_deleted, is_removed
 
 
-def construct_df(pushshift_results) -> Any:
+def construct_df(pushshift_total: int, pushshift_results: Any) -> Any:
     """Given pushshift query results, return dataframe of info about
     submissions.
     """
@@ -131,7 +130,7 @@ def construct_df(pushshift_results) -> Any:
     # REDDIT_API_URL = "https://api.reddit.com/api/info/?id=t3_"
 
     results_row = []
-    message_ids = Counter()
+    message_ids: Counter = collections.Counter()
 
     for pr in tqdm(pushshift_results):
         debug(f"{pr['id']=} {pr['author']=} {pr['title']=}\n")
@@ -147,6 +146,7 @@ def construct_df(pushshift_results) -> Any:
         )
         results_row.append(
             (  # comments correspond to headings in dataframe below
+                pushshift_total,  # total_p: total range if sampling
                 author_r,  # author_r(eddit)
                 pr["author"],  # author_p(ushshift)
                 pr["author"] == "[deleted]",  # del_author_p(ushshift)
@@ -171,6 +171,7 @@ def construct_df(pushshift_results) -> Any:
     posts_df = pd.DataFrame(
         results_row,
         columns=[
+            "total_p",
             "author_r",
             "author_p",
             "del_author_p",  # on pushshift
@@ -200,8 +201,8 @@ def construct_df(pushshift_results) -> Any:
 @cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def query_pushshift(
     limit: int,
-    after: dt.datetime,
-    before: dt.datetime,
+    after: pendulum.DateTime,
+    before: pendulum.DateTime,
     subreddit: str,
     query: str = "",
     comments_num: str = ">0",
@@ -220,8 +221,8 @@ def query_pushshift(
     after_human = after.format("YYYY-MM-DD HH:mm:ss")
     before_human = before.format("YYYY-MM-DD HH:mm:ss")
     critical(f"******* between {after_human} and {before_human}")
-    after_timestamp = int(after.timestamp())
-    before_timestamp = int(before.timestamp())
+    after_timestamp = after.int_timestamp
+    before_timestamp = after.int_timestamp
     critical(f"******* between {after_timestamp} and {before_timestamp}")
 
     optional_params = ""
@@ -234,23 +235,32 @@ def query_pushshift(
         # named `num_comments`
         optional_params += f"&num_comments={comments_num}"
 
+    # WARNING: Pushshift ignores brackets so this ignores any message
+    # with "removed," though it can still be worth it given how
+    # how many moderator removals there are.
+    if args.moderated_removed:
+        optional_params += f"&selftext:not=[removed]"
+
     pushshift_url = (
         f"https://api.pushshift.io/reddit/submission/search/"
         f"?{limit_param}subreddit={subreddit}{optional_params}"
     )
     print(f"{pushshift_url=}")
-    json = get_JSON(pushshift_url)["data"]
-    return json
+    reddit_data = get_JSON(pushshift_url)["data"]
+    if len(reddit_data) != 100:
+        print(f"short on some entries {len(reddit_data)}")
+        # breakpoint()
+    return reddit_data
 
 
 def collect_pushshift_results(
     limit: int,
-    after: dt.datetime,
-    before: dt.datetime,
+    after: pendulum.DateTime,
+    before: pendulum.DateTime,
     subreddit: str,
     query: str = "",
     comments_num: str = ">0",
-) -> Any:
+) -> Tuple[int, Any]:
     """Pushshift limited to PUSHSHIFT_LIMIT (100) results,
     so need multiple queries to collect results in date range up to
     or sampled at limit."""
@@ -267,34 +277,36 @@ def collect_pushshift_results(
             subreddit, after, before, limit, PUSHSHIFT_LIMIT
         )
         info(f"{offsets=}")
-        results_all = []
+        results_found = []
         for after_offset in offsets:
             info(f"{after_offset=}, {before=}")
             query_iteration += 1
             results = query_pushshift(
                 limit, after_offset, before, subreddit, query, comments_num
             )
-            results_all.extend(results)
+            results_found.extend(results)
 
     else:  # collect only first message starting with after up to limit
         # I need an initial to see if there's anything in results
         query_iteration = 1
-        results = results_all = query_pushshift(
+        results = results_found = query_pushshift(
             limit, after, before, subreddit, query, comments_num
         )
-        while len(results) != 0 and len(results_all) < limit:
+        while len(results) != 0 and len(results_found) < limit:
             critical(f"{query_iteration=}")
             query_iteration += 1
             after_new = pendulum.from_timestamp(results[-1]["created_utc"])
             results = query_pushshift(
                 limit, after_new, before, subreddit, query, comments_num
             )
-            results_all.extend(results)
-        results_all = results_all[0:limit]
-        print(f"returning {len(results_all)} (first) posts in range\n")
+            results_found.extend(results)
+        results_found = results_found[0:limit]
+        results_total = len(results_found)
+        print(f"returning {len(results_found)} (first) posts in range\n")
 
-    info(f"{results_all=}")
-    return results_all
+    info(f"{results_total=}")
+    info(f"{results_found=}")
+    return results_total, results_found
 
 
 def export_df(name, df) -> None:
@@ -348,6 +360,19 @@ def main(argv) -> argparse.Namespace:
         help="""number of comments threshold """
         r"""'[<>]\d+]' (default: %(default)s). """
         """Note: this is updated as Pushshift ingests, `score` is not.""",
+    )
+    arg_parser.add_argument(
+        "-m",
+        "--moderated-removed",
+        action="store_true",
+        default=False,
+        help=(
+            """exclude moderated/removed submissions. """
+            """WARNING: Pushshift ignores brackets so this ignores any """
+            """message with "removed", though it can still be worth it """
+            """given how many moderator removals there are. """
+            """(default: %(default)s)"""
+        ),
     )
     arg_parser.add_argument(
         "-r",
@@ -423,8 +448,8 @@ if __name__ == "__main__":
 
     # syntactical tweaks to filename
     if args.after and args.before:
-        after = pendulum.parse(args.after)
-        before = pendulum.parse(args.before)
+        after: pendulum.DateTime = pendulum.parse(args.after)
+        before: pendulum.DateTime = pendulum.parse(args.before)
         date_str = f"{after.format('YYYYMMDD')}-{before.format('YYYYMMDD')}"
     elif args.after:
         after = pendulum.parse(args.after)
@@ -448,6 +473,10 @@ if __name__ == "__main__":
         throwaway = "_throwaway"
     else:
         throwaway = ""
+    if args.moderated_removed:
+        moderated = "_mod"
+    else:
+        moderated = ""
 
     query = {
         "limit": args.limit,
@@ -457,8 +486,8 @@ if __name__ == "__main__":
         "comments_num": args.comments_num,
     }
     print(f"{query=}")
-    ps_results = collect_pushshift_results(**query)
-    posts_df = construct_df(ps_results)
+    ps_total, ps_results = collect_pushshift_results(**query)
+    posts_df = construct_df(ps_total, ps_results)
     number_results = len(posts_df)
     result_name = (
         f"""reddit_{date_str}_{args.subreddit}{comments_num}"""
