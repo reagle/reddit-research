@@ -14,6 +14,7 @@ indexing (often within 24 hours) and Reddit's current version.
 """
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
+from collections import Counter
 import datetime as dt
 import logging
 import pendulum  # https://pendulum.eustace.io/docs/
@@ -129,9 +130,14 @@ def construct_df(pushshift_results) -> Any:
     # )
     # REDDIT_API_URL = "https://api.reddit.com/api/info/?id=t3_"
 
-    results_checked = []
+    results_row = []
+    message_ids = Counter()
+
     for pr in tqdm(pushshift_results):
         debug(f"{pr['id']=} {pr['author']=} {pr['title']=}\n")
+        if message_ids[pr["id"]]:
+            print(f"WARNING: identical message id {pr['id']}")
+        message_ids[pr["id"]] += 1
         created_utc = pendulum.from_timestamp(pr["created_utc"]).format(
             "YYYYMMDD HH:mm:ss"
         )
@@ -139,14 +145,14 @@ def construct_df(pushshift_results) -> Any:
         author_r, is_deleted_r, is_removed_r = get_reddit_info(
             pr["id"], pr["author"]
         )
-        results_checked.append(
+        results_row.append(
             (  # comments correspond to headings in dataframe below
                 author_r,  # author_r(eddit)
                 pr["author"],  # author_p(ushshift)
                 pr["author"] == "[deleted]",  # del_author_p(ushshift)
                 author_r == "[deleted]",  # del_author_r(eddit)
-                pr["title"],  # title (pushshift)
                 pr["id"],  # id (pushshift)
+                pr["title"],  # title (pushshift)
                 created_utc,
                 elapsed_hours,  # elapsed hours when pushshift indexed
                 pr["score"],  # at time of ingest
@@ -155,21 +161,22 @@ def construct_df(pushshift_results) -> Any:
                 is_deleted_r,  # del_text_r(eddit)
                 is_removed_r,  # rem_text_r(eddit)
                 is_deleted_r and not is_removed_r,  # del_text_real_r
-                pr["url"],
+                pr["full_link"] != pr["url"],  # crosspost
+                pr["full_link"],  # url
                 # PUSHSHIFT_API_URL + r["id"],
                 # REDDIT_API_URL + r["id"],
             )
         )
-    debug(results_checked)
+    debug(results_row)
     posts_df = pd.DataFrame(
-        results_checked,
+        results_row,
         columns=[
             "author_r",
             "author_p",
             "del_author_p",  # on pushshift
             "del_author_r",  # on reddit
-            "title",
             "id",
+            "title",
             "created_utc",
             "elapsed_hours",
             "score_p",
@@ -178,11 +185,15 @@ def construct_df(pushshift_results) -> Any:
             "del_text_r",
             "rem_text_r",
             "del_text_real_r",
+            "crosspost",
             "url",
             # "url_api_p",
             # "url_api_r",
         ],
     )
+    ids_repeating = [m_id for m_id, count in message_ids.items() if count > 1]
+    if ids_repeating:
+        print(f"WARNING: repeat IDs = {ids_repeating=}")
     return posts_df
 
 
@@ -244,8 +255,8 @@ def collect_pushshift_results(
     so need multiple queries to collect results in date range up to
     or sampled at limit."""
 
-    info(f"!! {after=}, {before=}")
-    info(f"!! {after.timestamp()=}, {before.timestamp()=}")
+    info(f"{after=}, {before=}")
+    info(f"{after.timestamp()=}, {before.timestamp()=}")
     if args.sample:  # collect PUSHSHIFT_LIMIT at offsets
 
         # TODO/BUG: comments_num won't work with sampling estimates
@@ -258,7 +269,7 @@ def collect_pushshift_results(
         info(f"{offsets=}")
         results_all = []
         for after_offset in offsets:
-            info(f"!! {after_offset=}, {before=}")
+            info(f"{after_offset=}, {before=}")
             query_iteration += 1
             results = query_pushshift(
                 limit, after_offset, before, subreddit, query, comments_num

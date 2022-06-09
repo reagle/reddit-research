@@ -36,8 +36,11 @@ REDDIT = praw.Reddit(
 
 HOMEDIR = os.path.expanduser("~")
 
-log = logging.getLogger("web_utils")
+log = logging.getLogger("reddit_sample")
+exception = logging.exception
 critical = logging.critical
+error = logging.error
+warning = logging.warning
 info = logging.info
 debug = logging.debug
 
@@ -45,23 +48,24 @@ debug = logging.debug
 def is_overlapping(
     offsets: list, PUSHSHIFT_LIMIT: int, results_per_hour: int
 ) -> bool:
-    """If I grab PUSHSHIFT_LIMIT results at an offset, am enough
-    hours in the future from the last not get redundant results"""
+    """If I grab PUSHSHIFT_LIMIT results at an offset hour, am I
+    enough hours in the future from the last offset hour to avoid
+    overlap"""
+
     last = None
     hours_needed = math.ceil(PUSHSHIFT_LIMIT / results_per_hour)
     info(f"{offsets=}")
-    info(f"  !!! {hours_needed=} between each offset")
+    warning(f"{hours_needed=} between each offset")
     for offset in offsets:
         if last is None:  # initial offset, so proceed to next
             last = offset
             continue
         info(f"  {offset=}, {last=}, {offset - last=}")
         if offset - last > hours_needed:
-            info(f"    okay because greater than {hours_needed}")
             last = offset
             continue
         else:
-            info(f"    possible overlap time!")
+            info(f"    less than {hours_needed}, possible overlap time!")
             return True
     return False
 
@@ -88,15 +92,26 @@ def get_pushshift_total(
     return results_total
 
 
-def get_cacheable_randos(size: int, samples: int, seed: any):
-    random.seed(seed.to_datetime_string())
-    selections = []
+# def get_cacheable_randos_old(size: int, samples: int, seed: any):
+#     random.seed(seed.to_datetime_string())
+#     selections = []
+#     bucket = list(range(size))
+#     for _ in range(samples):
+#         item = random.choice(bucket)
+#         selections.append(item)
+#         bucket.remove(item)
+#     return sorted(selections)
+
+
+def get_cacheable_randos(size: int, samples: int, seed: str):
+    random.seed(seed)
     bucket = list(range(size))
-    for _ in range(samples):
-        item = random.choice(bucket)
-        selections.append(item)
-        bucket.remove(item)
-    return sorted(selections)
+    return sorted(random.sample(bucket, samples))
+
+
+def get_cacheable_randos_n(size: int, samples: int, seed: str):
+    random.seed(seed)
+    return sorted(random.sample(range(size), samples))
 
 
 def get_offsets(
@@ -123,18 +138,29 @@ def get_offsets(
     info(f"{queries_total=}")
     info(f"{range(duration.in_hours())=}")
 
-    offsets = get_cacheable_randos(
-        duration.in_hours(), queries_total, seed=after
-    )
-    if is_overlapping(offsets, PUSHSHIFT_LIMIT, results_per_hour):
+    SEEDS_TO_TRY = 5
+    seed = int(after.timestamp())
+    for seed_counter in range(SEEDS_TO_TRY):
+        warning(f"attempt {seed_counter+1=} to find non-overlapping offsets")
+        seed += seed_counter  # increment seed
+        offsets = get_cacheable_randos(
+            duration.in_hours(), queries_total, seed
+        )
+        info(f"{offsets=} at hours from after")
+        if is_overlapping(offsets, PUSHSHIFT_LIMIT, results_per_hour):
+            continue
+        else:
+            break
+    else:
         print(
-            f"{sample_size} samples are likely to overlap."
-            f" Increase range or decrease sample size"
+            f"I exhausted random sets of offsets at {SEEDS_TO_TRY=}"
+            f"Quitting because I'm too likely to pull overlapping results"
         )
         raise RuntimeError
+
     offsets_as_datetime = []
-    for offset_as_hours in offsets:
-        offset_as_datetime = after.add(hours=offset_as_hours)
+    for offset_as_hour in offsets:
+        offset_as_datetime = after.add(hours=offset_as_hour)
         offsets_as_datetime.append(offset_as_datetime)
     info(f"{len(offsets)=}")
     return results_total, offsets_as_datetime
@@ -142,7 +168,7 @@ def get_offsets(
 
 if __name__ == "__main__":
 
-    info = print
+    exception = critical = error = warning = info = debug = info = print
 
     start = "2022-01-01"
     end = "2022-06-01"
@@ -167,6 +193,7 @@ if __name__ == "__main__":
         f"   a {sample_size/total:.0%} sample"
     )
 
-    # print(get_cacheable_randos(50, 5, seed=after))
-    # print(get_cacheable_randos(50, 10, seed=after))
-    # print(get_cacheable_randos(50, 50, seed=after))
+    print("\ndef get_cacheable_randos")
+    print(get_cacheable_randos(50, 5, seed=after.to_datetime_string()))
+    print(get_cacheable_randos(50, 10, seed=after.to_datetime_string()))
+    print(get_cacheable_randos(50, 20, seed=after.to_datetime_string()))
