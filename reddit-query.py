@@ -222,7 +222,7 @@ def query_pushshift(
     before_human = before.format("YYYY-MM-DD HH:mm:ss")
     critical(f"******* between {after_human} and {before_human}")
     after_timestamp = after.int_timestamp
-    before_timestamp = after.int_timestamp
+    before_timestamp = before.int_timestamp
     critical(f"******* between {after_timestamp} and {before_timestamp}")
 
     optional_params = ""

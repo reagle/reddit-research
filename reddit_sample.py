@@ -60,12 +60,16 @@ def is_overlapping(
         if last is None:  # initial offset, so proceed to next
             last = offset
             continue
-        info(f"  {offset=}, {last=}, {offset - last=}")
+        info(f"  {offset} - {last} = {offset - last}")
         if offset - last > hours_needed:
             last = offset
             continue
         else:
-            info(f"    less than {hours_needed}, possible overlap time!")
+            critical(
+                f"  overlap:"
+                f"  offsets {offset} - {last} is not less than {hours_needed}"
+                f" "
+            )
             return True
     return False
 
@@ -93,6 +97,15 @@ def get_pushshift_total(
 
 
 def get_cacheable_randos(size: int, samples: int, seed: int):
+    """Return k=samples of random integers in range up to `size` such that a
+    larger sample result includes smaller sample results.
+    >>> get_cacheable_randos(50, 5, seed=7)
+    [3, 9, 20, 25, 41]
+    >>> get_cacheable_randos(50, 10, seed=7)
+    [3, 4, 6, 9, 20, 23, 25, 34, 37, 41]
+    >>> get_cacheable_randos(50, 15, seed=7)
+    [2, 3, 4, 5, 6, 9, 13, 20, 23, 25, 32, 34, 37, 41, 45]
+    """
     random.seed(seed)
     return sorted(random.sample(range(size), samples))
 
@@ -124,13 +137,13 @@ def get_offsets(
     SEEDS_TO_TRY = 5
     seed = int(after.timestamp())
     for seed_counter in range(SEEDS_TO_TRY):
-        warning(f"attempt {seed_counter+1=} to find non-overlapping offsets")
         seed += seed_counter  # increment seed
+        warning(f"attempt {seed_counter} to find non-overlapping offsets")
         offsets = get_cacheable_randos(
             duration.in_hours(), queries_total, seed
         )
-        info(f"{offsets=} at hours from after")
         if is_overlapping(offsets, PUSHSHIFT_LIMIT, results_per_hour):
+            critical(f"  seed attempt {seed_counter} failed")
             continue
         else:
             break
@@ -154,7 +167,7 @@ if __name__ == "__main__":
     exception = critical = error = warning = info = debug = info = print
 
     start = "2022-01-01"
-    end = "2022-06-01"
+    end = "2022-06-10"
     after: pendulum.DateTime = pendulum.parse(start)
     before: pendulum.DateTime = pendulum.parse(end)
     print(f"{before.timezone.name=}")
@@ -176,7 +189,6 @@ if __name__ == "__main__":
         f"   a {sample_size/total:.0%} sample"
     )
 
-    print("\ndef get_cacheable_randos")
-    print(get_cacheable_randos(50, 5, seed=after.int_timestamp))
-    print(get_cacheable_randos(50, 10, seed=after.int_timestamp))
-    print(get_cacheable_randos(50, 20, seed=after.int_timestamp))
+    import doctest
+
+    doctest.testmod()
