@@ -160,7 +160,6 @@ def construct_df(pushshift_total: int, pushshift_results: Any) -> Any:
                 pr.get("selftext", "") == "[deleted]",  # del_text_p(ushshift)
                 is_deleted_r,  # del_text_r(eddit)
                 is_removed_r,  # rem_text_r(eddit)
-                is_deleted_r and not is_removed_r,  # del_text_real_r
                 pr["full_link"] != pr["url"],  # crosspost
                 pr["full_link"],  # url
                 # PUSHSHIFT_API_URL + r["id"],
@@ -185,7 +184,6 @@ def construct_df(pushshift_total: int, pushshift_results: Any) -> Any:
             "del_text_p",
             "del_text_r",
             "rem_text_r",
-            "del_text_real_r",
             "crosspost",
             "url",
             # "url_api_p",
