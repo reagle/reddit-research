@@ -75,6 +75,13 @@ def is_throwaway(user_name) -> bool:
 @cachier(pickle_reload=False)  #
 def get_reddit_info(id, author_pushshift) -> Tuple[str, str, str]:
     """Given id, returns info from reddit."""
+    # TODO: requests multiple IDs
+    # https://www.reddit.com/r/redditdev/comments/aoe4pk/praw_getting_multiple_submissions_using_by_id/
+    # "Requests will be issued in batches for each 100 fullnames."
+    #
+    # ids2 = [i if i.startswith('t3_') else f't3_{i}' for i in ids]
+    # for submission in reddit.info(fullnames=ids2):
+    # print (submission.title)
 
     author_reddit = "NA"
     is_deleted = "NA"
