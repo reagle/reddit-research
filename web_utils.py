@@ -83,8 +83,7 @@ def get_HTML(
     time.sleep(rate_limit)
 
     AGENT_HEADERS = {
-        "User-Agent": "Reddit Tools https://github.com/reagle/reddit/"
-    }
+        "User-Agent": "MacOS:reddit-query.py:v0.5 (by /u/reagle-reseach)"}
     r = requests.get(url, headers=AGENT_HEADERS, verify=True)
     # info(f"{r.headers['content-type']=}")
     if "html" in r.headers["content-type"]:
