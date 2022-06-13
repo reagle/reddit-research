@@ -9,14 +9,12 @@
 import logging
 import math
 import os
+import random
+from typing import List, Tuple
+
 import pendulum  # https://pendulum.eustace.io/docs/
 import praw
-import random
 
-# datetime: date, time, datetime, timedelta
-# pendulum: datetime, Duration (timedelta), Period (Duration)
-
-from typing import List, Tuple
 from web_api_tokens import (
     REDDIT_CLIENT_ID,
     REDDIT_CLIENT_SECRET,
@@ -25,6 +23,9 @@ from web_api_tokens import (
 
 # https://github.com/reagle/thunderdell
 from web_utils import get_JSON
+
+# datetime: date, time, datetime, timedelta
+# pendulum: datetime, Duration (timedelta), Period (Duration)
 
 
 REDDIT = praw.Reddit(

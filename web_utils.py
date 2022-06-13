@@ -10,19 +10,19 @@
 Web functionality I frequently make use of.
 """
 
-# import datetime as dt
-import cachier
 import html.entities
 import json
 import logging
 import os
 import re
 import time
-from lxml import etree
 from typing import Any, Match, Tuple, Union
 from xml.sax.saxutils import escape  # unescape
 
+# import datetime as dt
+import cachier
 import requests  # http://docs.python-requests.org/en/latest/
+from lxml import etree
 
 HOMEDIR = os.path.expanduser("~")
 

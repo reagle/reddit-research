@@ -13,32 +13,24 @@ Reads data from a CSV file.
 """
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
-
 # import datetime as dt
 import logging
 import sys
 import time
-
 # import time
 from pathlib import PurePath
-
 # import random
 # from random import randint
 from typing import Any
 
 import pandas as pd
-
 # https://www.reddit.com/dev/api/
 import praw  # https://praw.readthedocs.io/en/latest
 from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
 
-from web_api_tokens import (
-    REDDIT_CLIENT_ID,
-    REDDIT_CLIENT_SECRET,
-    REDDIT_PASSWORD,
-    REDDIT_USER_AGENT,
-    REDDIT_USERNAME,
-)
+from web_api_tokens import (REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET,
+                            REDDIT_PASSWORD, REDDIT_USER_AGENT,
+                            REDDIT_USERNAME)
 
 # from typing import Any, Tuple
 
