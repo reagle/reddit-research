@@ -6,6 +6,7 @@
 # (c) Copyright 2020-2022 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
+import cachier
 import logging
 import math
 import os
@@ -75,6 +76,7 @@ def is_overlapping(
     return False
 
 
+@cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def get_pushshift_total(
     subreddit: str,
     after: pendulum.DateTime,
@@ -100,6 +102,14 @@ def get_pushshift_total(
     return results_total
 
 
+def get_sequence(size: int, samples: int) -> list[int]:
+    """Return [0,size, k=samples). This is not very cacheable as different
+    sample sizes generate different offsets."""
+
+    step = math.ceil(size / samples)
+    return list(range(0, size, step))
+
+
 def get_cacheable_randos(size: int, samples: int, seed: int):
     """Return k=samples of random integers in range up to `size` such that a
     larger sample result includes smaller sample results.
@@ -110,7 +120,7 @@ def get_cacheable_randos(size: int, samples: int, seed: int):
     >>> get_cacheable_randos(50, 15, seed=7)
     [2, 3, 4, 5, 6, 9, 13, 20, 23, 25, 32, 34, 37, 41, 45]
     """
-    # TODO: Replace with  low-discrepancy, quasi-random numbers
+    # TODO: Replace with low-discrepancy, quasi-random numbers
     # (qmc.Sobol.integers() is forthcoming in scipy 1.9)
 
     random.seed(seed)
@@ -200,3 +210,7 @@ if __name__ == "__main__":
     import doctest
 
     doctest.testmod()
+
+    offsets_sequence = get_sequence(size=3840, samples=50 -> list[int])
+    print(f"{len(offsets_sReturn [0,size, k=s. This is not cacheable as different
+  very       sample sizes generate different offsets.: {offsets_sequence=}")
