@@ -159,7 +159,7 @@ def get_offsets(
         offset_as_datetime = after.add(hours=offset_as_hour)
         offsets_as_datetime.append(offset_as_datetime)
     info(f"{len(offsets)=}")
-    return results_total, offsets_as_datetime
+    return offsets_as_datetime
 
 
 if __name__ == "__main__":

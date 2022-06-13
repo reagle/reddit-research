@@ -16,9 +16,7 @@ indexing (often within 24 hours) and Reddit's current version.
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import collections
 import logging
-import pendulum  # https://pendulum.eustace.io/docs/
-
-# import random
+import shelve
 import sys
 
 # import time
@@ -27,19 +25,17 @@ from typing import Any, Counter, Tuple  # , Union
 
 # import numpy as np
 import pandas as pd
+import pendulum  # https://pendulum.eustace.io/docs/
 import praw  # https://praw.readthedocs.io/en/latest
-from cachier import cachier  # https://github.com/shaypal5/cachier
 from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
 
+import reddit_sample as rs
+import web_utils
 from web_api_tokens import (
     REDDIT_CLIENT_ID,
     REDDIT_CLIENT_SECRET,
     REDDIT_USER_AGENT,
 )
-
-# https://github.com/reagle/thunderdell
-from web_utils import get_JSON
-from reddit_sample import get_offsets
 
 # https://www.reddit.com/dev/api/
 # https://github.com/pushshift/api
@@ -48,8 +44,9 @@ from reddit_sample import get_offsets
 NOW = pendulum.now("UTC")
 NOW_STR = NOW.format("YYYYMMDD")
 PUSHSHIFT_LIMIT = 100
+REDDIT_LIMIT = 100
 
-REDDIT = praw.Reddit(
+reddit = praw.Reddit(
     user_agent=REDDIT_USER_AGENT,
     client_id=REDDIT_CLIENT_ID,
     client_secret=REDDIT_CLIENT_SECRET,
@@ -72,16 +69,29 @@ def is_throwaway(user_name) -> bool:
         return False
 
 
-@cachier(pickle_reload=False)  #
-def get_reddit_info(id, author_pushshift) -> Tuple[str, str, str]:
+def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf:
+    """Use praw's info() method to grab reddit info all at once"""
+    """and store on a disk for quick retrieval."""
+
+    # TODO if key already in shelf continue, otherwise grab
+    # Break up into 100s
+    shelf = shelve.open("shelf-reddit.dbm")
+    ids_req = set(ids_req)
+    ids_shelved = set(shelf.keys())
+    ids_needed = ids_req - ids_shelved
+    t3_ids = [i if i.startswith("t3_") else f"t3_{i}" for i in ids_needed]
+    submissions = reddit.info(fullnames=t3_ids)
+    print("pre-fetch: storing in shelf")
+    for count, submission in tqdm(enumerate(submissions)):
+        # print(f"{count: <3} {submission.id} {submission.title}")
+        shelf[submission.id] = submission
+    return shelf
+
+
+def get_reddit_info(
+    shelf: shelve.DbfilenameShelf, id: str, author_pushshift: str
+) -> Tuple[str, str, str]:
     """Given id, returns info from reddit."""
-    # TODO: requests multiple IDs
-    # https://www.reddit.com/r/redditdev/comments/aoe4pk/praw_getting_multiple_submissions_using_by_id/
-    # "Requests will be issued in batches for each 100 fullnames."
-    #
-    # ids2 = [i if i.startswith('t3_') else f't3_{i}' for i in ids]
-    # for submission in reddit.info(fullnames=ids2):
-    # print (submission.title)
 
     author_reddit = "NA"
     is_deleted = "NA"
@@ -98,7 +108,8 @@ def get_reddit_info(id, author_pushshift) -> Tuple[str, str, str]:
         is_deleted = "False"
         is_removed = "False"
 
-        submission = REDDIT.submission(id=id)
+        # submission = REDDIT.submission(id=id)
+        submission = shelf[id]
         author_reddit = (
             "[deleted]" if not submission.author else submission.author
         )
@@ -118,7 +129,7 @@ def get_reddit_info(id, author_pushshift) -> Tuple[str, str, str]:
     return author_reddit, is_deleted, is_removed
 
 
-def construct_df(pushshift_total: int, pushshift_results: Any) -> Any:
+def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> Any:
     """Given pushshift query results, return dataframe of info about
     submissions.
     """
@@ -137,19 +148,19 @@ def construct_df(pushshift_total: int, pushshift_results: Any) -> Any:
     # REDDIT_API_URL = "https://api.reddit.com/api/info/?id=t3_"
 
     results_row = []
-    message_ids: Counter = collections.Counter()
+    ids_counter: Counter = collections.Counter()
 
+    ids_all = [message["id"] for message in pushshift_results]
+    shelf = prefetch_reddit_posts(ids_all)
     for pr in tqdm(pushshift_results):
         debug(f"{pr['id']=} {pr['author']=} {pr['title']=}\n")
-        if message_ids[pr["id"]]:
-            print(f"WARNING: identical message id {pr['id']}")
-        message_ids[pr["id"]] += 1
+        ids_counter[pr["id"]] += 1
         created_utc = pendulum.from_timestamp(pr["created_utc"]).format(
             "YYYYMMDD HH:mm:ss"
         )
         elapsed_hours = round((pr["retrieved_on"] - pr["created_utc"]) / 3600)
         author_r, is_deleted_r, is_removed_r = get_reddit_info(
-            pr["id"], pr["author"]
+            shelf, pr["id"], pr["author"]
         )
         results_row.append(
             (  # comments correspond to headings in dataframe below
@@ -197,13 +208,12 @@ def construct_df(pushshift_total: int, pushshift_results: Any) -> Any:
             # "url_api_r",
         ],
     )
-    ids_repeating = [m_id for m_id, count in message_ids.items() if count > 1]
+    ids_repeating = [m_id for m_id, count in ids_counter.items() if count > 1]
     if ids_repeating:
         print(f"WARNING: repeat IDs = {ids_repeating=}")
     return posts_df
 
 
-@cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def query_pushshift(
     limit: int,
     after: pendulum.DateTime,
@@ -228,7 +238,7 @@ def query_pushshift(
     critical(f"******* between {after_human} and {before_human}")
     after_timestamp = after.int_timestamp
     before_timestamp = before.int_timestamp
-    critical(f"******* between {after_timestamp} and {before_timestamp}")
+    debug(f"******* between {after_timestamp} and {before_timestamp}")
 
     optional_params = ""
     if after:
@@ -251,11 +261,11 @@ def query_pushshift(
         f"?{limit_param}subreddit={subreddit}{optional_params}"
     )
     print(f"{pushshift_url=}")
-    reddit_data = get_JSON(pushshift_url)["data"]
-    if len(reddit_data) != 100:
-        print(f"short on some entries {len(reddit_data)}")
+    pushshift_data = web_utils.get_JSON(pushshift_url)["data"]
+    if len(pushshift_data) != 100:
+        print(f"short on some entries {len(pushshift_data)}")
         # breakpoint()
-    return reddit_data
+    return pushshift_data
 
 
 def collect_pushshift_results(
@@ -278,7 +288,8 @@ def collect_pushshift_results(
         #   because they'll throw off the estimates
 
         query_iteration = 0
-        results_total, offsets = get_offsets(
+        results_total = rs.get_pushshift_total(subreddit, after, before)
+        offsets = rs.get_offsets(
             subreddit, after, before, limit, PUSHSHIFT_LIMIT
         )
         info(f"{offsets=}")
@@ -293,6 +304,7 @@ def collect_pushshift_results(
 
     else:  # collect only first message starting with after up to limit
         # I need an initial to see if there's anything in results
+        results_total = rs.get_pushshift_total(subreddit, after, before)
         query_iteration = 1
         results = results_found = query_pushshift(
             limit, after, before, subreddit, query, comments_num
@@ -306,7 +318,6 @@ def collect_pushshift_results(
             )
             results_found.extend(results)
         results_found = results_found[0:limit]
-        results_total = len(results_found)
         print(f"returning {len(results_found)} (first) posts in range\n")
 
     info(f"{results_total=}")
@@ -496,6 +507,6 @@ if __name__ == "__main__":
     number_results = len(posts_df)
     result_name = (
         f"""reddit_{date_str}_{args.subreddit}{comments_num}"""
-        f"""_l{args.limit}_n{number_results}{sample}{throwaway}"""
+        f"""_l{args.limit}_n{number_results}{sample}{throwaway}{moderated}"""
     )
     export_df(result_name, posts_df)

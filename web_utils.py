@@ -11,6 +11,7 @@ Web functionality I frequently make use of.
 """
 
 # import datetime as dt
+import cachier
 import html.entities
 import json
 import logging
@@ -22,7 +23,6 @@ from typing import Any, Match, Tuple, Union
 from xml.sax.saxutils import escape  # unescape
 
 import requests  # http://docs.python-requests.org/en/latest/
-from cachier import cachier
 
 HOMEDIR = os.path.expanduser("~")
 
@@ -68,7 +68,7 @@ def unescape_XML(text: str) -> str:  # .0937s 4.11%
     return re.sub(r"&#?\w+;", fixup, text)
 
 
-@cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
+@cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def get_HTML(
     url: str,
     referer: str = "",
@@ -83,7 +83,8 @@ def get_HTML(
     time.sleep(rate_limit)
 
     AGENT_HEADERS = {
-        "User-Agent": "MacOS:reddit-query.py:v0.5 (by /u/reagle-reseach)"}
+        "User-Agent": "MacOS:reddit-query.py:v0.5 (by /u/reagle-reseach)"
+    }
     r = requests.get(url, headers=AGENT_HEADERS, verify=True)
     # info(f"{r.headers['content-type']=}")
     if "html" in r.headers["content-type"]:
@@ -101,7 +102,7 @@ def get_HTML(
     return HTML_bytes, HTML_parsed, HTML_unicode, r
 
 
-@cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
+@cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def get_JSON(
     url: str,
     referer: str = "",
@@ -146,7 +147,7 @@ def get_JSON(
         raise IOError("URL content is not JSON.")
 
 
-@cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
+@cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def get_text(url: str) -> str:
     """Textual version of url"""
 
