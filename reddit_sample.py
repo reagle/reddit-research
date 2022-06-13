@@ -80,6 +80,9 @@ def get_pushshift_total(
     after: pendulum.DateTime,
     before: pendulum.DateTime,
 ) -> int:
+    """Get the total number of results in a Pushshift query via the
+    '&metadata=true' parameter"""
+    info(f"*************")
     info(f"after = {after.format('YYYY-MM-DD HH:mm:ss ZZ')}")
     after_epoch = int(after.int_timestamp)
     info(f"{after_epoch=}")
@@ -107,6 +110,9 @@ def get_cacheable_randos(size: int, samples: int, seed: int):
     >>> get_cacheable_randos(50, 15, seed=7)
     [2, 3, 4, 5, 6, 9, 13, 20, 23, 25, 32, 34, 37, 41, 45]
     """
+    # TODO: Replace with  low-discrepancy, quasi-random numbers
+    # (qmc.Sobol.integers() is forthcoming in scipy 1.9)
+
     random.seed(seed)
     return sorted(random.sample(range(size), samples))
 
@@ -176,7 +182,8 @@ if __name__ == "__main__":
     sample_size = 5000
     PUSHSHIFT_LIMIT = 100
 
-    total, offsets = get_offsets(
+    total = get_pushshift_total("AmItheAsshole", after, before)
+    offsets = get_offsets(
         "AmItheAsshole", after, before, sample_size, PUSHSHIFT_LIMIT
     )
     for count, offset in enumerate(sorted(offsets)):
