@@ -135,7 +135,7 @@ def get_offsets(
     info(f"{queries_total=}")
     info(f"{range(duration.in_hours())=}")
 
-    SEEDS_TO_TRY = 5
+    SEEDS_TO_TRY = 300
     seed = int(after.timestamp())
     for seed_counter in range(SEEDS_TO_TRY):
         seed += seed_counter  # increment seed
