@@ -250,12 +250,6 @@ def query_pushshift(
         # named `num_comments`
         optional_params += f"&num_comments={comments_num}"
 
-    # WARNING: Pushshift ignores brackets so this ignores any message
-    # with "removed," though it can still be worth it given how
-    # how many moderator removals there are.
-    if args.moderated_removed:
-        optional_params += f"&selftext:not=[removed]"
-
     pushshift_url = (
         f"https://api.pushshift.io/reddit/submission/search/"
         f"?{limit_param}subreddit={subreddit}{optional_params}"
@@ -378,19 +372,6 @@ def main(argv) -> argparse.Namespace:
         """Note: this is updated as Pushshift ingests, `score` is not.""",
     )
     arg_parser.add_argument(
-        "-m",
-        "--moderated-removed",
-        action="store_true",
-        default=False,
-        help=(
-            """exclude moderated/removed submissions. """
-            """WARNING: Pushshift ignores brackets so this ignores any """
-            """message with "removed", though it can still be worth it """
-            """given how many moderator removals there are. """
-            """(default: %(default)s)"""
-        ),
-    )
-    arg_parser.add_argument(
         "-r",
         "--subreddit",
         type=str,
@@ -489,10 +470,6 @@ if __name__ == "__main__":
         throwaway = "_throwaway"
     else:
         throwaway = ""
-    if args.moderated_removed:
-        moderated = "_mod"
-    else:
-        moderated = ""
 
     query = {
         "limit": args.limit,
@@ -507,6 +484,6 @@ if __name__ == "__main__":
     number_results = len(posts_df)
     result_name = (
         f"""reddit_{date_str}_{args.subreddit}{comments_num}"""
-        f"""_l{args.limit}_n{number_results}{sample}{throwaway}{moderated}"""
+        f"""_l{args.limit}_n{number_results}{sample}{throwaway}"""
     )
     export_df(result_name, posts_df)
