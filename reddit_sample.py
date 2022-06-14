@@ -9,6 +9,7 @@
 import cachier
 import logging
 import math
+import numpy as np
 import os
 import random
 from typing import List, Tuple
@@ -108,6 +109,14 @@ def get_sequence(size: int, samples: int) -> list[int]:
 
     step = math.ceil(size / samples)
     return list(range(0, size, step))
+
+
+def get_cacheable_np_randos(size: int, samples: int, seed: int):
+    """Return k=samples of random integers in range up to `size` such that a
+    larger sample result includes smaller sample results. Using numpy"""
+
+    # random.seed(seed)
+    return sorted(np.random.randint(low=0, high=size + 1, size=samples))
 
 
 def get_cacheable_randos(size: int, samples: int, seed: int):
@@ -211,6 +220,10 @@ if __name__ == "__main__":
 
     doctest.testmod()
 
-    offsets_sequence = get_sequence(size=3840, samples=50 -> list[int])
-    print(f"{len(offsets_sReturn [0,size, k=s. This is not cacheable as different
-  very       sample sizes generate different offsets.: {offsets_sequence=}")
+    print(f"{get_sequence(size=3840, samples=15)=}")
+    print(f"{get_cacheable_randos(100, 10, seed=7)=}")
+    print(f"{get_cacheable_np_randos(100, 10, seed=7)=}")
+
+    print(f"{get_pushshift_total('Advice', after, before)=}")
+    print(f"{get_pushshift_total('AmItheAsshole', after, before)=}")
+    print(f"{get_pushshift_total('relationship_advice', after, before)=}")

@@ -109,7 +109,13 @@ def get_reddit_info(
         is_removed = "False"
 
         # submission = REDDIT.submission(id=id)
-        submission = shelf[id]
+        if id in shelf:
+            submission = shelf[id]
+        else:
+            # These instances are very rare 0.001%
+            # https://www.reddit.com/r/pushshift/comments/vby7c2/rare_pushshift_has_a_submission_id_reddit_returns/icbbtkr/?context=3
+            print(f"WARNING: {id=} not in shelf")
+            return "[deleted]", "False", "False"
         author_reddit = (
             "[deleted]" if not submission.author else submission.author
         )
