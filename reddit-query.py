@@ -170,6 +170,7 @@ def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> Any:
         )
         results_row.append(
             (  # comments correspond to headings in dataframe below
+                pr["subreddit"],
                 pushshift_total,  # total_p: total range if sampling
                 author_r,  # author_r(eddit)
                 pr["author"],  # author_p(ushshift)
@@ -194,6 +195,7 @@ def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> Any:
     posts_df = pd.DataFrame(
         results_row,
         columns=[
+            "subreddit",
             "total_p",
             "author_r",
             "author_p",
