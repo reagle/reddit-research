@@ -255,6 +255,9 @@ def query_pushshift(
         # I prefer `comments_num`, but Reddit uses poorly
         # named `num_comments`
         optional_params += f"&num_comments={comments_num}"
+    # this can be use to remove any message with "removed"
+    # see earlier commits for full functionality
+    # optional_params += f"&selftext:not=[removed]"
 
     pushshift_url = (
         f"https://api.pushshift.io/reddit/submission/search/"
@@ -297,6 +300,7 @@ def collect_pushshift_results(
         for after_offset in offsets:
             info(f"{after_offset=}, {before=}")
             query_iteration += 1
+            critical(f"{query_iteration}")
             results = query_pushshift(
                 limit, after_offset, before, subreddit, query, comments_num
             )
