@@ -120,19 +120,41 @@ def main(argv) -> argparse.Namespace:
     return args
 
 
-def init_watch(subreddits: list, number: int) -> str:
-    """Watch subreddits until number per, and return resulting CSV."""
+def int_watch_pushshift(in_fn: str, watch_fn: str) -> str:
+    """Start a new watcher CSV"""
 
-    subreddit_str = "+".join(subreddits)
+    in_df = pd.read_csv(in_fn, encoding="utf-8-sig")
+    print(f"read dataframe of shape {in_df.shape} from '{in_fn}'")
+    row_dict = defaultdict(list)
+    for count, row in in_df.iterrows():
+        row_dict["id"].append(row["id"])
+        row_dict["subreddit"].append(row["subreddit"])
+        row_dict["author"].append(row["author_p"])
+        row_dict["del_author_p"].append(row["del_author_p"])
+        row_dict["created_utc"].append(row["created_utc"])
+        row_dict["del_author_r"].append(row["del_author_r"])
+        row_dict["del_author_r_changed"].append("NA")
+        row_dict["del_text_r"].append(row["del_text_r"])
+        row_dict["del_text_r_changed"].append("NA")
+        row_dict["rem_text_r"].append(row["rem_text_r"])
+        row_dict["rem_text_r_changed"].append("NA")
+    watch_df = pd.DataFrame.from_dict(row_dict)
+    watch_df.to_csv(watch_fn, index=True, encoding="utf-8-sig")
+    return count, watch_fn
 
-    total_number = number * len(subreddits)
-    counter = 0
+
+def init_watch_reddit(subreddit: str, limit: int) -> str:
+    """Watch subreddit until limit per, and return resulting CSV."""
+
+    # counter = 0
     submissions_d = defaultdict(list)
-    for submission in reddit.subreddit(subreddit_str).stream.submissions():
+    for counter, submission in enumerate(
+        reddit.subreddit(subreddit).new(limit=limit)
+    ):
         print((counter, submission.id, submission.title))
-        counter += 1
-        if counter > total_number:
-            break
+        # counter += 1
+        # if counter > limit:
+        #     break
 
         submissions_d["id"].append(submission.id)
         submissions_d["subreddit"].append(submission.subreddit)
@@ -146,7 +168,7 @@ def init_watch(subreddits: list, number: int) -> str:
         submissions_d["rem_text_r"].append("FALSE")  # test
         submissions_d["rem_text_r_changed"].append("NA")
     watch_fn = (
-        f"watch-{subreddit_str}-{NOW.format('YYYYMMDD')}"
+        f"watch-{subreddit}-{NOW.format('YYYYMMDD')}"
         f"_n{len(submissions_d['id'])}.csv"
     )
     watch_df = pd.DataFrame.from_dict(submissions_d)
@@ -207,8 +229,9 @@ if __name__ == "__main__":
 
     SUBREDDITS = ("Advice", "AmItheAsshole", "relationship_advice")
     HOW_MANY = 20
-    if args.init:
-        watch_fn = init_watch(SUBREDDITS, HOW_MANY)
-    else:
-        update_watch(watch_fn)
+    for subreddit in SUBREDDITS:
+        if args.init:
+            watch_fn = init_watch_reddit(subreddit, HOW_MANY)
+        else:
+            update_watch(subreddit)
     # TODO archive old watch, and rename the latest
