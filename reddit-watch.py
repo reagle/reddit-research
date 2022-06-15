@@ -120,29 +120,6 @@ def main(argv) -> argparse.Namespace:
     return args
 
 
-def int_watch_pushshift(in_fn: str, watch_fn: str) -> str:
-    """Start a new watcher CSV"""
-
-    in_df = pd.read_csv(in_fn, encoding="utf-8-sig")
-    print(f"read dataframe of shape {in_df.shape} from '{in_fn}'")
-    row_dict = defaultdict(list)
-    for count, row in in_df.iterrows():
-        row_dict["id"].append(row["id"])
-        row_dict["subreddit"].append(row["subreddit"])
-        row_dict["author"].append(row["author_p"])
-        row_dict["del_author_p"].append(row["del_author_p"])
-        row_dict["created_utc"].append(row["created_utc"])
-        row_dict["del_author_r"].append(row["del_author_r"])
-        row_dict["del_author_r_changed"].append("NA")
-        row_dict["del_text_r"].append(row["del_text_r"])
-        row_dict["del_text_r_changed"].append("NA")
-        row_dict["rem_text_r"].append(row["rem_text_r"])
-        row_dict["rem_text_r_changed"].append("NA")
-    watch_df = pd.DataFrame.from_dict(row_dict)
-    watch_df.to_csv(watch_fn, index=True, encoding="utf-8-sig")
-    return count, watch_fn
-
-
 def init_watch_reddit(subreddit: str, limit: int) -> str:
     """Initiate watch of subreddit, create CSV, return filename"""
 
