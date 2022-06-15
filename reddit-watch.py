@@ -73,17 +73,10 @@ def main(argv) -> argparse.Namespace:
 
     # non-positional arguments
     arg_parser.add_argument(
-        "--dry-run",
+        "--init",
         action="store_true",
         default=False,
-        help="list greeting and users but don't message",
-    )
-    arg_parser.add_argument(
-        "--start",
-        action="store_true",
-        default=False,
-        help="throwaways checked on Reddit; otherwise Pushshift only "
-        "(default: %(default)s)",
+        help="initialize watch" "(default: %(default)s)",
     )
     arg_parser.add_argument(
         "-L",
@@ -127,26 +120,38 @@ def main(argv) -> argparse.Namespace:
     return args
 
 
-def start_watch(in_fn: str, watch_fn: str) -> None:
-    """Start a new watcher CSV"""
+def init_watch(subreddits: list, number: int) -> str:
+    """Watch subreddits until number per, and return resulting CSV."""
 
-    in_df = pd.read_csv(in_fn, encoding="utf-8-sig")
-    print(f"read dataframe of shape {in_df.shape} from '{in_fn}'")
-    row_dict = defaultdict(list)
-    for _, row in in_df.iterrows():
-        row_dict["id"].append(row["id"])
-        row_dict["subreddit"].append(row["subreddit"])
-        row_dict["author"].append(row["author_p"])
-        row_dict["del_author_p"].append(row["del_author_p"])
-        row_dict["created_utc"].append(row["created_utc"])
-        row_dict["del_author_r"].append(row["del_author_r"])
-        row_dict["del_author_r_changed"].append("NA")
-        row_dict["del_text_r"].append(row["del_text_r"])
-        row_dict["del_text_r_changed"].append("NA")
-        row_dict["rem_text_r"].append(row["rem_text_r"])
-        row_dict["rem_text_r_changed"].append("NA")
-    watch_df = pd.DataFrame.from_dict(row_dict)
+    subreddit_str = "+".join(subreddits)
+
+    total_number = number * len(subreddits)
+    counter = 0
+    submissions_d = defaultdict(list)
+    for submission in reddit.subreddit(subreddit_str).stream.submissions():
+        print((counter, submission.id, submission.title))
+        counter += 1
+        if counter > total_number:
+            break
+
+        submissions_d["id"].append(submission.id)
+        submissions_d["subreddit"].append(submission.subreddit)
+        submissions_d["author"].append(submission.author)
+        submissions_d["del_author_p"].append("FALSE")  # TODO: test
+        submissions_d["created_utc"].append(submission.created_utc)
+        submissions_d["del_author_r"].append("FALSE")  # TODO: test
+        submissions_d["del_author_r_changed"].append("NA")
+        submissions_d["del_text_r"].append("FALSE")  # TODO: test
+        submissions_d["del_text_r_changed"].append("NA")
+        submissions_d["rem_text_r"].append("FALSE")  # test
+        submissions_d["rem_text_r_changed"].append("NA")
+    watch_fn = (
+        f"watch-{subreddit_str}-{NOW.format('YYYYMMDD')}"
+        f"_n{len(submissions_d['id'])}.csv"
+    )
+    watch_df = pd.DataFrame.from_dict(submissions_d)
     watch_df.to_csv(watch_fn, index=True, encoding="utf-8-sig")
+    return len(submissions_d), watch_fn
 
 
 def prefetch_reddit_posts(ids_req: list[str]) -> dict:
@@ -200,17 +205,10 @@ def update_watch(watched_fn: str) -> None:
 if __name__ == "__main__":
     args = main(sys.argv[1:])
 
-    FILENAMES = [
-        "reddit_20220614-20220615_Advice_l10000_n677.csv",
-        "reddit_20220614-20220615_AmItheAsshole_l10000_n854.csv",
-        "reddit_20220614-20220615_relationship_advice_l10000_n1399.csv",
-    ]
-    for in_file_name in FILENAMES:
-        print(f"{in_file_name=}")
-        watch_file_name = "watch-" + in_file_name
-        if args.start:
-            start_watch(in_file_name, watch_file_name)
-        # No "else" because even start needs to set initial to values
-        # to a zero offset
-        update_watch(watch_file_name)
-        # TODO archive old watch, and rename the latest
+    SUBREDDITS = ("Advice", "AmItheAsshole", "relationship_advice")
+    HOW_MANY = 20
+    if args.init:
+        watch_fn = init_watch(SUBREDDITS, HOW_MANY)
+    else:
+        update_watch(watch_fn)
+    # TODO archive old watch, and rename the latest
