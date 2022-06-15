@@ -16,10 +16,11 @@ Watch the deletion and moderation status of message IDs stored in a dictionary.
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging
 import numpy as np
+import os
 import pprint
 import pandas as pd
 import sys
-import tqdm
+import tqdm  # progress bar https://github.com/tqdm/tqdm
 
 from collections import defaultdict
 from pathlib import PurePath
@@ -32,7 +33,6 @@ import pendulum  # https://pendulum.eustace.io/docs/
 # https://www.reddit.com/dev/api/
 import praw  # https://praw.readthedocs.io/en/latest
 
-# from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
 
 # import reddit_sample as rs
 # import web_utils
@@ -42,9 +42,9 @@ from web_api_tokens import (
     REDDIT_USER_AGENT,
 )
 
-
+DATA_DIR = "/Users/reagle/data/1work/2020/reddit-del/"
 NOW = pendulum.now("UTC")
-NOW_STR = NOW.format("YYYYMMDD HH:MM:SS")
+NOW_STR = NOW.format("YYYYMMDD HH:mm:ss")
 PUSHSHIFT_LIMIT = 100
 REDDIT_LIMIT = 100
 pp = pprint.PrettyPrinter(indent=4)
@@ -144,57 +144,54 @@ def int_watch_pushshift(in_fn: str, watch_fn: str) -> str:
 
 
 def init_watch_reddit(subreddit: str, limit: int) -> str:
-    """Watch subreddit until limit per, and return resulting CSV."""
+    """Initiate watch of subreddit, create CSV, return filename"""
 
-    # counter = 0
     submissions_d = defaultdict(list)
-    for counter, submission in enumerate(
-        reddit.subreddit(subreddit).new(limit=limit)
-    ):
-        print((counter, submission.id, submission.title))
-        # counter += 1
-        # if counter > limit:
-        #     break
-
+    prog_bar = tqdm.tqdm(total=limit / REDDIT_LIMIT)
+    for submission in tqdm.tqdm(reddit.subreddit(subreddit).new(limit=limit)):
         submissions_d["id"].append(submission.id)
         submissions_d["subreddit"].append(submission.subreddit)
         submissions_d["author"].append(submission.author)
-        submissions_d["del_author_p"].append("FALSE")  # TODO: test
+        submissions_d["del_author_p"].append("FALSE")
         submissions_d["created_utc"].append(submission.created_utc)
-        submissions_d["del_author_r"].append("FALSE")  # TODO: test
+        submissions_d["found_utc"].append(NOW_STR)
+        submissions_d["del_author_r"].append("FALSE")
         submissions_d["del_author_r_changed"].append("NA")
-        submissions_d["del_text_r"].append("FALSE")  # TODO: test
+        submissions_d["del_text_r"].append("FALSE")
         submissions_d["del_text_r_changed"].append("NA")
-        submissions_d["rem_text_r"].append("FALSE")  # test
+        submissions_d["rem_text_r"].append("FALSE")
         submissions_d["rem_text_r_changed"].append("NA")
+        prog_bar.update(1)
+    prog_bar.close()
     watch_fn = (
-        f"watch-{subreddit}-{NOW.format('YYYYMMDD')}"
+        f"{DATA_DIR}/watch-{subreddit}-{NOW.format('YYYYMMDD')}"
         f"_n{len(submissions_d['id'])}.csv"
     )
     watch_df = pd.DataFrame.from_dict(submissions_d)
-    watch_df.to_csv(watch_fn, index=True, encoding="utf-8-sig")
-    return len(submissions_d), watch_fn
+    watch_df.to_csv(watch_fn, index=True, encoding="utf-8-sig", na_rep="")
+    return watch_fn
 
 
 def prefetch_reddit_posts(ids_req: list[str]) -> dict:
     """Use praw's info() method to grab reddit info all at once."""
 
     submissions_dict = {}
-    # temporarily limit to first 10 ids
     t3_ids = [i if i.startswith("t3_") else f"t3_{i}" for i in ids_req]
     print("fetching...")
-    submissions = reddit.info(fullnames=t3_ids)
-    for count, submission in tqdm.tqdm(enumerate(submissions)):
+    prog_bar = tqdm.tqdm(total=len(t3_ids) / REDDIT_LIMIT)
+    for submission in reddit.info(fullnames=t3_ids):
         # print(f"{submission.id=} {submission.author=}")
         submissions_dict[submission.id] = submission
+        prog_bar.update(1)
     return submissions_dict
 
 
-def update_watch(watched_fn: str) -> None:
+def update_watch(watched_fn: str) -> str:
     """Process a CSV, checking to see if values have changed and
     timestamping if so."""
 
-    watched_df = pd.read_csv(watched_fn, encoding="utf-8-sig")
+    assert os.path.exists(watched_fn)
+    watched_df = pd.read_csv(watched_fn, encoding="utf-8-sig", index_col=0)
     updated_df = watched_df.copy()
     watched_ids = watched_df["id"].tolist()
     submissions = prefetch_reddit_posts(watched_ids)
@@ -203,7 +200,6 @@ def update_watch(watched_fn: str) -> None:
         info(f"{row['id']=}, {row['author']=}")
         if id in submissions:
             sub = submissions[id]  # fetch and update if True
-            # breakpoint()
             if np.isnan(row["del_author_r_changed"]):
                 if sub.author == "[deleted]":
                     print(f"{sub.author=} deleted {NOW_STR}!")
@@ -219,19 +215,53 @@ def update_watch(watched_fn: str) -> None:
                     print(f"{sub.selftext=} removed {NOW_STR}!")
                     updated_df.at[index, "rem_text_r"] = True
                     updated_df.at[index, "rem_text_r_changed"] = NOW_STR
-    updated_df.to_csv(
-        "updated-" + watched_fn, index=True, encoding="utf-8-sig"
-    )
+    head, tail = os.path.split(watched_fn)
+    updated_fn = f"{head}/updated-{tail}"
+    updated_df.to_csv(updated_fn, index=True, encoding="utf-8-sig")
+    return updated_fn
+
+
+def rotate_fns(updated_fn: str) -> None:
+
+    # print(f"{updated_fn=}")
+    head, tail = os.path.split(updated_fn)
+    # print(f"{head=} {tail=}")
+    bare_fn = tail.removeprefix("updated-").removesuffix(".csv")
+    # print(f"{bare_fn=}")
+    archive_fn = f"{head}/{bare_fn}-arch_{NOW.int_timestamp}.csv"
+    # print(f"{archive_fn=}")
+    latest_fn = f"{head}/{bare_fn}.csv"
+    # print(f"{latest_fn=}")
+    if [os.path.exists(fn) for fn in (latest_fn, updated_fn)]:
+        print("rotating files")
+        os.rename(latest_fn, archive_fn)
+        os.rename(updated_fn, latest_fn)
+    else:
+        raise RuntimeError(
+            f"{os.path.exists(latest_fn)}" f"{os.path.exists(updated_fn)}"
+        )
 
 
 if __name__ == "__main__":
     args = main(sys.argv[1:])
 
     SUBREDDITS = ("Advice", "AmItheAsshole", "relationship_advice")
-    HOW_MANY = 20
-    for subreddit in SUBREDDITS:
-        if args.init:
-            watch_fn = init_watch_reddit(subreddit, HOW_MANY)
-        else:
-            update_watch(subreddit)
-    # TODO archive old watch, and rename the latest
+    # update watched_fn with information from init run
+    watched_fn = (
+        "watch-Advice-20220615_n20.csv",
+        "watch-AmItheAsshole-20220615_n20.csv",
+        "watch-relationship_advice-20220615_n20.csv",
+    )
+    watched_fn = [f"{DATA_DIR}{fn}" for fn in watched_fn]
+    LIMIT = 2000
+    if args.init:
+        for subreddit in SUBREDDITS:
+            watched_fn = init_watch_reddit(subreddit, LIMIT)
+            print(f"New subreddit tracked in {watched_fn=}")
+            updated_fn = update_watch(watched_fn)
+            rotate_fns(updated_fn)
+    else:
+        for fn in watched_fn:
+            print(f"Updating {fn=}")
+            updated_fn = update_watch(fn)
+            rotate_fns(updated_fn)
