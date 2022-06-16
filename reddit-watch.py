@@ -7,7 +7,7 @@
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
 """
-Watch the deletion and moderation status of message IDs stored in a dictionary.
+Watch the deletion and moderation status of messages tracked in a CSV.
 """
 
 
@@ -120,17 +120,16 @@ def main(argv) -> argparse.Namespace:
 
 
 def init_watch_pushshift(subreddit: str, hours: int) -> str:
-    """Initiate watch of subreddit using Pushshift, create CSV, return filename.
-    Reddit limits 100 per request to a maximum of 1000."""
+    """Initiate watch of subreddit using Pushshift, create CSV, return filename."""
 
     from psaw import PushshiftAPI
 
     hours_ago = NOW.subtract(hours=hours)
-    seconds_ago = hours_ago.int_timestamp
+    hours_ago_as_timestamp = hours_ago.int_timestamp
     print(f"fetching initial posts from {subreddit}")
     pushshift = PushshiftAPI()
     submissions = pushshift.search_submissions(
-        after=seconds_ago,
+        after=hours_ago_as_timestamp,
         subreddit=subreddit,
         filter=["id", "subreddit", "author", "created_utc"],
     )
@@ -160,8 +159,8 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
 
 
 def init_watch_reddit(subreddit: str, limit: int) -> str:
-    """Initiate watch of subreddit using Reddit, create CSV, return filename.
-    Reddit limits 100 per request to a maximum of 1000."""
+    """Initiate watch of subreddit using Pushshift, create CSV, return filename.
+    Reddit can return a maximum of only 1000 previous and recent submissions."""
 
     submissions_d = defaultdict(list)
     print(f"fetching initial posts from {subreddit}")
@@ -274,12 +273,12 @@ if __name__ == "__main__":
         "watch-relationship_advice-20220615_n2266.csv",
     )
     watched_fn = [f"{DATA_DIR}/{fn}" for fn in watched_fn]
-    # LIMIT = 1000  # maximum Reddit permits
-    LIMIT = 24  # hours ago for Pushshift
+    LIMIT = 1000  # maximum Reddit permits
+    HOURS_PAST = 24  # hours ago for Pushshift
     if args.init:
         for subreddit in SUBREDDITS:
             print(f"\nSetting watch on {subreddit}")
-            watched_fn = init_watch_pushshift(subreddit, LIMIT)
+            watched_fn = init_watch_pushshift(subreddit, HOURS_PAST)
             print(f"New subreddit tracked in {watched_fn=}; now updating")
             updated_fn = update_watch(watched_fn)
             rotate_fns(updated_fn)
