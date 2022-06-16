@@ -21,6 +21,7 @@ import praw  # https://praw.readthedocs.io/en/latest
 import pprint
 import sys
 import tqdm  # progress bar https://github.com/tqdm/tqdm
+import zipfile  # https://docs.python.org/3/library/zipfile.html
 
 from collections import defaultdict
 from pathlib import PurePath
@@ -120,10 +121,13 @@ def main(argv) -> argparse.Namespace:
 
 
 def init_watch_pushshift(subreddit: str, hours: int) -> str:
-    """Initiate watch of subreddit using Pushshift, create CSV, return filename."""
+    """
+    Initiate watch of subreddit using Pushshift, create CSV, return filename.
+    """
 
     from psaw import PushshiftAPI
 
+    print(f"\nInitializing watch on {subreddit}")
     hours_ago = NOW.subtract(hours=hours)
     hours_ago_as_timestamp = hours_ago.int_timestamp
     print(f"fetching initial posts from {subreddit}")
@@ -159,8 +163,10 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
 
 
 def init_watch_reddit(subreddit: str, limit: int) -> str:
-    """Initiate watch of subreddit using Pushshift, create CSV, return filename.
-    Reddit can return a maximum of only 1000 previous and recent submissions."""
+    """
+    Initiate watch of subreddit using Pushshift, create CSV, return filename.
+    Reddit can return a maximum of only 1000 previous and recent submissions.
+    """
 
     submissions_d = defaultdict(list)
     print(f"fetching initial posts from {subreddit}")
@@ -208,6 +214,7 @@ def update_watch(watched_fn: str) -> str:
     """Process a CSV, checking to see if values have changed and
     timestamping if so."""
 
+    print(f"New subreddit tracked in {watched_fn=}; now updating")
     assert os.path.exists(watched_fn)
     watched_df = pd.read_csv(watched_fn, encoding="utf-8-sig", index_col=0)
     updated_df = watched_df.copy()
@@ -241,25 +248,55 @@ def update_watch(watched_fn: str) -> str:
     return updated_fn
 
 
-def rotate_fns(updated_fn: str) -> None:
+def rotate_archive_fns(updated_fn: str) -> None:
 
+    print(f"Rotating and archiving {updated_fn=}")
+    if not os.path.exists(updated_fn):
+        raise RuntimeError(f"{os.path.exists(updated_fn)}")
     # print(f"{updated_fn=}")
     head, tail = os.path.split(updated_fn)
-    # print(f"{head=} {tail=}")
+    os.chdir(head)
+    print(f"{head=} {tail=}")
     bare_fn = tail.removeprefix("updated-").removesuffix(".csv")
-    # print(f"{bare_fn=}")
-    archive_fn = f"{head}/{bare_fn}-arch_{NOW.int_timestamp}.csv"
-    # print(f"{archive_fn=}")
-    latest_fn = f"{head}/{bare_fn}.csv"
-    # print(f"{latest_fn=}")
+    print(f"{bare_fn=}")
+    stamped_fn = f"{bare_fn}-arch_{NOW.int_timestamp}.csv"
+    print(f"{stamped_fn=}")
+    zipped_fn = f"{bare_fn}-arch.zip"
+    latest_fn = f"{bare_fn}.csv"
+    print(f"{latest_fn=}")
     if [os.path.exists(fn) for fn in (latest_fn, updated_fn)]:
         print("rotating files")
-        os.rename(latest_fn, archive_fn)
+        os.rename(latest_fn, stamped_fn)
         os.rename(updated_fn, latest_fn)
     else:
         raise RuntimeError(
             f"{os.path.exists(latest_fn)}" f"{os.path.exists(updated_fn)}"
         )
+    if os.path.exists(zipped_fn):
+        with zipfile.ZipFile(zipped_fn, mode="a") as archive:
+            print(f"adding {stamped_fn=} to {zipped_fn}")
+            archive.write(stamped_fn)
+            # archive.printdir()
+        print(f"deleting {stamped_fn=}")
+        os.remove(stamped_fn)
+    else:
+        critical(f"can't append stamped, {zipped_fn} not found")
+
+
+def init_archive(updated_fn: str) -> None:
+    """
+    Initialize the archive file with most recent version, to be
+    added to with timestamped versions.
+    """
+
+    print(f"Initializing archive for {updated_fn=}")
+    head, tail = os.path.split(updated_fn)
+    bare_fn = tail.removeprefix("updated-").removesuffix(".csv")
+    zipped_fn = f"{bare_fn}-arch.zip"
+    print(f"initializing archive {zipped_fn=}")
+
+    with zipfile.ZipFile(zipped_fn, mode="w") as archive:
+        archive.write(updated_fn)
 
 
 if __name__ == "__main__":
@@ -273,17 +310,15 @@ if __name__ == "__main__":
         "watch-relationship_advice-20220615_n2266.csv",
     )
     watched_fn = [f"{DATA_DIR}/{fn}" for fn in watched_fn]
-    LIMIT = 1000  # maximum Reddit permits
-    HOURS_PAST = 24  # hours ago for Pushshift
+    # MESSAGES_WANTED = 1000  # submissions for Reddit initialization
+    HOURS_PAST = 24  # hours ago for Pushshift initialization
     if args.init:
         for subreddit in SUBREDDITS:
-            print(f"\nSetting watch on {subreddit}")
             watched_fn = init_watch_pushshift(subreddit, HOURS_PAST)
-            print(f"New subreddit tracked in {watched_fn=}; now updating")
             updated_fn = update_watch(watched_fn)
-            rotate_fns(updated_fn)
+            init_archive(updated_fn)
+            rotate_archive_fns(updated_fn)
     else:
         for fn in watched_fn:
-            print(f"\nUpdating {fn=}")
             updated_fn = update_watch(fn)
-            rotate_fns(updated_fn)
+            rotate_archive_fns(updated_fn)
