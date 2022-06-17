@@ -10,7 +10,6 @@
 Watch the deletion and moderation status of messages tracked in a CSV.
 """
 
-
 # import cachier
 # import datetime as dt
 import argparse  # http://docs.python.org/dev/library/argparse.html
@@ -33,7 +32,6 @@ import pendulum  # https://pendulum.eustace.io/docs/
 # https://github.com/pushshift/api
 # https://www.reddit.com/dev/api/
 
-
 # import reddit_sample as rs
 # import web_utils
 from web_api_tokens import (
@@ -48,7 +46,6 @@ NOW_STR = NOW.format("YYYYMMDD HH:mm:ss")
 PUSHSHIFT_LIMIT = 100
 REDDIT_LIMIT = 100
 pp = pprint.PrettyPrinter(indent=4)
-
 
 reddit = praw.Reddit(
     user_agent=REDDIT_USER_AGENT,
