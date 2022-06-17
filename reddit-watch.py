@@ -302,6 +302,9 @@ def init_archive(updated_fn: str) -> None:
 if __name__ == "__main__":
     args = main(sys.argv[1:])
 
+    # TODO: create config file to store subreddits and file names resulting
+    # from their initialization. (Instead of hardcoding below.)
+
     SUBREDDITS = ("Advice", "AmItheAsshole", "relationship_advice")
     # update watched_fn with information from init run
     watched_fn = (
