@@ -211,7 +211,7 @@ def update_watch(watched_fn: str) -> str:
     """Process a CSV, checking to see if values have changed and
     timestamping if so."""
 
-    print(f"New subreddit tracked in {watched_fn=}; now updating")
+    print(f"Updating {watched_fn=}")
     assert os.path.exists(watched_fn)
     watched_df = pd.read_csv(watched_fn, encoding="utf-8-sig", index_col=0)
     updated_df = watched_df.copy()
