@@ -100,7 +100,6 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
         submissions_d["rem_text_r"].append("FALSE")
         submissions_d["rem_text_r_changed"].append("NA")
         submissions_d["removed_by_category_r"].append("FALSE")
-        submissions_d["removed_by_category_r_changed"].append("NA")
 
     watch_fn = (
         f"{DATA_DIR}/watch-{subreddit}-{NOW.format('YYYYMMDD')}"
@@ -138,7 +137,6 @@ def init_watch_reddit(subreddit: str, limit: int) -> str:
         submissions_d["rem_text_r"].append("FALSE")
         submissions_d["rem_text_r_changed"].append("NA")
         submissions_d["removed_by_category_r"].append("FALSE")
-        submissions_d["removed_by_category_r_changed"].append("NA")
         prog_bar.update(1)
     prog_bar.close()
     watch_fn = (
@@ -165,6 +163,10 @@ def prefetch_reddit_posts(ids_req: list[str]) -> dict:
     return submissions_dict
 
 
+def has_changed(a: str, b: str) -> bool:
+    return a != b
+
+
 def update_watch(watched_fn: str) -> str:
     """Process a CSV, checking to see if values have changed and
     timestamping if so."""
@@ -179,35 +181,61 @@ def update_watch(watched_fn: str) -> str:
         id = row["id"]
         info(f"{row['id']=}, {row['author']=}")
         if id in submissions:
+            # See url for different removed_by_category statuses
+            # https://www.reddit.com/r/redditdev/comments/kypjmk/check_if_submission_has_been_removed_by_a_mod/
             sub = submissions[id]  # fetch and update if True
+            # author deletion
             if pd.isna(row["del_author_r_changed"]):
                 if sub.author == "[deleted]":
                     print(f"{sub.id=} deleted {NOW_STR}")
                     updated_df.at[index, "del_author_r"] = True
                     updated_df.at[index, "del_author_r_changed"] = NOW_STR
+            # message deletion
             if pd.isna(row["del_text_r_changed"]):
                 if sub.selftext == "[deleted]":
                     print(f"{sub.id=} deleted {NOW_STR}")
                     updated_df.at[index, "del_text_r"] = True
                     updated_df.at[index, "del_text_r_changed"] = NOW_STR
+            # message deletion when moderated then deleted by user
             if pd.isna(row["rem_text_r_changed"]):
                 if sub.selftext == "[removed]":
                     print(f"{sub.id=} removed {NOW_STR}")
                     updated_df.at[index, "rem_text_r"] = True
                     updated_df.at[index, "rem_text_r_changed"] = NOW_STR
-            if pd.isna(row["removed_by_category_r_changed"]):
-                print(f"{sub.id=} {sub.removed_by_category=}")
-                if sub.removed_by_category:
-                    breakpoint()
-                    print(
-                        f"{sub.id=} {sub.removed_by_category=} changed {NOW_STR}"
-                    )
+                    if sub.removed_by_category:
+                        print(
+                            f"{sub.id=} {sub.removed_by_category=} "
+                            f"changed {NOW_STR}"
+                        )
+                        updated_df.at[
+                            index, "removed_by_category_r"
+                        ] = sub.removed_by_category
+                    #  TODO following code is duplicated below
+                    if sub.removed_by_category == "deleted":
+                        # print(f"  to deleted!")
+                        updated_df.at[index, "del_text_r"] = True
+                        updated_df.at[index, "del_text_r_changed"] = NOW_STR
+
+            # sub.removed_by_category can change on subsequent looks,
+            # so always check that if removed, has the category changed
+            if sub.selftext == "[removed]":
+                # print(f"check if {sub.id=} removed category changed")
+                # print(f"  {updated_df.at[index, 'removed_by_category_r']=}")
+                # print(f"  {sub.removed_by_category=}")
+                if (
+                    updated_df.at[index, "removed_by_category_r"]
+                    != sub.removed_by_category
+                ):
                     updated_df.at[
                         index, "removed_by_category_r"
                     ] = sub.removed_by_category
-                    updated_df.at[
-                        index, "removed_by_category_r_changed"
-                    ] = NOW_STR
+                    print(f"  it changed!")
+                    #  TODO following code is duplicated above
+                    if sub.removed_by_category == "deleted":
+                        print(f"  to deleted!")
+                        updated_df.at[index, "del_text_r"] = True
+                        updated_df.at[index, "del_text_r_changed"] = NOW_STR
+
     head, tail = os.path.split(watched_fn)
     updated_fn = f"{head}/updated-{tail}"
     updated_df.to_csv(
@@ -261,7 +289,7 @@ def init_archive(updated_fn: str) -> None:
     head, tail = os.path.split(updated_fn)
     bare_fn = tail.removeprefix("updated-").removesuffix(".csv")
     zipped_fn = f"{bare_fn}-arch.zip"
-    print(f"initializing archive {zipped_fn=}")
+    print(f"  creating archive {zipped_fn=}")
 
     with zipfile.ZipFile(zipped_fn, mode="w") as archive:
         archive.write(updated_fn)
@@ -353,6 +381,6 @@ if __name__ == "__main__":
             config.write(configfile)
     else:
         config.read(ini_fn)
-        for subreddit, watched_fn in config:
+        for watched, fn in config["watching"].items():
             updated_fn = update_watch(fn)
             rotate_archive_fns(updated_fn)
