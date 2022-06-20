@@ -13,6 +13,7 @@ Watch the deletion and moderation status of messages tracked in a CSV.
 # import cachier
 # import datetime as dt
 import argparse  # http://docs.python.org/dev/library/argparse.html
+import configparser as cp
 import logging
 import os
 import pandas as pd
@@ -62,61 +63,6 @@ info = logging.info
 debug = logging.debug
 
 
-def main(argv) -> argparse.Namespace:
-    """Process arguments"""
-    arg_parser = argparse.ArgumentParser(
-        description="Script for querying reddit APIs"
-    )
-
-    # non-positional arguments
-    arg_parser.add_argument(
-        "--init",
-        action="store_true",
-        default=False,
-        help="initialize watch" "(default: %(default)s)",
-    )
-    arg_parser.add_argument(
-        "-L",
-        "--log-to-file",
-        action="store_true",
-        default=False,
-        help="log to file %(prog)s.log",
-    )
-    arg_parser.add_argument(
-        "-V",
-        "--verbose",
-        action="count",
-        default=0,
-        help="increase logging verbosity (specify multiple times for more)",
-    )
-
-    arg_parser.add_argument("--version", action="version", version="0.3")
-    args = arg_parser.parse_args(argv)
-
-    log_level = logging.ERROR  # 40
-
-    if args.verbose == 1:
-        log_level = logging.WARNING  # 30
-    elif args.verbose == 2:
-        log_level = logging.INFO  # 20
-    elif args.verbose >= 3:
-        log_level = logging.DEBUG  # 10
-    LOG_FORMAT = "%(levelname).3s %(funcName).5s: %(message)s"
-
-    if args.log_to_file:
-        print("logging to file")
-        logging.basicConfig(
-            filename=f"{str(PurePath(__file__).name)}.log",
-            filemode="w",
-            level=log_level,
-            format=LOG_FORMAT,
-        )
-    else:
-        logging.basicConfig(level=log_level, format=LOG_FORMAT)
-
-    return args
-
-
 def init_watch_pushshift(subreddit: str, hours: int) -> str:
     """
     Initiate watch of subreddit using Pushshift, create CSV, return filename.
@@ -137,11 +83,15 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
 
     submissions_d = defaultdict(list)
     for submission in submissions:
+        created_utc_human = pendulum.from_timestamp(
+            submission.created_utc
+        ).format("YYYYMMDD HH:mm:ss")
+
         submissions_d["id"].append(submission.id)
         submissions_d["subreddit"].append(submission.subreddit)
         submissions_d["author"].append(submission.author)
         submissions_d["del_author_p"].append("FALSE")
-        submissions_d["created_utc"].append(submission.created_utc)
+        submissions_d["created_utc"].append(created_utc_human)
         submissions_d["found_utc"].append(NOW_STR)
         submissions_d["del_author_r"].append("FALSE")
         submissions_d["del_author_r_changed"].append("NA")
@@ -149,6 +99,8 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
         submissions_d["del_text_r_changed"].append("NA")
         submissions_d["rem_text_r"].append("FALSE")
         submissions_d["rem_text_r_changed"].append("NA")
+        submissions_d["removed_by_category_r"].append("FALSE")
+        submissions_d["removed_by_category_r_changed"].append("NA")
 
     watch_fn = (
         f"{DATA_DIR}/watch-{subreddit}-{NOW.format('YYYYMMDD')}"
@@ -169,11 +121,15 @@ def init_watch_reddit(subreddit: str, limit: int) -> str:
     print(f"fetching initial posts from {subreddit}")
     prog_bar = tqdm.tqdm(total=limit)  # /REDDIT_LIMIT
     for submission in reddit.subreddit(subreddit).new(limit=limit):
+        created_utc_human = pendulum.from_timestamp(
+            submission.created_utc
+        ).format("YYYYMMDD HH:mm:ss")
+
         submissions_d["id"].append(submission.id)
         submissions_d["subreddit"].append(submission.subreddit)
         submissions_d["author"].append(submission.author)
         submissions_d["del_author_p"].append("FALSE")
-        submissions_d["created_utc"].append(submission.created_utc)
+        submissions_d["created_utc"].append(created_utc_human)
         submissions_d["found_utc"].append(NOW_STR)
         submissions_d["del_author_r"].append("FALSE")
         submissions_d["del_author_r_changed"].append("NA")
@@ -181,6 +137,8 @@ def init_watch_reddit(subreddit: str, limit: int) -> str:
         submissions_d["del_text_r_changed"].append("NA")
         submissions_d["rem_text_r"].append("FALSE")
         submissions_d["rem_text_r_changed"].append("NA")
+        submissions_d["removed_by_category_r"].append("FALSE")
+        submissions_d["removed_by_category_r_changed"].append("NA")
         prog_bar.update(1)
     prog_bar.close()
     watch_fn = (
@@ -237,6 +195,19 @@ def update_watch(watched_fn: str) -> str:
                     print(f"{sub.id=} removed {NOW_STR}")
                     updated_df.at[index, "rem_text_r"] = True
                     updated_df.at[index, "rem_text_r_changed"] = NOW_STR
+            if pd.isna(row["removed_by_category_r_changed"]):
+                print(f"{sub.id=} {sub.removed_by_category=}")
+                if sub.removed_by_category:
+                    breakpoint()
+                    print(
+                        f"{sub.id=} {sub.removed_by_category=} changed {NOW_STR}"
+                    )
+                    updated_df.at[
+                        index, "removed_by_category_r"
+                    ] = sub.removed_by_category
+                    updated_df.at[
+                        index, "removed_by_category_r_changed"
+                    ] = NOW_STR
     head, tail = os.path.split(watched_fn)
     updated_fn = f"{head}/updated-{tail}"
     updated_df.to_csv(
@@ -296,29 +267,92 @@ def init_archive(updated_fn: str) -> None:
         archive.write(updated_fn)
 
 
+def main(argv) -> argparse.Namespace:
+    """Process arguments"""
+    arg_parser = argparse.ArgumentParser(
+        description="Script for watching deletion/removal status"
+        " of Reddit messages."
+    )
+
+    # non-positional arguments
+
+    # optional arguments
+    arg_parser.add_argument(
+        "-i",
+        "--init",
+        type=str,
+        default=False,
+        help=f"""INITIALIZE `+` delimited subreddits to watch""",
+    )
+    arg_parser.add_argument(
+        "--hours",
+        type=int,
+        default=24,
+        help=f"""previous HOURS to fetch""",
+    )
+    arg_parser.add_argument(
+        "-L",
+        "--log-to-file",
+        action="store_true",
+        default=False,
+        help="log to file %(prog)s.log",
+    )
+    arg_parser.add_argument(
+        "-V",
+        "--verbose",
+        action="count",
+        default=0,
+        help="increase logging verbosity (specify multiple times for more)",
+    )
+
+    arg_parser.add_argument("--version", action="version", version="0.3")
+    args = arg_parser.parse_args(argv)
+
+    log_level = logging.ERROR  # 40
+
+    if args.verbose == 1:
+        log_level = logging.WARNING  # 30
+    elif args.verbose == 2:
+        log_level = logging.INFO  # 20
+    elif args.verbose >= 3:
+        log_level = logging.DEBUG  # 10
+    LOG_FORMAT = "%(levelname).3s %(funcName).5s: %(message)s"
+
+    if args.log_to_file:
+        print("logging to file")
+        logging.basicConfig(
+            filename=f"{str(PurePath(__file__).name)}.log",
+            filemode="w",
+            level=log_level,
+            format=LOG_FORMAT,
+        )
+    else:
+        logging.basicConfig(level=log_level, format=LOG_FORMAT)
+
+    return args
+
+
 if __name__ == "__main__":
     args = main(sys.argv[1:])
 
-    # TODO: create config file to store subreddits and file names resulting
-    # from their initialization. (Instead of hardcoding below.)
+    ini_fn = f"{DATA_DIR}/reddit-watch.ini"
+    config = cp.ConfigParser(strict=False)
 
-    SUBREDDITS = ("Advice", "AmItheAsshole", "relationship_advice")
-    # update watched_fn with information from init run
-    watched_fn = (
-        "watch-Advice-20220615_n1115.csv",
-        "watch-AmItheAsshole-20220615_n1525.csv",
-        "watch-relationship_advice-20220615_n2266.csv",
-    )
-    watched_fn = [f"{DATA_DIR}/{fn}" for fn in watched_fn]
-    # MESSAGES_WANTED = 1000  # submissions for Reddit initialization
-    HOURS_PAST = 24  # hours ago for Pushshift initialization
     if args.init:
-        for subreddit in SUBREDDITS:
-            watched_fn = init_watch_pushshift(subreddit, HOURS_PAST)
+        if not os.path.exists(ini_fn):
+            with open(ini_fn, "w") as ini_fd:
+                ini_fd.write("[watching]")
+        config.read(ini_fn)
+        for subreddit in args.init.split("+"):
+            watched_fn = init_watch_pushshift(subreddit, args.hours)
+            config.set("watching", subreddit, watched_fn)
             updated_fn = update_watch(watched_fn)
             init_archive(updated_fn)
             rotate_archive_fns(updated_fn)
+        with open(ini_fn, "w") as configfile:
+            config.write(configfile)
     else:
-        for fn in watched_fn:
+        config.read(ini_fn)
+        for subreddit, watched_fn in config:
             updated_fn = update_watch(fn)
             rotate_archive_fns(updated_fn)
