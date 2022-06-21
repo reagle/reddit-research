@@ -348,7 +348,6 @@ def main(argv) -> argparse.Namespace:
 if __name__ == "__main__":
     args = main(sys.argv[1:])
 
-    ini_fn = f"{DATA_DIR}/reddit-watch.ini"
     config = cp.ConfigParser(strict=False)
 
     if args.init:
