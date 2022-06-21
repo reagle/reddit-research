@@ -42,6 +42,7 @@ from web_api_tokens import (
 )
 
 DATA_DIR = "/Users/reagle/data/1work/2020/reddit-del"
+INI_FN = f"{DATA_DIR}/watch-reddit.ini"
 NOW = pendulum.now("UTC")
 NOW_STR = NOW.format("YYYYMMDD HH:mm:ss")
 PUSHSHIFT_LIMIT = 100
@@ -220,6 +221,8 @@ def update_watch(watched_fn: str) -> str:
                         updated_df.at[
                             index, "removed_by_category_r"
                         ] = category_new
+                    # I'm ignoring other (if they exist) status changes
+                    # (e.g., moderator moding theirself with "author"?)
 
     head, tail = os.path.split(watched_fn)
     updated_fn = f"{head}/updated-{tail}"
@@ -351,20 +354,20 @@ if __name__ == "__main__":
     config = cp.ConfigParser(strict=False)
 
     if args.init:
-        if not os.path.exists(ini_fn):
-            with open(ini_fn, "w") as ini_fd:
+        if not os.path.exists(INI_FN):
+            with open(INI_FN, "w") as ini_fd:
                 ini_fd.write("[watching]")
-        config.read(ini_fn)
+        config.read(INI_FN)
         for subreddit in args.init.split("+"):
             watched_fn = init_watch_pushshift(subreddit, args.hours)
             config.set("watching", f"{subreddit}{NOW_STR[0:8]}", watched_fn)
             updated_fn = update_watch(watched_fn)
             init_archive(updated_fn)
             rotate_archive_fns(updated_fn)
-        with open(ini_fn, "w") as configfile:
+        with open(INI_FN, "w") as configfile:
             config.write(configfile)
     else:
-        config.read(ini_fn)
+        config.read(INI_FN)
         for watched, fn in config["watching"].items():
             updated_fn = update_watch(fn)
             rotate_archive_fns(updated_fn)
