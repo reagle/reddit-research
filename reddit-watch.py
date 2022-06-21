@@ -186,14 +186,16 @@ def update_watch(watched_fn: str) -> str:
             sub = submissions[id]  # fetch and update if True
             # author deletion
             if pd.isna(row["del_author_r_changed"]):
-                if sub.author == "[deleted]":
-                    print(f"{sub.id=} deleted {NOW_STR}")
+                # PRAW is now returning None, so test for that too
+                # https://www.reddit.com/r/redditdev/comments/vhayaw/why_is_praw_returning_author_is_none_when_the/
+                if sub.author == "[deleted]" or sub.author is None:
+                    print(f"{sub.id=} author deleted {NOW_STR}")
                     updated_df.at[index, "del_author_r"] = True
                     updated_df.at[index, "del_author_r_changed"] = NOW_STR
             # message deletion
             if pd.isna(row["del_text_r_changed"]):
                 if sub.selftext == "[deleted]":
-                    print(f"{sub.id=} deleted {NOW_STR}")
+                    print(f"{sub.id=} message deleted {NOW_STR}")
                     updated_df.at[index, "del_text_r"] = True
                     updated_df.at[index, "del_text_r_changed"] = NOW_STR
             # message deletion when moderated then deleted by user
