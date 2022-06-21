@@ -211,7 +211,7 @@ def update_watch(watched_fn: str) -> str:
                         updated_df.at[
                             index, "removed_by_category_r"
                         ] = category_new
-                    # if status changed to delete, even if previously removed
+                    # if status changed to delete, even if previously removed,
                     # update that as well
                     if category_new == "deleted":
                         print(f"  changed to deleted!")
