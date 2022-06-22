@@ -16,22 +16,16 @@ import argparse  # http://docs.python.org/dev/library/argparse.html
 import configparser as cp
 import logging
 import os
-import pandas as pd
-import praw  # https://praw.readthedocs.io/en/latest
 import pprint
 import sys
-import tqdm  # progress bar https://github.com/tqdm/tqdm
 import zipfile  # https://docs.python.org/3/library/zipfile.html
-
 from collections import defaultdict
 from pathlib import PurePath
 
-# from typing import Any, Counter, Tuple  # , Union
-
+import pandas as pd
 import pendulum  # https://pendulum.eustace.io/docs/
-
-# https://github.com/pushshift/api
-# https://www.reddit.com/dev/api/
+import praw  # https://praw.readthedocs.io/en/latest
+import tqdm  # progress bar https://github.com/tqdm/tqdm
 
 # import reddit_sample as rs
 # import web_utils
@@ -40,6 +34,13 @@ from web_api_tokens import (
     REDDIT_CLIENT_SECRET,
     REDDIT_USER_AGENT,
 )
+
+# from typing import Any, Counter, Tuple  # , Union
+
+
+# https://github.com/pushshift/api
+# https://www.reddit.com/dev/api/
+
 
 DATA_DIR = "/Users/reagle/data/1work/2020/reddit-del"
 INI_FN = f"{DATA_DIR}/watch-reddit.ini"
@@ -199,7 +200,7 @@ def update_watch(watched_fn: str) -> str:
                     print(f"{sub.id=} message deleted {NOW_STR}")
                     updated_df.at[index, "del_text_r"] = True
                     updated_df.at[index, "del_text_r_changed"] = NOW_STR
-            # message removal (and possible deletion via category):
+            # message removal (and possible deletion via removed_by_category):
             if sub.selftext == "[removed]":
                 category_new = sub.removed_by_category
                 category_old = row["removed_by_category_r"]
@@ -222,7 +223,7 @@ def update_watch(watched_fn: str) -> str:
                             index, "removed_by_category_r"
                         ] = category_new
                     # I'm ignoring other (if they exist) status changes
-                    # (e.g., moderator moding theirself with "author"?)
+                    # (e.g., moderator modding their self with "author"?)
 
     head, tail = os.path.split(watched_fn)
     updated_fn = f"{head}/updated-{tail}"

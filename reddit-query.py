@@ -122,15 +122,11 @@ def get_reddit_info(
         debug(f"reddit found {author_pushshift=}")
         debug(f"{submission=}")
         # https://www.reddit.com/r/pushshift/comments/v6vrmo/was_this_message_removed_or_deleted/
-        is_deleted = submission.selftext == "[deleted]"
         is_removed = submission.selftext == "[removed]"
-
-        if submission.selftext == "[removed]":
-            is_removed = True  # TODO why not in quotes?
-        if submission.selftext == "[deleted]":
-            is_deleted = True
+        is_deleted = submission.selftext == "[deleted]"
+        # when removed and then deleted, set deleted as well
         if submission.removed_by_category == "deleted":
-            is_deleted = True
+            is_deleted = "True"
 
     return author_reddit, is_deleted, is_removed
 
