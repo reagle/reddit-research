@@ -6,22 +6,18 @@
 # (c) Copyright 2020-2022 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
-import cachier
 import logging
 import math
-import numpy as np
 import os
 import random
 from typing import List, Tuple
 
+import cachier
+import numpy as np
 import pendulum  # https://pendulum.eustace.io/docs/
 import praw
 
-from web_api_tokens import (
-    REDDIT_CLIENT_ID,
-    REDDIT_CLIENT_SECRET,
-    REDDIT_USER_AGENT,
-)
+from web_api_tokens import REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT
 
 # https://github.com/reagle/thunderdell
 from web_utils import get_JSON
@@ -83,7 +79,7 @@ def get_pushshift_total(
 ) -> int:
     """Get the total number of results in a Pushshift query via the
     '&metadata=true' parameter"""
-    info(f"*************")
+    info("*************")
     info(f"after = {after.format('YYYY-MM-DD HH:mm:ss ZZ')}")
     after_epoch = int(after.int_timestamp)
     info(f"{after_epoch=}")

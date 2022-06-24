@@ -88,7 +88,7 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
         return
     info(f"{row['found']=}")
     if do_recheck or row["found"] == "" or pd.isnull(row["found"]):
-        info(f"checking")
+        info("checking")
         quote = row[heading]
         print(f"{quote}\n")
         if row["subreddit"]:
@@ -148,13 +148,13 @@ def grab_quotes(file_name: str, column: str, do_recheck: bool) -> None:
     suffix = Path(file_name).suffix
     if suffix in [".xls", ".xlsx", ".odf", ".ods", ".odt"]:
         df = pd.read_excel(file_name, keep_default_na=False)
-        for counter, row in df.iterrows():
+        for _counter, row in df.iterrows():
             print(f"{row=}")
             quotes_search(row, column, do_recheck)
 
     elif suffix in [".csv"]:
         df = pd.read_csv(file_name, delimiter=",", keep_default_na=False)
-        for counter, row in df.iterrows():
+        for _counter, row in df.iterrows():
             quotes_search(row, column, do_recheck)
     else:
         print(f"{file_name}")

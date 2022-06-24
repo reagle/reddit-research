@@ -26,7 +26,7 @@ from typing import Any, Counter, Tuple  # , Union
 # import numpy as np
 import pandas as pd
 import pendulum  # https://pendulum.eustace.io/docs/
-import praw  # https://praw.readthedocs.io/en/latest
+import praw  # type: ignore # https://praw.readthedocs.io/en/latest
 from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
 
 import reddit_sample as rs
@@ -65,20 +65,19 @@ def is_throwaway(user_name) -> bool:
         return False
 
 
-def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf:
+def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf[Any]:
     """Use praw's info() method to grab reddit info all at once"""
     """and store on a disk for quick retrieval."""
 
     # TODO if key already in shelf continue, otherwise grab
     # Break up into 100s
     shelf = shelve.open("shelf-reddit.dbm")
-    ids_req = set(ids_req)
     ids_shelved = set(shelf.keys())
-    ids_needed = ids_req - ids_shelved
+    ids_needed = set(ids_req) - ids_shelved
     t3_ids = [i if i.startswith("t3_") else f"t3_{i}" for i in ids_needed]
     submissions = reddit.info(fullnames=t3_ids)
     print("pre-fetch: storing in shelf")
-    for count, submission in tqdm(enumerate(submissions)):
+    for _count, submission in tqdm(enumerate(submissions)):
         # print(f"{count: <3} {submission.id} {submission.title}")
         shelf[submission.id] = submission
     return shelf
@@ -105,7 +104,7 @@ def get_reddit_info(
         is_removed = "False"
 
         # submission = REDDIT.submission(id=id_)
-        if id in shelf:
+        if id_ in shelf:
             submission = shelf[id_]
         else:
             # These instances are very rare 0.001%

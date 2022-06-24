@@ -24,23 +24,17 @@ from pathlib import PurePath
 
 import pandas as pd
 import pendulum  # https://pendulum.eustace.io/docs/
-import praw  # https://praw.readthedocs.io/en/latest
+import praw  # type: ignore # https://praw.readthedocs.io/en/latest
 import tqdm  # progress bar https://github.com/tqdm/tqdm
 
 # import reddit_sample as rs
 # import web_utils
-from web_api_tokens import (
-    REDDIT_CLIENT_ID,
-    REDDIT_CLIENT_SECRET,
-    REDDIT_USER_AGENT,
-)
+from web_api_tokens import REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT
 
 # from typing import Any, Counter, Tuple  # , Union
 
-
 # https://github.com/pushshift/api
 # https://www.reddit.com/dev/api/
-
 
 DATA_DIR = "/Users/reagle/data/1work/2020/reddit-del"
 INI_FN = f"{DATA_DIR}/watch-reddit.ini"
@@ -180,12 +174,12 @@ def update_watch(watched_fn: str) -> str:
     watched_ids = watched_df["id"].tolist()
     submissions = prefetch_reddit_posts(watched_ids)
     for index, row in watched_df.iterrows():
-        id = row["id"]
+        id_ = row["id"]
         info(f"{row['id']=}, {row['author']=}")
-        if id in submissions:
+        if id_ in submissions:
             # Different removed_by_category statuses:
             # https://www.reddit.com/r/redditdev/comments/kypjmk/check_if_submission_has_been_removed_by_a_mod/
-            sub = submissions[id]  # fetch and update if True
+            sub = submissions[id_]  # fetch and update if True
             # author deletion
             if pd.isna(row["del_author_r_changed"]):
                 # PRAW is now returning None, so test for that too
@@ -362,6 +356,6 @@ if __name__ == "__main__":
             config.write(configfile)
     else:
         config.read(INI_FN)
-        for watched, fn in config["watching"].items():
+        for _watched, fn in config["watching"].items():
             updated_fn = update_watch(fn)
             rotate_archive_fns(updated_fn)

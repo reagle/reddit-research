@@ -88,7 +88,7 @@ def select_users(args, df) -> list[str]:
     users = set()
     users_del = set()
     users_throw = set()
-    for counter, row in df.iterrows():
+    for _counter, row in df.iterrows():
         users.add(row["author_p"])
         warning(f'{row["author_p"]=}')
         if is_throwaway(row["author_p"]):
