@@ -48,9 +48,7 @@ info = logging.info
 debug = logging.debug
 
 
-def is_overlapping(
-    offsets: list, PUSHSHIFT_LIMIT: int, results_per_hour: int
-) -> bool:
+def is_overlapping(offsets: list, PUSHSHIFT_LIMIT: int, results_per_hour: int) -> bool:
     """If I grab PUSHSHIFT_LIMIT results at an offset hour, am I
     enough hours in the future from the last offset hour to avoid
     overlap"""
@@ -165,9 +163,7 @@ def get_offsets(
     for seed_counter in range(SEEDS_TO_TRY):
         seed += seed_counter  # increment seed
         warning(f"attempt {seed_counter} to find non-overlapping offsets")
-        offsets = get_cacheable_randos(
-            duration.in_hours(), queries_total, seed
-        )
+        offsets = get_cacheable_randos(duration.in_hours(), queries_total, seed)
         if is_overlapping(offsets, PUSHSHIFT_LIMIT, results_per_hour):
             critical(f"  seed attempt {seed_counter} failed")
             continue
@@ -202,9 +198,7 @@ if __name__ == "__main__":
     PUSHSHIFT_LIMIT = 100
 
     total = get_pushshift_total("AmItheAsshole", after, before)
-    offsets = get_offsets(
-        "AmItheAsshole", after, before, sample_size, PUSHSHIFT_LIMIT
-    )
+    offsets = get_offsets("AmItheAsshole", after, before, sample_size, PUSHSHIFT_LIMIT)
     for count, offset in enumerate(sorted(offsets)):
         print(f"{count: <5} {offset.to_datetime_string()=}")
     print(

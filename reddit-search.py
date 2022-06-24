@@ -37,9 +37,7 @@ debug = logging.debug
 HEADERS = {"User-Agent": "Reddit Search https://github.com/reagle/reddit"}
 
 
-def auto_search(
-    query: str, subreddit: str, quote: str, target_url: str
-) -> None:
+def auto_search(query: str, subreddit: str, quote: str, target_url: str) -> None:
     """Does the URL appear in the query results?"""
 
     info(f"{subreddit=}")
@@ -133,9 +131,7 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
             """&search=true&start=0&end=1594758200&size=100"""
         )
         auto_search(query_pushshift, subreddit, quote, row["url"])
-        query_pushshift_final = query_pushshift.format(
-            subreddit=subreddit, quote=quote
-        )
+        query_pushshift_final = query_pushshift.format(subreddit=subreddit, quote=quote)
         debug(f"Pushshift query:       {query_pushshift_final}")
         webbrowser.open(query_pushshift_final)
 

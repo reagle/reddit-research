@@ -85,9 +85,9 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
 
     submissions_d = defaultdict(list)
     for submission in submissions:
-        created_utc_human = pendulum.from_timestamp(
-            submission.created_utc
-        ).format("YYYYMMDD HH:mm:ss")
+        created_utc_human = pendulum.from_timestamp(submission.created_utc).format(
+            "YYYYMMDD HH:mm:ss"
+        )
 
         submissions_d["id"].append(submission.id)
         submissions_d["subreddit"].append(submission.subreddit)
@@ -122,9 +122,9 @@ def init_watch_reddit(subreddit: str, limit: int) -> str:
     print(f"fetching initial posts from {subreddit}")
     prog_bar = tqdm.tqdm(total=limit)  # /REDDIT_LIMIT
     for submission in reddit.subreddit(subreddit).new(limit=limit):
-        created_utc_human = pendulum.from_timestamp(
-            submission.created_utc
-        ).format("YYYYMMDD HH:mm:ss")
+        created_utc_human = pendulum.from_timestamp(submission.created_utc).format(
+            "YYYYMMDD HH:mm:ss"
+        )
 
         submissions_d["id"].append(submission.id)
         submissions_d["subreddit"].append(submission.subreddit)
@@ -210,26 +210,20 @@ def update_watch(watched_fn: str) -> str:
                         print(f"{sub.id=} removed {NOW_STR}")
                         updated_df.at[index, "rem_text_r"] = True
                         updated_df.at[index, "rem_text_r_changed"] = NOW_STR
-                        updated_df.at[
-                            index, "removed_by_category_r"
-                        ] = category_new
+                        updated_df.at[index, "removed_by_category_r"] = category_new
                     # if status changed to delete, even if previously removed,
                     # update that as well
                     if category_new == "deleted":
-                        print(f"  changed to deleted!")
+                        print("  changed to deleted!")
                         updated_df.at[index, "del_text_r"] = True
                         updated_df.at[index, "del_text_r_changed"] = NOW_STR
-                        updated_df.at[
-                            index, "removed_by_category_r"
-                        ] = category_new
+                        updated_df.at[index, "removed_by_category_r"] = category_new
                     # I'm ignoring other (if they exist) status changes
                     # (e.g., moderator modding their self with "author"?)
 
     head, tail = os.path.split(watched_fn)
     updated_fn = f"{head}/updated-{tail}"
-    updated_df.to_csv(
-        updated_fn, index=True, encoding="utf-8-sig", na_rep="NA"
-    )
+    updated_df.to_csv(updated_fn, index=True, encoding="utf-8-sig", na_rep="NA")
     return updated_fn
 
 
@@ -287,8 +281,7 @@ def init_archive(updated_fn: str) -> None:
 def main(argv) -> argparse.Namespace:
     """Process arguments"""
     arg_parser = argparse.ArgumentParser(
-        description="Script for watching deletion/removal status"
-        " of Reddit messages."
+        description="Script for watching deletion/removal status of Reddit messages."
     )
 
     # non-positional arguments
@@ -299,13 +292,13 @@ def main(argv) -> argparse.Namespace:
         "--init",
         type=str,
         default=False,
-        help=f"""INITIALIZE `+` delimited subreddits to watch""",
+        help="""INITIALIZE `+` delimited subreddits to watch""",
     )
     arg_parser.add_argument(
         "--hours",
         type=int,
         default=24,
-        help=f"""previous HOURS to fetch""",
+        help="""previous HOURS to fetch""",
     )
     arg_parser.add_argument(
         "-L",

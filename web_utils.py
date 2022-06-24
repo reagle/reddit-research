@@ -82,9 +82,7 @@ def get_HTML(
 
     time.sleep(rate_limit)
 
-    AGENT_HEADERS = {
-        "User-Agent": "MacOS:reddit-query.py:v0.5 (by /u/reagle-reseach)"
-    }
+    AGENT_HEADERS = {"User-Agent": "MacOS:reddit-query.py:v0.5 (by /u/reagle-reseach)"}
     r = requests.get(url, headers=AGENT_HEADERS, verify=True)
     # info(f"{r.headers['content-type']=}")
     if "html" in r.headers["content-type"]:
@@ -123,9 +121,7 @@ def get_JSON(
     time.sleep(rate_limit)
 
     # TODO: put limiter here? https://github.com/shaypal5/cachier/issues/65
-    AGENT_HEADERS = {
-        "User-Agent": "Reddit Tools https://github.com/reagle/reddit/"
-    }
+    AGENT_HEADERS = {"User-Agent": "Reddit Tools https://github.com/reagle/reddit/"}
     info(f"{url=}")
     # TODO: use a HTTPAdapter with max_retires
     # https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/#retry-on-failure

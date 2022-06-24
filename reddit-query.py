@@ -116,9 +116,7 @@ def get_reddit_info(
             # https://www.reddit.com/r/pushshift/comments/vby7c2/rare_pushshift_has_a_submission_id_reddit_returns/icbbtkr/?context=3
             print(f"WARNING: {id=} not in shelf")
             return "[deleted]", "False", "False"
-        author_reddit = (
-            "[deleted]" if not submission.author else submission.author
-        )
+        author_reddit = "[deleted]" if not submission.author else submission.author
         debug(f"reddit found {author_pushshift=}")
         debug(f"{submission=}")
         # https://www.reddit.com/r/pushshift/comments/v6vrmo/was_this_message_removed_or_deleted/
@@ -290,9 +288,7 @@ def collect_pushshift_results(
 
         query_iteration = 0
         results_total = rs.get_pushshift_total(subreddit, after, before)
-        offsets = rs.get_offsets(
-            subreddit, after, before, limit, PUSHSHIFT_LIMIT
-        )
+        offsets = rs.get_offsets(subreddit, after, before, limit, PUSHSHIFT_LIMIT)
         info(f"{offsets=}")
         results_found = []
         for after_offset in offsets:
@@ -335,9 +331,7 @@ def export_df(name, df) -> None:
 
 def main(argv) -> argparse.Namespace:
     """Process arguments"""
-    arg_parser = argparse.ArgumentParser(
-        description="Script for querying reddit APIs"
-    )
+    arg_parser = argparse.ArgumentParser(description="Script for querying reddit APIs")
 
     # optional arguments
     arg_parser.add_argument(
@@ -345,7 +339,7 @@ def main(argv) -> argparse.Namespace:
         "--after",
         type=str,
         default=False,
-        help=f"""submissions after: epoch, integer[s|m|h|d], or Y-m-d"""
+        help="""submissions after: epoch, integer[s|m|h|d], or Y-m-d"""
         """Using it with before starts in 1970!""",
     )
     arg_parser.add_argument(
@@ -397,8 +391,7 @@ def main(argv) -> argparse.Namespace:
         "--skip",
         action="store_true",
         default=False,
-        help="skip all reddit queries; pushshift only "
-        "(default: %(default)s)",
+        help="skip all reddit queries; pushshift only " "(default: %(default)s)",
     )
     arg_parser.add_argument(
         "-t",
