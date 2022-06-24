@@ -31,11 +31,7 @@ from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
 
 import reddit_sample as rs
 import web_utils
-from web_api_tokens import (
-    REDDIT_CLIENT_ID,
-    REDDIT_CLIENT_SECRET,
-    REDDIT_USER_AGENT,
-)
+from web_api_tokens import REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT
 
 # https://www.reddit.com/dev/api/
 # https://github.com/pushshift/api
@@ -89,7 +85,7 @@ def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf:
 
 
 def get_reddit_info(
-    shelf: shelve.DbfilenameShelf, id: str, author_pushshift: str
+    shelf: shelve.DbfilenameShelf, id_: str, author_pushshift: str
 ) -> Tuple[str, str, str]:
     """Given id, returns info from reddit."""
 
@@ -108,13 +104,13 @@ def get_reddit_info(
         is_deleted = "False"
         is_removed = "False"
 
-        # submission = REDDIT.submission(id=id)
+        # submission = REDDIT.submission(id=id_)
         if id in shelf:
-            submission = shelf[id]
+            submission = shelf[id_]
         else:
             # These instances are very rare 0.001%
             # https://www.reddit.com/r/pushshift/comments/vby7c2/rare_pushshift_has_a_submission_id_reddit_returns/icbbtkr/?context=3
-            print(f"WARNING: {id=} not in shelf")
+            print(f"WARNING: {id_=} not in shelf")
             return "[deleted]", "False", "False"
         author_reddit = "[deleted]" if not submission.author else submission.author
         debug(f"reddit found {author_pushshift=}")
