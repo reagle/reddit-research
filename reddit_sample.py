@@ -18,9 +18,7 @@ import pendulum  # https://pendulum.eustace.io/docs/
 import praw
 
 from web_api_tokens import REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT
-
-# https://github.com/reagle/thunderdell
-from web_utils import get_JSON
+from web_utils import get_JSON  # https://github.com/reagle/thunderdell
 
 # datetime: date, time, datetime, timedelta
 # pendulum: datetime, Duration (timedelta), Period (Duration)

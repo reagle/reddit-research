@@ -12,24 +12,17 @@ advice subreddit.
 Reads data from a CSV file.
 """
 
-import argparse  # http://docs.python.org/dev/library/argparse.html
 
-# import datetime as dt
+import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging
+import pathlib as pl
 import sys
 import time
-
-# import time
-from pathlib import PurePath
-
-# import random
-# from random import randint
 from typing import Any
 
 import pandas as pd
-
-# https://www.reddit.com/dev/api/
 import praw  # https://praw.readthedocs.io/en/latest
+
 from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
 
 from web_api_tokens import (
@@ -39,15 +32,6 @@ from web_api_tokens import (
     REDDIT_USER_AGENT,
     REDDIT_USERNAME,
 )
-
-# from typing import Any, Tuple
-
-# import numpy as np
-# import pandas as pd
-
-
-# https://github.com/reagle/thunderdell
-# from web_utils import get_JSON
 
 # https://github.com/pushshift/api
 # import psaw  # Pushshift API https://github.com/dmarx/psaw no exclude:not
@@ -222,7 +206,7 @@ def main(argv) -> argparse.Namespace:
     if args.log_to_file:
         print("logging to file")
         logging.basicConfig(
-            filename=f"{str(PurePath(__file__).name)}.log",
+            filename=f"{str(pl.PurePath(__file__).name)}.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
@@ -236,7 +220,8 @@ def main(argv) -> argparse.Namespace:
 if __name__ == "__main__":
     args = main(sys.argv[1:])
 
-    greeting = open(args.greeting_filename, "r").read()
+    with open(args.greeting_filename, "r") as fd:
+        greeting = fd.read()
     df = pd.read_csv(args.input_filename[0])
     users = select_users(args, df)
     print(f"{len(users)} users to message")

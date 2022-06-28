@@ -175,45 +175,47 @@ def update_watch(watched_fn: str) -> str:
     submissions = prefetch_reddit_posts(watched_ids)
     for index, row in watched_df.iterrows():
         id_ = row["id"]
+        if id_ not in submissions:
+            print(f"{id_=} no longer in submissions, continuing")
+            continue
         info(f"{row['id']=}, {row['author']=}")
-        if id_ in submissions:
-            # Different removed_by_category statuses:
-            # https://www.reddit.com/r/redditdev/comments/kypjmk/check_if_submission_has_been_removed_by_a_mod/
-            sub = submissions[id_]  # fetch and update if True
-            # author deletion
-            if pd.isna(row["del_author_r_changed"]):
-                # PRAW is now returning None, so test for that too
-                # https://www.reddit.com/r/redditdev/comments/vhayaw/why_is_praw_returning_author_is_none_when_the/
-                if sub.author == "[deleted]" or sub.author is None:
-                    print(f"{sub.id=} author deleted {NOW_STR}")
-                    updated_df.at[index, "del_author_r"] = True
-                    updated_df.at[index, "del_author_r_changed"] = NOW_STR
-            # message deletion
-            if pd.isna(row["del_text_r_changed"]):
-                if sub.selftext == "[deleted]":
-                    print(f"{sub.id=} message deleted {NOW_STR}")
+        # Different removed_by_category statuses:
+        # https://www.reddit.com/r/redditdev/comments/kypjmk/check_if_submission_has_been_removed_by_a_mod/
+        sub = submissions[id_]  # fetch and update if True
+        # author deletion
+        if pd.isna(row["del_author_r_changed"]):  # noqa: SIM102
+            # PRAW is now returning None, so test for that too
+            # https://www.reddit.com/r/redditdev/comments/vhayaw/why_is_praw_returning_author_is_none_when_the/
+            if sub.author == "[deleted]" or sub.author is None:
+                print(f"{sub.id=} author deleted {NOW_STR}")
+                updated_df.at[index, "del_author_r"] = True
+                updated_df.at[index, "del_author_r_changed"] = NOW_STR
+        # message deletion
+        if pd.isna(row["del_text_r_changed"]):  # noqa: SIM102
+            if sub.selftext == "[deleted]":
+                print(f"{sub.id=} message deleted {NOW_STR}")
+                updated_df.at[index, "del_text_r"] = True
+                updated_df.at[index, "del_text_r_changed"] = NOW_STR
+        # message removal (and possible deletion via removed_by_category):
+        if sub.selftext == "[removed]":
+            category_new = sub.removed_by_category
+            category_old = row["removed_by_category_r"]
+            if category_new != category_old:
+                # if not previously removed, update removal info
+                if pd.isna(row["rem_text_r_changed"]):
+                    print(f"{sub.id=} removed {NOW_STR}")
+                    updated_df.at[index, "rem_text_r"] = True
+                    updated_df.at[index, "rem_text_r_changed"] = NOW_STR
+                    updated_df.at[index, "removed_by_category_r"] = category_new
+                # if status changed to delete, even if previously removed,
+                # update that as well
+                if category_new == "deleted":
+                    print("  changed to deleted!")
                     updated_df.at[index, "del_text_r"] = True
                     updated_df.at[index, "del_text_r_changed"] = NOW_STR
-            # message removal (and possible deletion via removed_by_category):
-            if sub.selftext == "[removed]":
-                category_new = sub.removed_by_category
-                category_old = row["removed_by_category_r"]
-                if category_new != category_old:
-                    # if not previously removed, update removal info
-                    if pd.isna(row["rem_text_r_changed"]):
-                        print(f"{sub.id=} removed {NOW_STR}")
-                        updated_df.at[index, "rem_text_r"] = True
-                        updated_df.at[index, "rem_text_r_changed"] = NOW_STR
-                        updated_df.at[index, "removed_by_category_r"] = category_new
-                    # if status changed to delete, even if previously removed,
-                    # update that as well
-                    if category_new == "deleted":
-                        print("  changed to deleted!")
-                        updated_df.at[index, "del_text_r"] = True
-                        updated_df.at[index, "del_text_r_changed"] = NOW_STR
-                        updated_df.at[index, "removed_by_category_r"] = category_new
-                    # I'm ignoring other (if they exist) status changes
-                    # (e.g., moderator modding their self with "author"?)
+                    updated_df.at[index, "removed_by_category_r"] = category_new
+                # I'm ignoring other (if they exist) status changes
+                # (e.g., moderator modding their self with "author"?)
 
     head, tail = os.path.split(watched_fn)
     updated_fn = f"{head}/updated-{tail}"

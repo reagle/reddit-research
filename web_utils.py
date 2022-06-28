@@ -10,6 +10,7 @@
 Web functionality I frequently make use of.
 """
 
+import contextlib as cl
 import html.entities
 import json
 import logging
@@ -50,19 +51,15 @@ def unescape_XML(text: str) -> str:  # .0937s 4.11%
         text = m.group(0)
         if text[:2] == "&#":
             # character reference
-            try:
+            with cl.suppress(ValueError):
                 if text[:3] == "&#x":
                     return chr(int(text[3:-1], 16))
                 else:
                     return chr(int(text[2:-1]))
-            except ValueError:
-                pass
         else:
             # named entity
-            try:
+            with cl.suppress(KeyError):
                 text = chr(html.entities.name2codepoint[text[1:-1]])
-            except KeyError:
-                pass
         return text  # leave as is
 
     return re.sub(r"&#?\w+;", fixup, text)

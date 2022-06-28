@@ -59,10 +59,7 @@ debug = logging.debug
 
 def is_throwaway(user_name) -> bool:
     user_name = user_name.lower()
-    if "throw" in user_name and "away" in user_name:
-        return True
-    else:
-        return False
+    return "throw" in user_name and "away" in user_name
 
 
 def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf[Any]:
@@ -281,14 +278,12 @@ def collect_pushshift_results(
         # TODO/BUG: comments_num won't work with sampling estimates
         #   because they'll throw off the estimates
 
-        query_iteration = 0
         results_total = rs.get_pushshift_total(subreddit, after, before)
         offsets = rs.get_offsets(subreddit, after, before, limit, PUSHSHIFT_LIMIT)
         info(f"{offsets=}")
         results_found = []
-        for after_offset in offsets:
+        for query_iteration, after_offset in enumerate(offsets):
             info(f"{after_offset=}, {before=}")
-            query_iteration += 1
             critical(f"{query_iteration}")
             results = query_pushshift(
                 limit, after_offset, before, subreddit, query, comments_num
