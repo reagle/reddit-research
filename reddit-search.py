@@ -10,11 +10,11 @@ automate detection (for testing disguise) if source URL is provided.
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging
+import os
 import sys
 import textwrap
 import webbrowser
-from os import name, system
-from pathlib import Path  # https://docs.python.org/3/library/pathlib.html
+import pathlib as pl  # https://docs.python.org/3/library/pathlib.html
 
 import pandas as pd
 import requests
@@ -25,7 +25,7 @@ import requests
 # from phantomjs import Phantom # TODO: use this for searching DOM?
 
 
-HOME = str(Path("~").expanduser())
+HOME = str(pl.Path("~").expanduser())
 
 exception = logging.exception
 critical = logging.critical
@@ -83,7 +83,7 @@ def auto_search(query: str, subreddit: str, quote: str, target_url: str) -> None
 def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
     """Open browser on each search engine to help find quotes."""
 
-    system("cls") if name == "nt" else system("clear")
+    os.system("cls") if os.name == "nt" else os.system("clear")
     if row[heading] == "" or "found" not in row:
         return
     info(f"{row['found']=}")
@@ -145,7 +145,7 @@ def grab_quotes(file_name: str, column: str, do_recheck: bool) -> None:
     """Read a column of quotes from a spreadsheet."""
 
     info(f"{file_name=}, {column=}, {do_recheck=}")
-    suffix = Path(file_name).suffix
+    suffix = pl.Path(file_name).suffix
     if suffix in [".xls", ".xlsx", ".odf", ".ods", ".odt"]:
         df = pd.read_excel(file_name, keep_default_na=False)
         for _counter, row in df.iterrows():

@@ -91,7 +91,7 @@ def select_users(args, df) -> list[str]:
     print(f"{len(users)=}")
     print(f"{len(users_del)=}  {len(users_del)/len(users):2.0%}")
     print(f"{len(users_throw)=}  {len(users_throw)/len(users):2.0%}")
-    print(f"{len(users_del_throw)=}  " f"{len(users_del_throw)/len(users_throw):2.0%}")
+    print(f"{len(users_del_throw)=}  {len(users_del_throw)/len(users_throw):2.0%}")
     print(f"{len(users_pseudo)=}  {len(users_pseudo)/len(users):2.0%}")
     print(f"{len(users_del_pseudo)=}  {len(users_del_pseudo)/len(users):2.0%}")
     if args.deleted and args.throwaway_only:

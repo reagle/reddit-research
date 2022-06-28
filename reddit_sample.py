@@ -10,24 +10,24 @@ import logging
 import math
 import os
 import random
-from typing import List, Tuple
+from typing import List, Tuple  # noqa: I801
 
 import cachier
 import numpy as np
 import pendulum  # https://pendulum.eustace.io/docs/
 import praw
 
-from web_api_tokens import REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT
-from web_utils import get_JSON  # https://github.com/reagle/thunderdell
+import web_api_tokens as wat
+import web_utils  # https://github.com/reagle/thunderdell
 
 # datetime: date, time, datetime, timedelta
 # pendulum: datetime, Duration (timedelta), Period (Duration)
 
 
 REDDIT = praw.Reddit(
-    user_agent=REDDIT_USER_AGENT,
-    client_id=REDDIT_CLIENT_ID,
-    client_secret=REDDIT_CLIENT_SECRET,
+    user_agent=wat.REDDIT_USER_AGENT,
+    client_id=wat.REDDIT_CLIENT_ID,
+    client_secret=wat.REDDIT_CLIENT_SECRET,
     ratelimit_seconds=600,
 )
 
@@ -90,7 +90,7 @@ def get_pushshift_total(
         f"&size=0&metadata=true"
     )
     info(f"{PUSHSHIFT_META_URL=}")
-    results_total = get_JSON(PUSHSHIFT_META_URL)["metadata"]["total_results"]
+    results_total = web_utils.get_JSON(PUSHSHIFT_META_URL)["metadata"]["total_results"]
     info(f"{results_total=}")
     return results_total
 
@@ -180,8 +180,7 @@ def get_offsets(
 
 if __name__ == "__main__":
 
-    exception = critical = error = warning = info = debug = info = print
-
+    exception = critical = error = warning = info = debug = info = print  # noqa: SIM909
     start = "2022-01-01"
     end = "2022-06-10"
     after: pendulum.DateTime = pendulum.parse(start)

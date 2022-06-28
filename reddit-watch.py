@@ -10,28 +10,22 @@
 Watch the deletion and moderation status of messages tracked in a CSV.
 """
 
-# import cachier
-# import datetime as dt
 import argparse  # http://docs.python.org/dev/library/argparse.html
+import collections
 import configparser as cp
 import logging
 import os
+import pathlib as pl
 import pprint
 import sys
 import zipfile  # https://docs.python.org/3/library/zipfile.html
-from collections import defaultdict
-from pathlib import PurePath
 
 import pandas as pd
 import pendulum  # https://pendulum.eustace.io/docs/
 import praw  # type: ignore # https://praw.readthedocs.io/en/latest
 import tqdm  # progress bar https://github.com/tqdm/tqdm
 
-# import reddit_sample as rs
-# import web_utils
-from web_api_tokens import REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT
-
-# from typing import Any, Counter, Tuple  # , Union
+import web_api_tokens as wat
 
 # https://github.com/pushshift/api
 # https://www.reddit.com/dev/api/
@@ -45,9 +39,9 @@ REDDIT_LIMIT = 100
 pp = pprint.PrettyPrinter(indent=4)
 
 reddit = praw.Reddit(
-    user_agent=REDDIT_USER_AGENT,
-    client_id=REDDIT_CLIENT_ID,
-    client_secret=REDDIT_CLIENT_SECRET,
+    user_agent=wat.REDDIT_USER_AGENT,
+    client_id=wat.REDDIT_CLIENT_ID,
+    client_secret=wat.REDDIT_CLIENT_SECRET,
     ratelimit_seconds=600,
 )
 
@@ -64,20 +58,20 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
     Initiate watch of subreddit using Pushshift, create CSV, return filename.
     """
 
-    from psaw import PushshiftAPI
+    import psaw
 
     print(f"\nInitializing watch on {subreddit}")
     hours_ago = NOW.subtract(hours=hours)
     hours_ago_as_timestamp = hours_ago.int_timestamp
     print(f"fetching initial posts from {subreddit}")
-    pushshift = PushshiftAPI()
+    pushshift = psaw.PushshiftAPI()
     submissions = pushshift.search_submissions(
         after=hours_ago_as_timestamp,
         subreddit=subreddit,
         filter=["id", "subreddit", "author", "created_utc"],
     )
 
-    submissions_d = defaultdict(list)
+    submissions_d = collections.defaultdict(list)
     for submission in submissions:
         created_utc_human = pendulum.from_timestamp(submission.created_utc).format(
             "YYYYMMDD HH:mm:ss"
@@ -112,7 +106,7 @@ def init_watch_reddit(subreddit: str, limit: int) -> str:
     Reddit can return a maximum of only 1000 previous and recent submissions.
     """
 
-    submissions_d = defaultdict(list)
+    submissions_d = collections.defaultdict(list)
     print(f"fetching initial posts from {subreddit}")
     prog_bar = tqdm.tqdm(total=limit)  # /REDDIT_LIMIT
     for submission in reddit.subreddit(subreddit).new(limit=limit):
@@ -244,9 +238,7 @@ def rotate_archive_fns(updated_fn: str) -> None:
         os.rename(latest_fn, stamped_fn)
         os.rename(updated_fn, latest_fn)
     else:
-        raise RuntimeError(
-            f"{os.path.exists(latest_fn)}" f"{os.path.exists(updated_fn)}"
-        )
+        raise RuntimeError(f"{os.path.exists(latest_fn)} {os.path.exists(updated_fn)}")
     if os.path.exists(zipped_fn):
         with zipfile.ZipFile(zipped_fn, mode="a") as archive:
             print(f"adding {stamped_fn=} to {zipped_fn}")
@@ -327,7 +319,7 @@ def main(argv) -> argparse.Namespace:
     if args.log_to_file:
         print("logging to file")
         logging.basicConfig(
-            filename=f"{str(PurePath(__file__).name)}.log",
+            filename=f"{str(pl.PurePath(__file__).name)}.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,

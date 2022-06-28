@@ -14,16 +14,16 @@ import contextlib as cl
 import html.entities
 import json
 import logging
+import lxml
 import os
 import re
 import time
-from typing import Any, Match, Tuple, Union
-from xml.sax.saxutils import escape  # unescape
+import xml.sax.saxutils as saxutils
+from typing import Any, Match, Tuple, Union  # noqa: I801
 
-# import datetime as dt
 import cachier
 import requests  # http://docs.python-requests.org/en/latest/
-from lxml import etree
+
 
 HOMEDIR = os.path.expanduser("~")
 
@@ -36,7 +36,7 @@ dbg = logging.debug
 def escape_XML(text: str) -> str:  # http://wiki.python.org/moin/EscapingXml
     """Escape XML character entities; & < > are defaulted"""
     extras = {"\t": "  "}
-    return escape(text, extras)
+    return saxutils.escape(text, extras)
 
 
 def unescape_XML(text: str) -> str:  # .0937s 4.11%
@@ -87,11 +87,11 @@ def get_HTML(
     else:
         raise IOError("URL content is not HTML.")
 
-    parser_html = etree.HTMLParser()
-    doc = etree.fromstring(HTML_bytes, parser_html)
+    parser_html = lxml.etree.HTMLParser()
+    doc = lxml.etree.fromstring(HTML_bytes, parser_html)
     HTML_parsed = doc
 
-    HTML_utf8 = etree.tostring(HTML_parsed, encoding="utf-8")
+    HTML_utf8 = lxml.etree.tostring(HTML_parsed, encoding="utf-8")
     HTML_unicode = HTML_utf8.decode("utf-8", "replace")
 
     return HTML_bytes, HTML_parsed, HTML_unicode, r
