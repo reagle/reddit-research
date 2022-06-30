@@ -10,7 +10,6 @@ import logging
 import math
 import os
 import random
-from typing import List, Tuple  # noqa: I801
 
 import cachier
 import numpy as np
@@ -134,7 +133,7 @@ def get_offsets(
     before: pendulum.DateTime,
     sample_size: int,
     PUSHSHIFT_LIMIT: int,
-) -> Tuple[int, List[pendulum.DateTime]]:
+) -> list[pendulum.DateTime]:
     """For sampling, return a set of hourly offsets, beginning near
     after, that should not overlap"""
 
@@ -180,7 +179,6 @@ def get_offsets(
 
 if __name__ == "__main__":
 
-    exception = critical = error = warning = info = debug = info = print  # noqa: SIM909
     start = "2022-01-01"
     end = "2022-06-10"
     after: pendulum.DateTime = pendulum.parse(start)
@@ -193,7 +191,7 @@ if __name__ == "__main__":
     total = get_pushshift_total("AmItheAsshole", after, before)
     offsets = get_offsets("AmItheAsshole", after, before, sample_size, PUSHSHIFT_LIMIT)
     for count, offset in enumerate(sorted(offsets)):
-        print(f"{count: <5} {offset.to_datetime_string()=}")
+        info(f"{count: <5} {offset.to_datetime_string()=}")
     print(
         f"\n{total=:,} messages between"
         f" {after.to_datetime_string()} and {before.to_datetime_string()}\n"
