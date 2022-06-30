@@ -87,11 +87,11 @@ def get_HTML(
     else:
         raise IOError("URL content is not HTML.")
 
-    parser_html = lxml.etree.HTMLParser()
-    doc = lxml.etree.fromstring(HTML_bytes, parser_html)
+    parser_html = lxml.etree.HTMLParser()  # type: ignore
+    doc = lxml.etree.fromstring(HTML_bytes, parser_html)  # type: ignore
     HTML_parsed = doc
 
-    HTML_utf8 = lxml.etree.tostring(HTML_parsed, encoding="utf-8")
+    HTML_utf8 = lxml.etree.tostring(HTML_parsed, encoding="utf-8")  # type: ignore
     HTML_unicode = HTML_utf8.decode("utf-8", "replace")
 
     return HTML_bytes, HTML_parsed, HTML_unicode, r

@@ -16,22 +16,22 @@ indexing (often within 24 hours) and Reddit's current version.
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import collections
 import logging
+import pathlib as pl
 import shelve
 import sys
+import typing as typ
 
 # import time
-from pathlib import PurePath
-from typing import Any, Counter, Tuple  # , Union
 
 # import numpy as np
 import pandas as pd
 import pendulum  # https://pendulum.eustace.io/docs/
 import praw  # type: ignore # https://praw.readthedocs.io/en/latest
-from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
+import tqdm  # progress bar https://github.com/tqdm/tqdm
 
 import reddit_sample as rs
 import web_utils
-from web_api_tokens import REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT
+import web_api_tokens as wat
 
 # https://www.reddit.com/dev/api/
 # https://github.com/pushshift/api
@@ -43,9 +43,9 @@ PUSHSHIFT_LIMIT = 100
 REDDIT_LIMIT = 100
 
 reddit = praw.Reddit(
-    user_agent=REDDIT_USER_AGENT,
-    client_id=REDDIT_CLIENT_ID,
-    client_secret=REDDIT_CLIENT_SECRET,
+    user_agent=wat.REDDIT_USER_AGENT,
+    client_id=wat.REDDIT_CLIENT_ID,
+    client_secret=wat.REDDIT_CLIENT_SECRET,
     ratelimit_seconds=600,
 )
 
@@ -62,7 +62,7 @@ def is_throwaway(user_name) -> bool:
     return "throw" in user_name and "away" in user_name
 
 
-def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf[Any]:
+def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf[typ.Any]:
     """Use praw's info() method to grab reddit info all at once"""
     """and store on a disk for quick retrieval."""
 
@@ -74,7 +74,7 @@ def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf[Any]:
     t3_ids = [i if i.startswith("t3_") else f"t3_{i}" for i in ids_needed]
     submissions = reddit.info(fullnames=t3_ids)
     print("pre-fetch: storing in shelf")
-    for _count, submission in tqdm(enumerate(submissions)):
+    for _count, submission in tqdm.tqdm(enumerate(submissions)):
         # print(f"{count: <3} {submission.id} {submission.title}")
         shelf[submission.id] = submission
     return shelf
@@ -82,7 +82,7 @@ def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf[Any]:
 
 def get_reddit_info(
     shelf: shelve.DbfilenameShelf, id_: str, author_pushshift: str
-) -> Tuple[str, str, str]:
+) -> tuple[str, str, str]:
     """Given id, returns info from reddit."""
 
     author_reddit = "NA"
@@ -121,7 +121,7 @@ def get_reddit_info(
     return author_reddit, is_deleted, is_removed
 
 
-def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> Any:
+def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> typ.Any:
     """Given pushshift query results, return dataframe of info about
     submissions.
     """
@@ -140,11 +140,11 @@ def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> Any:
     # REDDIT_API_URL = "https://api.reddit.com/api/info/?id=t3_"
 
     results_row = []
-    ids_counter: Counter = collections.Counter()
+    ids_counter = collections.Counter()
 
     ids_all = [message["id"] for message in pushshift_results]
     shelf = prefetch_reddit_posts(ids_all)
-    for pr in tqdm(pushshift_results):
+    for pr in tqdm.tqdm(pushshift_results):
         debug(f"{pr['id']=} {pr['author']=} {pr['title']=}\n")
         ids_counter[pr["id"]] += 1
         created_utc = pendulum.from_timestamp(pr["created_utc"]).format(
@@ -215,7 +215,7 @@ def query_pushshift(
     subreddit: str,
     query: str = "",
     comments_num: str = ">0",
-) -> Any:
+) -> typ.Any:
     """Given search parameters, query pushshift and return JSON."""
 
     # https://github.com/pushshift/api
@@ -243,7 +243,7 @@ def query_pushshift(
         # I prefer `comments_num`, but Reddit uses poorly
         # named `num_comments`
         optional_params += f"&num_comments={comments_num}"
-    # this can be use to remove any message with "removed"
+    # this can be use to remove typ.any message with "removed"
     # see earlier commits for full functionality
     # optional_params += f"&selftext:not=[removed]"
 
@@ -266,7 +266,7 @@ def collect_pushshift_results(
     subreddit: str,
     query: str = "",
     comments_num: str = ">0",
-) -> Tuple[int, Any]:
+) -> tuple[int, typ.Any]:
     """Pushshift limited to PUSHSHIFT_LIMIT (100) results,
     so need multiple queries to collect results in date range up to
     or sampled at limit."""
@@ -381,7 +381,7 @@ def main(argv) -> argparse.Namespace:
         "--skip",
         action="store_true",
         default=False,
-        help="skip all reddit queries; pushshift only " "(default: %(default)s)",
+        help="skip all reddit queries; pushshift only (default: %(default)s)",
     )
     arg_parser.add_argument(
         "-t",
@@ -420,7 +420,7 @@ def main(argv) -> argparse.Namespace:
     if args.log_to_file:
         print("logging to file")
         logging.basicConfig(
-            filename=f"{str(PurePath(__file__).name)}.log",
+            filename=f"{str(pl.PurePath(__file__).name)}.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
