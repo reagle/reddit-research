@@ -102,6 +102,7 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
 
 def init_watch_reddit(subreddit: str, limit: int) -> str:
     """
+    UNUSED
     Initiate watch of subreddit using Pushshift, create CSV, return filename.
     Reddit can return a maximum of only 1000 previous and recent submissions.
     """
@@ -138,8 +139,8 @@ def init_watch_reddit(subreddit: str, limit: int) -> str:
     return watch_fn
 
 
-def prefetch_reddit_posts(ids_req: list[str]) -> dict:
-    """Use praw's info() method to grab reddit info all at once."""
+def prefetch_reddit_posts(ids_req: tuple[str]) -> dict:
+    """Use PRAW's info() method to grab Reddit info all at once."""
 
     submissions_dict = {}
     t3_ids = [i if i.startswith("t3_") else f"t3_{i}" for i in ids_req]
@@ -165,7 +166,7 @@ def update_watch(watched_fn: str) -> str:
     assert os.path.exists(watched_fn)
     watched_df = pd.read_csv(watched_fn, encoding="utf-8-sig", index_col=0)
     updated_df = watched_df.copy()
-    watched_ids = watched_df["id"].tolist()
+    watched_ids = tuple(watched_df["id"].tolist())
     submissions = prefetch_reddit_posts(watched_ids)
     for index, row in watched_df.iterrows():
         id_ = row["id"]
@@ -178,30 +179,32 @@ def update_watch(watched_fn: str) -> str:
         sub = submissions[id_]  # fetch and update if True
         # author deletion
         if pd.isna(row["del_author_r_changed"]):  # noqa: SIM102
-            # PRAW is now returning None, so test for that too
-            # https://www.reddit.com/r/redditdev/comments/vhayaw/why_is_praw_returning_author_is_none_when_the/
+            # PRAW returns None when author deleted
             if sub.author == "[deleted]" or sub.author is None:
                 print(f"{sub.id=} author deleted {NOW_STR}")
                 updated_df.at[index, "del_author_r"] = True
                 updated_df.at[index, "del_author_r_changed"] = NOW_STR
-        # message deletion
+        # Message deletion
         if pd.isna(row["del_text_r_changed"]):  # noqa: SIM102
             if sub.selftext == "[deleted]":
                 print(f"{sub.id=} message deleted {NOW_STR}")
                 updated_df.at[index, "del_text_r"] = True
                 updated_df.at[index, "del_text_r_changed"] = NOW_STR
-        # message removal (and possible deletion via removed_by_category):
+        # Message removal (and possible deletion) via removed_by_category
+        # I'm ignoring unusual crosspost cases
         if sub.selftext == "[removed]":
             category_new = sub.removed_by_category
+            if category_new is None:
+                category_new = "False"
             category_old = row["removed_by_category_r"]
             if category_new != category_old:
-                # if not previously removed, update removal info
+                # If not previously removed, update removal info
                 if pd.isna(row["rem_text_r_changed"]):
                     print(f"{sub.id=} removed {NOW_STR}")
                     updated_df.at[index, "rem_text_r"] = True
                     updated_df.at[index, "rem_text_r_changed"] = NOW_STR
                     updated_df.at[index, "removed_by_category_r"] = category_new
-                # if status changed to delete, even if previously removed,
+                # If status changed to delete, even if previously removed,
                 # update that as well
                 if category_new == "deleted":
                     print("  changed to deleted!")
@@ -252,8 +255,8 @@ def rotate_archive_fns(updated_fn: str) -> None:
 
 def init_archive(updated_fn: str) -> None:
     """
-    Initialize the archive file with most recent version, to be
-    added to with timestamped versions.
+    Initialize the archive file with most recent version, to be added to with
+    timestamped versions.
     """
 
     print(f"Initializing archive for {updated_fn=}")
@@ -352,4 +355,4 @@ if __name__ == "__main__":
         config.read(INI_FN)
         for _watched, fn in config["watching"].items():
             updated_fn = update_watch(fn)
-            rotate_archive_fns(updated_fn)
+            # rotate_archive_fns(updated_fn)
