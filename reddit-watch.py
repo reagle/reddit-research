@@ -355,4 +355,4 @@ if __name__ == "__main__":
         config.read(INI_FN)
         for _watched, fn in config["watching"].items():
             updated_fn = update_watch(fn)
-            # rotate_archive_fns(updated_fn)
+            rotate_archive_fns(updated_fn)
