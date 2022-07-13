@@ -84,11 +84,11 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
         submissions_d["created_utc"].append(created_utc_human)
         submissions_d["found_utc"].append(NOW_STR)
         submissions_d["del_author_r"].append("FALSE")
-        submissions_d["del_author_r_changed"].append("NA")
+        submissions_d["del_author_r_utc"].append("NA")
         submissions_d["del_text_r"].append("FALSE")
-        submissions_d["del_text_r_changed"].append("NA")
+        submissions_d["del_text_r_utc"].append("NA")
         submissions_d["rem_text_r"].append("FALSE")
-        submissions_d["rem_text_r_changed"].append("NA")
+        submissions_d["rem_text_r_utc"].append("NA")
         submissions_d["removed_by_category_r"].append("FALSE")
 
     watch_fn = (
@@ -122,11 +122,11 @@ def init_watch_reddit(subreddit: str, limit: int) -> str:
         submissions_d["created_utc"].append(created_utc_human)
         submissions_d["found_utc"].append(NOW_STR)
         submissions_d["del_author_r"].append("FALSE")
-        submissions_d["del_author_r_changed"].append("NA")
+        submissions_d["del_author_r_utc"].append("NA")
         submissions_d["del_text_r"].append("FALSE")
-        submissions_d["del_text_r_changed"].append("NA")
+        submissions_d["del_text_r_utc"].append("NA")
         submissions_d["rem_text_r"].append("FALSE")
-        submissions_d["rem_text_r_changed"].append("NA")
+        submissions_d["rem_text_r_utc"].append("NA")
         submissions_d["removed_by_category_r"].append("FALSE")
         prog_bar.update(1)
     prog_bar.close()
@@ -154,7 +154,7 @@ def prefetch_reddit_posts(ids_req: tuple[str]) -> dict:
     return submissions_dict
 
 
-def has_changed(a: str, b: str) -> bool:
+def has_utc(a: str, b: str) -> bool:
     return a != b
 
 
@@ -178,18 +178,18 @@ def update_watch(watched_fn: str) -> str:
         # https://www.reddit.com/r/redditdev/comments/kypjmk/check_if_submission_has_been_removed_by_a_mod/
         sub = submissions[id_]  # fetch and update if True
         # author deletion
-        if pd.isna(row["del_author_r_changed"]):  # noqa: SIM102
+        if pd.isna(row["del_author_r_utc"]):  # noqa: SIM102
             # PRAW returns None when author deleted
             if sub.author == "[deleted]" or sub.author is None:
                 print(f"{sub.id=} author deleted {NOW_STR}")
                 updated_df.at[index, "del_author_r"] = True
-                updated_df.at[index, "del_author_r_changed"] = NOW_STR
+                updated_df.at[index, "del_author_r_utc"] = NOW_STR
         # Message deletion
-        if pd.isna(row["del_text_r_changed"]):  # noqa: SIM102
+        if pd.isna(row["del_text_r_utc"]):  # noqa: SIM102
             if sub.selftext == "[deleted]":
                 print(f"{sub.id=} message deleted {NOW_STR}")
                 updated_df.at[index, "del_text_r"] = True
-                updated_df.at[index, "del_text_r_changed"] = NOW_STR
+                updated_df.at[index, "del_text_r_utc"] = NOW_STR
         # Message removal (and possible deletion) via removed_by_category
         # I'm ignoring unusual crosspost cases
         if sub.selftext == "[removed]":
@@ -199,17 +199,17 @@ def update_watch(watched_fn: str) -> str:
             category_old = row["removed_by_category_r"]
             if category_new != category_old:
                 # If not previously removed, update removal info
-                if pd.isna(row["rem_text_r_changed"]):
+                if pd.isna(row["rem_text_r_utc"]):
                     print(f"{sub.id=} removed {NOW_STR}")
                     updated_df.at[index, "rem_text_r"] = True
-                    updated_df.at[index, "rem_text_r_changed"] = NOW_STR
+                    updated_df.at[index, "rem_text_r_utc"] = NOW_STR
                     updated_df.at[index, "removed_by_category_r"] = category_new
                 # If status changed to delete, even if previously removed,
                 # update that as well
                 if category_new == "deleted":
                     print("  changed to deleted!")
                     updated_df.at[index, "del_text_r"] = True
-                    updated_df.at[index, "del_text_r_changed"] = NOW_STR
+                    updated_df.at[index, "del_text_r_utc"] = NOW_STR
                     updated_df.at[index, "removed_by_category_r"] = category_new
                 # I'm ignoring other (if they exist) status changes
                 # (e.g., moderator modding their self with "author"?)
