@@ -154,10 +154,6 @@ def prefetch_reddit_posts(ids_req: tuple[str]) -> dict:
     return submissions_dict
 
 
-def has_utc(a: str, b: str) -> bool:
-    return a != b
-
-
 def update_watch(watched_fn: str) -> str:
     """Process a CSV, checking to see if values have changed and
     timestamping if so."""
@@ -221,6 +217,8 @@ def update_watch(watched_fn: str) -> str:
 
 
 def rotate_archive_fns(updated_fn: str) -> None:
+    """Given an updated filename, archive it to the zip file and rename it to
+    be the latest."""
 
     print(f"Rotating and archiving {updated_fn=}")
     if not os.path.exists(updated_fn):
