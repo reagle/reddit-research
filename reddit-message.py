@@ -7,41 +7,33 @@
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
 """
-Message Redditors who still have their accounts and deleted their posts to an
-advice subreddit.
-Reads data from a CSV file.
+Obtain Redditor usernames from a CSV file and message those who fit criteria
+of throwaway or not, or deleted their post.
+Do not messages users messaged in the past.
 """
-
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging
 import pathlib as pl
 import sys
 import time
-from typing import Any
 
 import pandas as pd
 import praw  # https://praw.readthedocs.io/en/latest
+import tqdm  # progress bar https://github.com/tqdm/tqdm
 
-from tqdm import tqdm  # progress bar https://github.com/tqdm/tqdm
 
-from web_api_tokens import (
-    REDDIT_CLIENT_ID,
-    REDDIT_CLIENT_SECRET,
-    REDDIT_PASSWORD,
-    REDDIT_USER_AGENT,
-    REDDIT_USERNAME,
-)
+import web_api_tokens as wat
 
 # https://github.com/pushshift/api
 # import psaw  # Pushshift API https://github.com/dmarx/psaw no exclude:not
 
 REDDIT = praw.Reddit(
-    user_agent=REDDIT_USER_AGENT,
-    client_id=REDDIT_CLIENT_ID,
-    client_secret=REDDIT_CLIENT_SECRET,
-    username=REDDIT_USERNAME,
-    password=REDDIT_PASSWORD,
+    user_agent=wat.REDDIT_USER_AGENT,
+    client_id=wat.REDDIT_CLIENT_ID,
+    client_secret=wat.REDDIT_CLIENT_SECRET,
+    username=wat.REDDIT_USERNAME,
+    password=wat.REDDIT_PASSWORD,
     ratelimit_seconds=600,
 )
 
@@ -55,19 +47,12 @@ info = logging.info
 debug = logging.debug
 
 
-def read_df(file_name: str) -> Any:
-    """Retrun a dataframe given in a filename."""
-
-    df.from_csv(f"{file_name}.csv", encoding="utf-8-sig", index=False)
-    print(f"read dataframe of shape {df.shape} from '{file_name}.csv'")
-
-
 def is_throwaway(user_name: str) -> bool:
     user_name = user_name.lower()
     return "throw" in user_name and "away" in user_name
 
 
-def select_users(args, df) -> list[str]:
+def select_users(args, df) -> set[str]:
     """Return a list of users who deleted post (and, optionally, throwaway)"""
     users = set()
     users_del = set()
@@ -107,10 +92,11 @@ def select_users(args, df) -> list[str]:
     return users
 
 
-def message_users(args, users, greeting) -> None:
+def message_users(args, users: set, greeting: str) -> None:
     """Post message to users"""
 
     RATE_LIMIT_SLEEP = 40
+
     for user in tqdm(users):
         tqdm.write(f"messaging user {user}")
         try:
@@ -160,7 +146,7 @@ def main(argv) -> argparse.Namespace:
         "--pseudonyms_only",
         action="store_true",
         default=False,
-        help="select pseudonyms (non-throwaway) only",
+        help="select pseudonyms only (non-throwaway)",
     )
     arg_parser.add_argument(
         "-s",
@@ -174,7 +160,7 @@ def main(argv) -> argparse.Namespace:
         "--throwaway-only",
         action="store_true",
         default=False,
-        help="select throway accounts only",
+        help="select throwaway accounts only ('throw' and 'away')",
     )
     arg_parser.add_argument(
         "-L",
