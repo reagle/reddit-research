@@ -13,12 +13,14 @@ Do not messages users messaged in the past.
 """
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
+import csv
 import logging
 import pathlib as pl
 import sys
 import time
 
 import pandas as pd
+import pendulum  # https://pendulum.eustace.io/docs/
 import praw  # https://praw.readthedocs.io/en/latest
 import tqdm  # progress bar https://github.com/tqdm/tqdm
 
@@ -37,7 +39,8 @@ REDDIT = praw.Reddit(
     ratelimit_seconds=600,
 )
 
-NOW = time.strftime("%Y%m%d", time.localtime())
+NOW = pendulum.now("UTC")
+NOW_STR = NOW.format("YYYYMMDD HH:mm:ss")
 
 exception = logging.exception
 critical = logging.critical
@@ -90,6 +93,33 @@ def select_users(args, df) -> set[str]:
     if args.pseudonyms_only:
         return users_pseudo
     return users
+
+
+def message_users_1(args, users: set, greeting: str) -> None:
+    """Post message to users, without repeating users"""
+
+    RATE_LIMIT_SLEEP = 40
+    PAST_USERS_FN = "/Users/reagle/bin/red/reddit-message-users-past.csv"
+
+    users_past_d = {}
+    with open(PAST_USERS_FN, "r", encoding="utf-8") as past_fd:
+        csv_reader = csv.DictReader(past_fd)
+        for row in csv_reader:
+            users_past_d[row["name"]] = row["timestamp"]
+    users_todo = users - set(users_past_d.keys())
+
+    with open(PAST_USERS_FN, "a", encoding="utf-8") as past_fd:
+        csv_writer = csv.DictWriter(past_fd, fieldnames=["name", "timestamp"])
+        for user in tqdm.tqdm(users_todo):
+            csv_writer.writerow({"name": user, "timestamp": NOW_STR})
+            tqdm.tqdm.write(f"messaging user {user}")
+            try:
+                REDDIT.redditor(user).message("Deleted your post?", greeting)
+            except praw.exceptions.RedditAPIException as error:
+                tqdm.tqdm.write(f"can't message {user}: {error} ")
+                if "RATELIMIT" in str(error):
+                    raise error
+            time.sleep(RATE_LIMIT_SLEEP)
 
 
 def message_users(args, users: set, greeting: str) -> None:
