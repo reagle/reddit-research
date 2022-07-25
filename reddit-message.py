@@ -15,6 +15,7 @@ Do not messages users messaged in the past.
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import csv
 import logging
+import os
 import pathlib as pl
 import sys
 import time
@@ -95,13 +96,67 @@ def select_users(args, df) -> set[str]:
     return users
 
 
+class UsersArchive:
+    def __init__(self, archive_fn: str) -> None:
+        users_past_d = {}
+        self.archive_fn = archive_fn
+        if not os.exists(archive_fn):
+            with open(archive_fn, "w", encoding="utf-8") as past_fd:
+                past_fd.write("name,timestamp")
+        with open(archive_fn, "r", encoding="utf-8") as past_fd:
+            csv_reader = csv.DictReader(past_fd)
+            for row in csv_reader:
+                users_past_d[row["name"]] = row["timestamp"]
+        self.users_past = set(users_past_d.keys())
+        print(f"{self.users_past=}")
+
+    def get(self):
+        return self.users_past
+
+    def update(self, user: str):
+        if user not in self.users_past:
+            self.users_past.add(user)
+            # I'm not worried about disk IO speed because of the network IO rate limit
+            # but this still feels wasteful, can/should I keep the file descriptor
+            # open across updates?
+            with open(self.archive_fn, "a", encoding="utf-8") as past_fd:
+                csv_writer = csv.DictWriter(past_fd, fieldnames=["name", "timestamp"])
+                csv_writer.writerow({"name": user, "timestamp": NOW_STR})
+
+
+def message_users_2(args, users: set, greeting: str) -> None:
+    """Post message to users, without repeating users"""
+
+    PAST_USERS_FN = "/Users/reagle/bin/red/reddit-message-users-past.csv"
+    RATE_LIMIT_SLEEP = 40
+
+    user_archive = UsersArchive(PAST_USERS_FN)
+    users_past = user_archive.get()
+    users_todo = users - users_past
+
+    for user in tqdm.tqdm(users_todo):
+        user_archive.update(user)
+        tqdm.tqdm.write(f"messaging user {user}")
+        try:
+            REDDIT.redditor(user).message("Deleted your post?", greeting)
+        except praw.exceptions.RedditAPIException as error:
+            tqdm.tqdm.write(f"can't message {user}: {error} ")
+            if "RATELIMIT" in str(error):
+                raise error
+        time.sleep(RATE_LIMIT_SLEEP)
+
+
 def message_users_1(args, users: set, greeting: str) -> None:
     """Post message to users, without repeating users"""
 
     RATE_LIMIT_SLEEP = 40
     PAST_USERS_FN = "/Users/reagle/bin/red/reddit-message-users-past.csv"
-
     users_past_d = {}
+
+    if not os.exists(PAST_USERS_FN):
+        with open(PAST_USERS_FN, "w", encoding="utf-8") as past_fd:
+            past_fd.write("name,timestamp")
+
     with open(PAST_USERS_FN, "r", encoding="utf-8") as past_fd:
         csv_reader = csv.DictReader(past_fd)
         for row in csv_reader:
