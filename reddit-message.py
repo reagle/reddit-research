@@ -12,6 +12,11 @@ of throwaway or not, or deleted their post.
 Do not messages users messaged in the past.
 """
 
+# TODO
+# - perhaps make the exclusion of past users a command line argument
+#   and refactor it as a feature of select_users()
+
+
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import csv
 import logging
@@ -24,7 +29,6 @@ import pandas as pd
 import pendulum  # https://pendulum.eustace.io/docs/
 import praw  # https://praw.readthedocs.io/en/latest
 import tqdm  # progress bar https://github.com/tqdm/tqdm
-
 
 import web_api_tokens as wat
 
@@ -39,7 +43,6 @@ REDDIT = praw.Reddit(
     password=wat.REDDIT_PASSWORD,
     ratelimit_seconds=600,
 )
-
 NOW = pendulum.now("UTC")
 NOW_STR = NOW.format("YYYYMMDD HH:mm:ss")
 
@@ -57,12 +60,16 @@ def is_throwaway(user_name: str) -> bool:
 
 
 def select_users(args, df) -> set[str]:
-    """Return a list of users who deleted post (and, optionally, throwaway)"""
-    users = set()
+    """Return a list of users fitting criteria
+    - only_deleted: deleted on Reddit
+    - only_existent: NOT deleted
+    - only_throwaway: "throw" and "away" appears in username
+    - only_pseudo: NOT throwaway"""
+    users_found = set()
     users_del = set()
     users_throw = set()
     for _counter, row in df.iterrows():
-        users.add(row["author_p"])
+        users_found.add(row["author_p"])
         warning(f'{row["author_p"]=}')
         if is_throwaway(row["author_p"]):
             warning("  adding to users_throw")
@@ -70,39 +77,32 @@ def select_users(args, df) -> set[str]:
         if row["del_author_p"] is False and row["del_text_r"] is True:
             warning("  adding to users_del")
             users_del.add(row["author_p"])
-    users_del_throw = users_del & users_throw
-    info(f"{users_del_throw=}")
-    users_pseudo = users - users_throw
-    info(f"{users_pseudo=}")
-    users_del_pseudo = users_pseudo & users_del
-    info(f"{users_del_pseudo=}")
+    users_result = users_found.copy()
     print(f"posts={df.shape[0]=}")
-    print(f"{len(users)=}")
-    print(f"{len(users_del)=}  {len(users_del)/len(users):2.0%}")
-    print(f"{len(users_throw)=}  {len(users_throw)/len(users):2.0%}")
-    print(f"{len(users_del_throw)=}  {len(users_del_throw)/len(users_throw):2.0%}")
-    print(f"{len(users_pseudo)=}  {len(users_pseudo)/len(users):2.0%}")
-    print(f"{len(users_del_pseudo)=}  {len(users_del_pseudo)/len(users):2.0%}")
-    if args.deleted and args.throwaway_only:
-        return users_del_throw
-    if args.deleted and args.pseudonyms_only:
-        return users_del_pseudo
-    if args.deleted:
-        return users_del
-    if args.throwaway_only:
-        return users_throw
-    if args.pseudonyms_only:
-        return users_pseudo
-    return users
+    print(f"{len(users_found)=}")
+    print(f"{len(users_del)=}  {len(users_del)/len(users_found):2.0%}")
+    print(f"{len(users_throw)=}  {len(users_throw)/len(users_found):2.0%}")
+    if args.only_deleted:
+        users_result = users_result & users_del
+    if args.only_existent:
+        users_result = users_result - users_del
+    if args.only_throwaway:
+        users_result = users_result & users_throw
+    if args.only_pseudonym:
+        users_result = users_result - users_throw
+    return users_result
 
 
 class UsersArchive:
+    """A persistent set-like store plaintext/csv back-end."""
+
     def __init__(self, archive_fn: str) -> None:
-        users_past_d = {}
+        """Create file if it doesn't exist, otherwise read in."""
         self.archive_fn = archive_fn
-        if not os.exists(archive_fn):
+        users_past_d = {}
+        if not os.path.exists(archive_fn):
             with open(archive_fn, "w", encoding="utf-8") as past_fd:
-                past_fd.write("name,timestamp")
+                past_fd.write("name,timestamp\n")
         with open(archive_fn, "r", encoding="utf-8") as past_fd:
             csv_reader = csv.DictReader(past_fd)
             for row in csv_reader:
@@ -110,142 +110,123 @@ class UsersArchive:
         self.users_past = set(users_past_d.keys())
         print(f"{self.users_past=}")
 
-    def get(self):
+    def get(self) -> set:
         return self.users_past
 
-    def update(self, user: str):
+    def update(self, user: str) -> None:
         if user not in self.users_past:
             self.users_past.add(user)
-            # I'm not worried about disk IO speed because of the network IO rate limit
-            # but this still feels wasteful, can/should I keep the file descriptor
-            # open across updates?
+            # TODO: I'm not worried about disk IO speed because of the network IO rate
+            # limit but this still feels wasteful, can/should I keep the file
+            # descriptor open across updates?
             with open(self.archive_fn, "a", encoding="utf-8") as past_fd:
                 csv_writer = csv.DictWriter(past_fd, fieldnames=["name", "timestamp"])
                 csv_writer.writerow({"name": user, "timestamp": NOW_STR})
 
 
-def message_users_2(args, users: set, greeting: str) -> None:
+def message_users(args, users: set, subject: str, greeting: str) -> None:
     """Post message to users, without repeating users"""
 
-    PAST_USERS_FN = "/Users/reagle/bin/red/reddit-message-users-past.csv"
-    RATE_LIMIT_SLEEP = 40
-
-    user_archive = UsersArchive(PAST_USERS_FN)
+    user_archive = UsersArchive(args.archive_fn)
     users_past = user_archive.get()
     users_todo = users - users_past
 
     for user in tqdm.tqdm(users_todo):
         user_archive.update(user)
-        tqdm.tqdm.write(f"messaging user {user}")
-        try:
-            REDDIT.redditor(user).message("Deleted your post?", greeting)
-        except praw.exceptions.RedditAPIException as error:
-            tqdm.tqdm.write(f"can't message {user}: {error} ")
-            if "RATELIMIT" in str(error):
-                raise error
-        time.sleep(RATE_LIMIT_SLEEP)
-
-
-def message_users_1(args, users: set, greeting: str) -> None:
-    """Post message to users, without repeating users"""
-
-    RATE_LIMIT_SLEEP = 40
-    PAST_USERS_FN = "/Users/reagle/bin/red/reddit-message-users-past.csv"
-    users_past_d = {}
-
-    if not os.exists(PAST_USERS_FN):
-        with open(PAST_USERS_FN, "w", encoding="utf-8") as past_fd:
-            past_fd.write("name,timestamp")
-
-    with open(PAST_USERS_FN, "r", encoding="utf-8") as past_fd:
-        csv_reader = csv.DictReader(past_fd)
-        for row in csv_reader:
-            users_past_d[row["name"]] = row["timestamp"]
-    users_todo = users - set(users_past_d.keys())
-
-    with open(PAST_USERS_FN, "a", encoding="utf-8") as past_fd:
-        csv_writer = csv.DictWriter(past_fd, fieldnames=["name", "timestamp"])
-        for user in tqdm.tqdm(users_todo):
-            csv_writer.writerow({"name": user, "timestamp": NOW_STR})
-            tqdm.tqdm.write(f"messaging user {user}")
+        tqdm.tqdm.write(f"messaging user {user} ({args.dry_run})")
+        if not args.dry_run:
             try:
-                REDDIT.redditor(user).message("Deleted your post?", greeting)
+                REDDIT.redditor(user).message(subject=subject, message=greeting)
             except praw.exceptions.RedditAPIException as error:
                 tqdm.tqdm.write(f"can't message {user}: {error} ")
                 if "RATELIMIT" in str(error):
                     raise error
-            time.sleep(RATE_LIMIT_SLEEP)
-
-
-def message_users(args, users: set, greeting: str) -> None:
-    """Post message to users"""
-
-    RATE_LIMIT_SLEEP = 40
-
-    for user in tqdm(users):
-        tqdm.write(f"messaging user {user}")
-        try:
-            REDDIT.redditor(user).message("Deleted your post?", greeting)
-        except praw.exceptions.RedditAPIException as error:
-            tqdm.write(f"can't fetch {user}: {error} ")
-            if "RATELIMIT" in str(error):
-                raise error
-        time.sleep(RATE_LIMIT_SLEEP)
+            time.sleep(args.rate_limit)
 
 
 def main(argv) -> argparse.Namespace:
     """Process arguments"""
-    arg_parser = argparse.ArgumentParser(description="Script for querying reddit APIs")
+    arg_parser = argparse.ArgumentParser(
+        description="Script for querying reddit APIs",
+    )
 
     # non-positional arguments
     arg_parser.add_argument(
-        "-d",
-        "--deleted",
-        action="store_true",
-        default=False,
-        help="select deleted users",
+        "-i",
+        "--input-fn",
+        metavar="FILENAME",
+        required=True,
+        help="CSV filename, with usernames, created by reddit-query.py",
     )
     arg_parser.add_argument(
+        "-a",
+        "--archive-fn",
+        default="reddit-message-users-past.csv",
+        metavar="FILENAME",
+        required=False,
+        help=(
+            "CSV filename of previously messaged users to skip;"
+            " created if doesn't exist"
+            " (default: %(default)s)"
+        ),
+    )
+    arg_parser.add_argument(
+        "-g",
+        "--greeting-fn",
+        default="greeting.txt",
+        metavar="FILENAME",
+        required=False,
+        help="greeting message filename (default: %(default)s)",
+    )
+    arg_parser.add_argument(
+        "-d",
+        "--only-deleted",
+        action="store_true",
+        default=False,
+        help="select deleted users only",
+    )
+    arg_parser.add_argument(
+        "-e",
+        "--only-existent",
+        action="store_true",
+        default=False,
+        help="select existent (NOT deleted) users only",
+    )
+    arg_parser.add_argument(
+        "-p",
+        "--only-pseudonym",
+        action="store_true",
+        default=False,
+        help="select pseudonyms only (NOT throwaway)",
+    )
+    arg_parser.add_argument(
+        "-t",
+        "--only-throwaway",
+        action="store_true",
+        default=False,
+        help="select throwaway accounts only ('throw' and 'away')",
+    )
+    arg_parser.add_argument(
+        "-r",
+        "--rate-limit",
+        type=int,
+        default=40,
+        help="rate-limit in seconds between messages (default: %(default)s)",
+    )
+    arg_parser.add_argument(
+        "-s",
+        "--show-csv-users",
+        action="store_true",
+        default=False,
+        help="also show all users from input CSV on terminal",
+    )
+
+    arg_parser.add_argument(
+        "-D",
         "--dry-run",
         action="store_true",
         default=False,
         help="list greeting and users but don't message",
-    )
-    arg_parser.add_argument(
-        "-i",
-        "--input-filename",
-        metavar="FILENAME",
-        nargs=1,
-        required=True,
-        help="input CSV file",
-    )
-    arg_parser.add_argument(
-        "-g",
-        "--greeting-filename",
-        default="greeting.txt",
-        metavar="FILENAME",
-        help="input greeting file",
-    )
-    arg_parser.add_argument(
-        "-p",
-        "--pseudonyms_only",
-        action="store_true",
-        default=False,
-        help="select pseudonyms only (non-throwaway)",
-    )
-    arg_parser.add_argument(
-        "-s",
-        "--show",
-        action="store_true",
-        default=False,
-        help="show all users on terminal",
-    )
-    arg_parser.add_argument(
-        "-t",
-        "--throwaway-only",
-        action="store_true",
-        default=False,
-        help="select throwaway accounts only ('throw' and 'away')",
     )
     arg_parser.add_argument(
         "-L",
@@ -291,13 +272,23 @@ def main(argv) -> argparse.Namespace:
 if __name__ == "__main__":
     args = main(sys.argv[1:])
 
-    with open(args.greeting_filename, "r") as fd:
-        greeting = fd.read()
-    df = pd.read_csv(args.input_filename[0])
+    info(f"{args=}")
+    for fn in (args.input_fn, args.greeting_fn):
+        if not os.path.exists(fn):
+            raise RuntimeError(f"necessary file {fn} does not exist")
+    with open(args.greeting_fn, "r") as fd:
+        greeting = fd.readlines()
+        if greeting[0].startswith("subject: "):
+            subject = greeting[0][9:].strip()
+            greeting = "\n".join(greeting[1:]).strip()
+        else:
+            subject = "About your Reddit message"
+            greeting = "\n".join(greeting).strip()
+    df = pd.read_csv(args.input_fn)
     users = select_users(args, df)
     print(f"{len(users)} users to message")
-    if args.show:
+    print(f"{greeting[0:70]=}")
+    if args.show_csv_users:
         print(f"message:\n{greeting[0:50]}...\n")
-        print(f" {users=}")
-    if not args.dry_run:
-        message_users(args, users, greeting)
+        print(f" CSV {users=}")
+    message_users(args, users, subject, greeting)
