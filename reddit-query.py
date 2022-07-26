@@ -329,8 +329,8 @@ def main(argv) -> argparse.Namespace:
         "--after",
         type=str,
         default=False,
-        help="""submissions after: epoch, integer[s|m|h|d], or Y-m-d"""
-        """Using it with before starts in 1970!""",
+        help="""submissions after: epoch, integer[s|m|h|d], or Y-m-d ."""
+        """ Using it without before starts in 1970!""",
     )
     arg_parser.add_argument(
         "-b",
