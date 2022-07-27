@@ -92,7 +92,7 @@ def get_reddit_info(
         debug(f"reddit skipped because args.skip {author_pushshift=}")
     elif args.throwaway_only and not is_throwaway(author_pushshift):
         debug(
-            f"reddit skipped because args.throwaway but not throwaway "
+            f"reddit skipped because args.throwaway_only but not throwaway "
             f"{author_pushshift=}"
         )
     else:
@@ -375,21 +375,20 @@ def main(argv) -> argparse.Namespace:
         action="store_true",
         default=False,
         help="""sample complete date range up to limit, rather than """
-        """first submissions within limit (default: %(default)s)""",
+        """first submissions within limit""",
     )
     arg_parser.add_argument(
         "--skip",
         action="store_true",
         default=False,
-        help="skip all reddit queries; pushshift only (default: %(default)s)",
+        help="skip all reddit queries; pushshift only",
     )
     arg_parser.add_argument(
         "-t",
         "--throwaway-only",
         action="store_true",
         default=False,
-        help="throwaways checked on Reddit; otherwise Pushshift only "
-        "(default: %(default)s)",
+        help="only throwaway accounts ('throw' and 'away') get Reddit fetch",
     )
     arg_parser.add_argument(
         "-L",
@@ -405,7 +404,7 @@ def main(argv) -> argparse.Namespace:
         default=0,
         help="increase logging verbosity (specify multiple times for more)",
     )
-    arg_parser.add_argument("--version", action="version", version="0.3")
+    arg_parser.add_argument("--version", action="version", version="0.4")
     args = arg_parser.parse_args(argv)
 
     log_level = logging.ERROR  # 40
