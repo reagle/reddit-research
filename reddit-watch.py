@@ -79,7 +79,7 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
 
         submissions_d["id"].append(submission.id)
         submissions_d["subreddit"].append(submission.subreddit)
-        submissions_d["author"].append(submission.author)
+        submissions_d["author_p"].append(submission.author)
         submissions_d["del_author_p"].append("FALSE")
         submissions_d["created_utc"].append(created_utc_human)
         submissions_d["found_utc"].append(NOW_STR)
@@ -117,7 +117,7 @@ def init_watch_reddit(subreddit: str, limit: int) -> str:
 
         submissions_d["id"].append(submission.id)
         submissions_d["subreddit"].append(submission.subreddit)
-        submissions_d["author"].append(submission.author)
+        submissions_d["author_p"].append(submission.author)
         submissions_d["del_author_p"].append("FALSE")
         submissions_d["created_utc"].append(created_utc_human)
         submissions_d["found_utc"].append(NOW_STR)
@@ -169,7 +169,7 @@ def update_watch(watched_fn: str) -> str:
         if id_ not in submissions:
             print(f"{id_=} no longer in submissions, continuing")
             continue
-        info(f"{row['id']=}, {row['author']=}")
+        info(f"{row['id']=}, {row['author_p']=}")
         # Different removed_by_category statuses:
         # https://www.reddit.com/r/redditdev/comments/kypjmk/check_if_submission_has_been_removed_by_a_mod/
         sub = submissions[id_]  # fetch and update if True

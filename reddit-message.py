@@ -14,8 +14,7 @@ Do not messages users messaged in the past.
 
 # TODO
 # - perhaps make the exclusion of past users a command line argument
-#   and refactor it as a feature of select_users()
-
+#   and refactor it as a feature of select_users() 2022-07-27
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import csv
@@ -133,7 +132,7 @@ def message_users(args, users: set, subject: str, greeting: str) -> None:
 
     for user in tqdm.tqdm(users_todo):
         user_archive.update(user)
-        tqdm.tqdm.write(f"messaging user {user} ({args.dry_run})")
+        tqdm.tqdm.write(f"messaging user {user} ({args.dry_run=})")
         if not args.dry_run:
             try:
                 REDDIT.redditor(user).message(subject=subject, message=greeting)
@@ -272,6 +271,14 @@ def main(argv) -> argparse.Namespace:
 if __name__ == "__main__":
     args = main(sys.argv[1:])
 
+    if not args.only_existent or args.only_deleted:
+        print("WARNING: you are messaging deleted users")
+        character = input("`y` to confirm | any key to quit: ")
+        if character == "y":
+            pass
+        else:
+            sys.exit()
+
     info(f"{args=}")
     for fn in (args.input_fn, args.greeting_fn):
         if not os.path.exists(fn):
@@ -286,7 +293,7 @@ if __name__ == "__main__":
             greeting = "\n".join(greeting).strip()
     df = pd.read_csv(args.input_fn)
     users = select_users(args, df)
-    print(f"{len(users)} users to message")
+    print(f"{len(users)} possible users to message")
     print(f"{greeting[0:70]=}")
     if args.show_csv_users:
         print(f"message:\n{greeting[0:50]}...\n")

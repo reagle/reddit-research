@@ -136,7 +136,6 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
         webbrowser.open(query_pushshift_final)
 
         character = input("\n`enter` to continue | `q` to quit: ")
-
         if character == "q":
             sys.exit()
 
