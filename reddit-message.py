@@ -77,10 +77,9 @@ def select_users(args, df) -> set[str]:
             warning("  adding to users_del")
             users_del.add(row["author_p"])
     users_result = users_found.copy()
-    print(f"posts={df.shape[0]=}")
-    print(f"{len(users_found)=}")
-    print(f"{len(users_del)=}  {len(users_del)/len(users_found):2.0%}")
-    print(f"{len(users_throw)=}  {len(users_throw)/len(users_found):2.0%}")
+    print(f"Users' statistics:")
+    print(f"  {len(users_del)=}  {len(users_del)/len(users_found):2.0%}")
+    print(f"  {len(users_throw)=}  {len(users_throw)/len(users_found):2.0%}")
     if args.only_deleted:
         users_result = users_result & users_del
     if args.only_existent:
@@ -89,6 +88,10 @@ def select_users(args, df) -> set[str]:
         users_result = users_result & users_throw
     if args.only_pseudonym:
         users_result = users_result - users_throw
+    print(f"\nYou are about to message {len(users_result)} possible unique users.")
+    if args.show_csv_users:
+        print(f"They are: {users_result}")
+
     return users_result
 
 
@@ -107,13 +110,12 @@ class UsersArchive:
             for row in csv_reader:
                 users_past_d[row["name"]] = row["timestamp"]
         self.users_past = set(users_past_d.keys())
-        print(f"{self.users_past=}")
 
     def get(self) -> set:
         return self.users_past
 
     def update(self, user: str) -> None:
-        if user not in self.users_past:
+        if not args.dry_run and user not in self.users_past:
             self.users_past.add(user)
             # TODO: I'm not worried about disk IO speed because of the network IO rate
             # limit but this still feels wasteful, can/should I keep the file
@@ -129,6 +131,9 @@ def message_users(args, users: set, subject: str, greeting: str) -> None:
     user_archive = UsersArchive(args.archive_fn)
     users_past = user_archive.get()
     users_todo = users - users_past
+    print(f"\nExcluding {len(users_past)} past users from the {len(users)}.")
+    if args.show_csv_users:
+        print(f"The remaining users to do are: {users_todo}.")
 
     for user in tqdm.tqdm(users_todo):
         user_archive.update(user)
@@ -271,14 +276,6 @@ def main(argv) -> argparse.Namespace:
 if __name__ == "__main__":
     args = main(sys.argv[1:])
 
-    if not args.only_existent or args.only_deleted:
-        print("WARNING: you are messaging deleted users")
-        character = input("`y` to confirm | any key to quit: ")
-        if character == "y":
-            pass
-        else:
-            sys.exit()
-
     info(f"{args=}")
     for fn in (args.input_fn, args.greeting_fn):
         if not os.path.exists(fn):
@@ -287,15 +284,38 @@ if __name__ == "__main__":
         greeting = fd.readlines()
         if greeting[0].startswith("subject: "):
             subject = greeting[0][9:].strip()
-            greeting = "\n".join(greeting[1:]).strip()
+            greeting = "".join(greeting[1:]).strip()
         else:
             subject = "About your Reddit message"
-            greeting = "\n".join(greeting).strip()
+            greeting = "".join(greeting).strip()
+    greeting_trunc = greeting.replace("\n", " ")[0:70]
     df = pd.read_csv(args.input_fn)
+    print(f"The input CSV file contains {df.shape[0]} rows.")
+    print(
+        f"Unique and not-previously messaged users will be further winnowed by:\n"
+        f"  args.only_deleted   = {args.only_deleted}\n"
+        f"  args.only_existent  = {args.only_existent}\n"
+        f"  args.only_pseudonym = {args.only_pseudonym}\n"
+        f"  args.only_throwaway = {args.only_throwaway}\n"
+    )
     users = select_users(args, df)
-    print(f"{len(users)} possible users to message")
-    print(f"{greeting[0:70]=}")
-    if args.show_csv_users:
-        print(f"message:\n{greeting[0:50]}...\n")
-        print(f" CSV {users=}")
+    print(
+        f"\nYour will be sending:\n"
+        f"  Subject: {subject}\n"
+        f"  Greeting: {greeting_trunc}..."
+    )
+
+    print("Do you want to proceed?")
+    proceed_q = input("`p` to proceed | any key to quit: ")
+    if proceed_q == "p":
+        pass
+    else:
+        sys.exit()
+    if not args.only_existent or args.only_deleted:
+        print("WARNING: you are messaging users who deleted their messages.")
+        confirm_q = input("`c` to confirm | any key to quit: ")
+        if confirm_q == "c":
+            pass
+        else:
+            sys.exit()
     message_users(args, users, subject, greeting)
