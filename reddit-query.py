@@ -321,7 +321,7 @@ def export_df(name, df) -> None:
 
 def main(argv) -> argparse.Namespace:
     """Process arguments"""
-    arg_parser = argparse.ArgumentParser(description="Query Pushshift and Reddit APIs")
+    arg_parser = argparse.ArgumentParser(description="Query Pushshift and Reddit APIs.")
 
     # optional arguments
     arg_parser.add_argument(

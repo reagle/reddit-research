@@ -153,7 +153,7 @@ def main(argv) -> argparse.Namespace:
     arg_parser = argparse.ArgumentParser(
         description=(
             "Message Redditors using CSV files from reddit-query.py"
-            " or reddit-watch.py"
+            " or reddit-watch.py ."
         ),
     )
 

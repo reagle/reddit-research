@@ -273,7 +273,7 @@ def main(argv) -> argparse.Namespace:
     arg_parser = argparse.ArgumentParser(
         description=(
             "Watch the deletion/removal status of Reddit messages."
-            " Initialize subreddits first."
+            " Initialize subreddits to be watched first."
         )
     )
 
