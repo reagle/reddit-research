@@ -151,7 +151,10 @@ def message_users(args, users: set, subject: str, greeting: str) -> None:
 def main(argv) -> argparse.Namespace:
     """Process arguments"""
     arg_parser = argparse.ArgumentParser(
-        description="Script for querying reddit APIs",
+        description=(
+            "Message Redditors using CSV files from reddit-query.py"
+            " or reddit-watch.py"
+        ),
     )
 
     # non-positional arguments

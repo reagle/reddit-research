@@ -8,6 +8,7 @@
 
 """
 Watch the deletion and moderation status of messages tracked in a CSV.
+You must initialize the subreddit you wish to follow first.
 """
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
@@ -270,7 +271,10 @@ def init_archive(updated_fn: str) -> None:
 def main(argv) -> argparse.Namespace:
     """Process arguments"""
     arg_parser = argparse.ArgumentParser(
-        description="Script for watching deletion/removal status of Reddit messages."
+        description=(
+            "Watch the deletion/removal status of Reddit messages."
+            " Initialize subreddits first."
+        )
     )
 
     # non-positional arguments

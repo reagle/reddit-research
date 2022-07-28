@@ -321,7 +321,7 @@ def export_df(name, df) -> None:
 
 def main(argv) -> argparse.Namespace:
     """Process arguments"""
-    arg_parser = argparse.ArgumentParser(description="Script for querying reddit APIs")
+    arg_parser = argparse.ArgumentParser(description="Query Pushshift and Reddit APIs")
 
     # optional arguments
     arg_parser.add_argument(
@@ -381,7 +381,7 @@ def main(argv) -> argparse.Namespace:
         "--skip",
         action="store_true",
         default=False,
-        help="skip all reddit queries; pushshift only",
+        help="skip all Reddit fetches; pushshift only",
     )
     arg_parser.add_argument(
         "-t",
