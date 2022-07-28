@@ -3,8 +3,9 @@ Tools for scraping and analyzing Reddit and for messaging Redditors.
 As of 2022-07-28 the help messages read:
 
 ```
-usage: reddit-query.py [-h] [-a AFTER] [-b BEFORE] [-l LIMIT] [-c COMMENTS_NUM] [-r SUBREDDIT]
-                       [--sample] [--skip] [-t] [-L] [-V] [--version]
+usage: reddit-query.py [-h] [-a AFTER] [-b BEFORE] [-l LIMIT] [-c COMMENTS_NUM]
+                       [-r SUBREDDIT] [--sample] [--skip] [-t] 
+                       [-L] [-V] [--version]
 
 Query Pushshift and Reddit APIs
 
