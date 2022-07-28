@@ -30,7 +30,8 @@ options:
                         rather than first submissions
                         within limit
   --skip                skip all Reddit fetches; pushshift only
-  -t, --throwaway-only  only throwaway accounts ('throw' and 'away') get fetched from Reddit
+  -t, --throwaway-only  only throwaway accounts ('throw' and 'away') 
+                        and get fetched from Reddit
   -L, --log-to-file     log to file reddit-query.py.log
   -V, --verbose         increase logging verbosity (specify multiple 
                         times for more)
