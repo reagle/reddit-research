@@ -6,6 +6,14 @@
 # (c) Copyright 2020-2022 by Joseph Reagle
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
+"""
+Module that includes sampling functions used by reddit-query.py . 
+Reddit itself doesn't  permit date-ranges, so I have to pull data from 
+Pushshift, estimate how many chunks (PUSHSHIFT_LIMIT) to take at hourly 
+offsets within the range, including the ability to sample throughout 
+the range.
+"""
+
 import logging
 import math
 import os
@@ -42,9 +50,10 @@ debug = logging.debug
 
 
 def is_overlapping(offsets: list, PUSHSHIFT_LIMIT: int, results_per_hour: int) -> bool:
-    """If I grab PUSHSHIFT_LIMIT results at an offset hour, am I
-    enough hours in the future from the last offset hour to avoid
-    overlap"""
+    """
+    If I grab PUSHSHIFT_LIMIT results at an offset hour, am I enough
+    hours in the future from the last offset hour to avoid overlap
+    """
 
     last = None
     hours_needed = math.ceil(PUSHSHIFT_LIMIT / results_per_hour)

@@ -7,8 +7,8 @@
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
 """
-Obtain Redditor usernames from a CSV file and message those who fit criteria
-of throwaway or not, or deleted their post.
+Obtain Redditor usernames from a CSV file and message those who fit 
+criteria of throwaway or not, or deleted their post.
 Do not messages users messaged in the past.
 """
 
