@@ -80,6 +80,7 @@ def select_users(args, df) -> set[str]:
             users_del.add(row["author_p"])
     users_result = users_found.copy()
     print(f"Users' statistics:")
+    print(f"  {len(users_found)=}")
     print(f"  {len(users_del)=}  {len(users_del)/len(users_found):2.0%}")
     print(f"  {len(users_throw)=}  {len(users_throw)/len(users_found):2.0%}")
     if args.only_deleted:
@@ -137,17 +138,21 @@ def message_users(args, users: set, subject: str, greeting: str) -> None:
     if args.show_csv_users:
         print(f"The remaining users to do are: {users_todo}.")
 
-    for user in tqdm.tqdm(users_todo):
-        user_archive.update(user)
-        tqdm.tqdm.write(f"messaging user {user} ({args.dry_run=})")
-        if not args.dry_run:
-            try:
-                REDDIT.redditor(user).message(subject=subject, message=greeting)
-            except praw.exceptions.RedditAPIException as error:
-                tqdm.tqdm.write(f"can't message {user}: {error} ")
-                if "RATELIMIT" in str(error):
-                    raise error
-            time.sleep(args.rate_limit)
+    with tqdm.tqdm(
+        total=len(users_todo), bar_format="{l_bar}{bar:30}{r_bar}{bar:-10b}"
+    ) as pbar:
+        for user in users_todo:
+            pbar.set_postfix({"user": user})
+            user_archive.update(user)
+            if not args.dry_run:
+                try:
+                    REDDIT.redditor(user).message(subject=subject, message=greeting)
+                except praw.exceptions.RedditAPIException as error:
+                    tqdm.tqdm.write(f"can't message {user}: {error} ")
+                    if "RATELIMIT" in str(error):
+                        raise error
+                time.sleep(args.rate_limit)
+            pbar.update()
 
 
 def main(argv) -> argparse.Namespace:
@@ -310,17 +315,18 @@ if __name__ == "__main__":
         f"  Greeting: {greeting_trunc}..."
     )
 
-    print("Do you want to proceed?")
-    proceed_q = input("`p` to proceed | any key to quit: ")
-    if proceed_q == "p":
-        pass
-    else:
-        sys.exit()
-    if not args.only_existent or args.only_deleted:
-        print("WARNING: you are messaging users who deleted their messages.")
-        confirm_q = input("`c` to confirm | any key to quit: ")
-        if confirm_q == "c":
+    if not args.dry_run:
+        print("Do you want to proceed?")
+        proceed_q = input("`p` to proceed | any key to quit: ")
+        if proceed_q == "p":
             pass
         else:
             sys.exit()
+        if not args.only_existent or args.only_deleted:
+            print("WARNING: you are messaging users who deleted their messages.")
+            confirm_q = input("`c` to confirm | any key to quit: ")
+            if confirm_q == "c":
+                pass
+            else:
+                sys.exit()
     message_users(args, users, subject, greeting)
