@@ -53,9 +53,11 @@ info = logging.info
 debug = logging.debug
 
 
+# this is duplicated in reddit-query.py and reddit-message.py
 def is_throwaway(user_name: str) -> bool:
-    user_name = user_name.lower()
-    return "throw" in user_name and "away" in user_name
+    name = user_name.lower()
+    # "throwra" is common throwaway in (relationship) advice subreddits
+    return ("throw" in name and "away" in name) or ("throwra" in name)
 
 
 def select_users(args, df) -> set[str]:
