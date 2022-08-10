@@ -80,9 +80,14 @@ def select_users(args, df) -> set[str]:
             users_del.add(row["author_p"])
     users_result = users_found.copy()
     print(f"Users' statistics:")
-    print(f"  {len(users_found)=}")
-    print(f"  {len(users_del)=}  {len(users_del)/len(users_found):2.0%}")
-    print(f"  {len(users_throw)=}  {len(users_throw)/len(users_found):2.0%}")
+    print(f"  {len(users_found)= :4}")
+    print(f"  {len(users_del)=   :4}  {len(users_del)/len(users_found):2.0%}")
+    print(f"  {len(users_throw)= :4}  {len(users_throw)/len(users_found):2.0%}")
+    print(
+        f"  {len(users_del & users_throw)=}"
+        f"  {len(users_del & users_throw)/len(users_found):2.0%} of found;"
+        f"  {len(users_del & users_throw)/len(users_throw):2.0%} of throwaway"
+    )
     if args.only_deleted:
         users_result = users_result & users_del
     if args.only_existent:
