@@ -76,7 +76,7 @@ def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf[typ.Any]
     t3_ids = [i if i.startswith("t3_") else f"t3_{i}" for i in ids_needed]
     submissions = reddit.info(fullnames=t3_ids)
     print("pre-fetch: storing in shelf")
-    for _count, submission in tqdm.tqdm(enumerate(submissions)):
+    for submission in tqdm.tqdm(submissions, total=len(t3_ids)):
         # print(f"{count: <3} {submission.id} {submission.title}")
         shelf[submission.id] = submission
     return shelf
@@ -116,6 +116,7 @@ def get_reddit_info(
         # https://www.reddit.com/r/pushshift/comments/v6vrmo/was_this_message_removed_or_deleted/
         is_removed = submission.selftext == "[removed]"
         is_deleted = submission.selftext == "[deleted]"
+        is_deleted = submission.title == "[deleted by user]"  # found this on 20020818
         # when removed and then deleted, set deleted as well
         if submission.removed_by_category == "deleted":
             is_deleted = "True"
@@ -146,7 +147,7 @@ def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> typ.Any
 
     ids_all = [message["id"] for message in pushshift_results]
     shelf = prefetch_reddit_posts(ids_all)
-    for pr in tqdm.tqdm(pushshift_results):
+    for pr in tqdm.tqdm(pushshift_results, total=len(ids_all)):
         debug(f"{pr['id']=} {pr['author']=} {pr['title']=}\n")
         ids_counter[pr["id"]] += 1
         created_utc = pendulum.from_timestamp(pr["created_utc"]).format(
