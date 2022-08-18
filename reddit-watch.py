@@ -183,7 +183,7 @@ def update_watch(watched_fn: str) -> str:
                 updated_df.at[index, "del_author_r_utc"] = NOW_STR
         # Message deletion
         if pd.isna(row["del_text_r_utc"]):  # noqa: SIM102
-            if sub.selftext == "[deleted]":
+            if sub.selftext == "[deleted]" or sub.title == "[deleted by user]":
                 print(f"{sub.id=} message deleted {NOW_STR}")
                 updated_df.at[index, "del_text_r"] = True
                 updated_df.at[index, "del_text_r_utc"] = NOW_STR

@@ -115,8 +115,11 @@ def get_reddit_info(
         debug(f"{submission=}")
         # https://www.reddit.com/r/pushshift/comments/v6vrmo/was_this_message_removed_or_deleted/
         is_removed = submission.selftext == "[removed]"
-        is_deleted = submission.selftext == "[deleted]"
-        is_deleted = submission.title == "[deleted by user]"  # found this on 20020818
+        if (
+            submission.selftext == "[deleted]"
+            or submission.title == "[deleted by user]"
+        ):
+            is_deleted = True
         # when removed and then deleted, set deleted as well
         if submission.removed_by_category == "deleted":
             is_deleted = "True"
