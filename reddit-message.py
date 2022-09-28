@@ -85,8 +85,8 @@ def select_users(args, df) -> set[str]:
     print(f"  {len(users_throw)= :4}  {len(users_throw)/len(users_found):2.0%}")
     print(
         f"  {len(users_del & users_throw)=}"
-        f"  {len(users_del & users_throw)/len(users_found):2.0%} of found;"
-        f"  {len(users_del & users_throw)/len(users_throw):2.0%} of throwaway"
+        + f"  {len(users_del & users_throw)/len(users_found):2.0%} of found;"
+        + f"  {len(users_del & users_throw)/len(users_throw):2.0%} of throwaway"
     )
     if args.only_deleted:
         users_result = users_result & users_del
@@ -165,7 +165,7 @@ def main(argv) -> argparse.Namespace:
     arg_parser = argparse.ArgumentParser(
         description=(
             "Message Redditors using CSV files from reddit-query.py"
-            " or reddit-watch.py ."
+            + " or reddit-watch.py ."
         ),
     )
 
@@ -185,8 +185,8 @@ def main(argv) -> argparse.Namespace:
         required=False,
         help=(
             "CSV filename of previously messaged users to skip;"
-            " created if doesn't exist"
-            " (default: %(default)s)"
+            + " created if doesn't exist"
+            + " (default: %(default)s)"
         ),
     )
     arg_parser.add_argument(
@@ -308,16 +308,16 @@ if __name__ == "__main__":
     print(f"The input CSV file contains {df.shape[0]} rows.")
     print(
         f"Unique and not-previously messaged users will be further winnowed by:\n"
-        f"  args.only_deleted   = {args.only_deleted}\n"
-        f"  args.only_existent  = {args.only_existent}\n"
-        f"  args.only_pseudonym = {args.only_pseudonym}\n"
-        f"  args.only_throwaway = {args.only_throwaway}\n"
+        + f"  args.only_deleted   = {args.only_deleted}\n"
+        + f"  args.only_existent  = {args.only_existent}\n"
+        + f"  args.only_pseudonym = {args.only_pseudonym}\n"
+        + f"  args.only_throwaway = {args.only_throwaway}\n"
     )
     users = select_users(args, df)
     print(
         f"\nYour will be sending:\n"
-        f"  Subject: {subject}\n"
-        f"  Greeting: {greeting_trunc}..."
+        + f"  Subject: {subject}\n"
+        + f"  Greeting: {greeting_trunc}..."
     )
 
     if not args.dry_run:

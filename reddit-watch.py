@@ -84,6 +84,7 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
         submissions_d["del_author_p"].append("FALSE")
         submissions_d["created_utc"].append(created_utc_human)
         submissions_d["found_utc"].append(NOW_STR)
+        submissions_d["checked_utc"].append(NOW_STR)
         submissions_d["del_author_r"].append("FALSE")
         submissions_d["del_author_r_utc"].append("NA")
         submissions_d["del_text_r"].append("FALSE")
@@ -94,7 +95,7 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
 
     watch_fn = (
         f"{DATA_DIR}/watch-{subreddit}-{NOW.format('YYYYMMDD')}"
-        f"_n{len(submissions_d['id'])}.csv"
+        + f"_n{len(submissions_d['id'])}.csv"
     )
     watch_df = pd.DataFrame.from_dict(submissions_d)
     watch_df.to_csv(watch_fn, index=True, encoding="utf-8-sig", na_rep="NA")
@@ -122,6 +123,7 @@ def init_watch_reddit(subreddit: str, limit: int) -> str:
         submissions_d["del_author_p"].append("FALSE")
         submissions_d["created_utc"].append(created_utc_human)
         submissions_d["found_utc"].append(NOW_STR)
+        submissions_d["checked_utc"].append(NOW_STR)
         submissions_d["del_author_r"].append("FALSE")
         submissions_d["del_author_r_utc"].append("NA")
         submissions_d["del_text_r"].append("FALSE")
@@ -133,7 +135,7 @@ def init_watch_reddit(subreddit: str, limit: int) -> str:
     prog_bar.close()
     watch_fn = (
         f"{DATA_DIR}/watch-{subreddit}-{NOW.format('YYYYMMDD')}"
-        f"_n{len(submissions_d['id'])}.csv"
+        + f"_n{len(submissions_d['id'])}.csv"
     )
     watch_df = pd.DataFrame.from_dict(submissions_d)
     watch_df.to_csv(watch_fn, index=True, encoding="utf-8-sig", na_rep="NA")
@@ -174,6 +176,8 @@ def update_watch(watched_fn: str) -> str:
         # Different removed_by_category statuses:
         # https://www.reddit.com/r/redditdev/comments/kypjmk/check_if_submission_has_been_removed_by_a_mod/
         sub = submissions[id_]  # fetch and update if True
+        # last checked timestamp
+        updated_df.at[index, "checked_utc"] = NOW_STR
         # author deletion
         if pd.isna(row["del_author_r_utc"]):  # noqa: SIM102
             # PRAW returns None when author deleted
@@ -273,8 +277,8 @@ def main(argv) -> argparse.Namespace:
     arg_parser = argparse.ArgumentParser(
         description=(
             "Watch the deletion/removal status of Reddit messages."
-            " Initialize subreddits to be watched first (e.g.,"
-            " 'Advice+AmItheAsshole). Schedule using cron or launchd"
+            + " Initialize subreddits to be watched first (e.g.,"
+            + " 'Advice+AmItheAsshole). Schedule using cron or launchd"
         )
     )
 

@@ -7,10 +7,10 @@
 # Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
 
 """
-What proportion of people on a subreddit delete their posts? This script pulls
-from the Pushshift and Reddit APIs and generates a file with columns for
-submissions' deletion status of author and message, at time of Pushshift's
-indexing (often within 24 hours) and Reddit's current version.
+This script pulls from the Pushshift and Reddit APIs and generates a file with columns
+for submissions' deletion status of author and message, at time of Pushshift's indexing
+(often within 24 hours) and Reddit's current version. This permits one to answer the
+question: What proportion of people on a subreddit delete their posts?
 """
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
@@ -65,8 +65,10 @@ def is_throwaway(user_name: str) -> bool:
 
 
 def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf[typ.Any]:
-    """Use praw's info() method to grab reddit info all at once"""
-    """and store on a disk for quick retrieval."""
+    """
+    Use praw's info() method to grab reddit info all at once
+    and store on a disk for quick retrieval.
+    """
 
     # TODO if key already in shelf continue, otherwise grab
     # Break up into 100s
@@ -95,7 +97,7 @@ def get_reddit_info(
     elif args.throwaway_only and not is_throwaway(author_pushshift):
         debug(
             f"reddit skipped because args.throwaway_only but not throwaway "
-            f"{author_pushshift=}"
+            + f"{author_pushshift=}"
         )
     else:
         author_reddit = "[deleted]"
@@ -130,8 +132,7 @@ def get_reddit_info(
 def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> typ.Any:
     """Given pushshift query results, return dataframe of info about
     submissions.
-    """
-    """
+
     https://github.com/pushshift/api
     https://github.com/dmarx/psaw
 
@@ -255,7 +256,7 @@ def query_pushshift(
 
     pushshift_url = (
         f"https://api.pushshift.io/reddit/submission/search/"
-        f"?{limit_param}subreddit={subreddit}{optional_params}"
+        + f"?{limit_param}subreddit={subreddit}{optional_params}"
     )
     print(f"{pushshift_url=}")
     pushshift_data = web_utils.get_JSON(pushshift_url)["data"]
@@ -336,7 +337,7 @@ def main(argv) -> argparse.Namespace:
         type=str,
         default=False,
         help="""submissions after: epoch, integer[s|m|h|d], or"""
-        """ Y-m-d (pendulum). Using it without before starts in 1970!""",
+        + """ Y-m-d (pendulum). Using it without before starts in 1970!""",
     )
     arg_parser.add_argument(
         "-b",
@@ -345,7 +346,7 @@ def main(argv) -> argparse.Namespace:
         default=False,
         help=(
             """submissions before: epoch, integer[s|m|h|d],"""
-            """ or Y-m-d (pendulum)."""
+            + """ or Y-m-d (pendulum)."""
         ),
     )
     # # TODO: add cache clearing mechanism
@@ -369,8 +370,8 @@ def main(argv) -> argparse.Namespace:
         type=str,
         default=False,
         help="""number of comments threshold """
-        r"""'[<>]\d+]' (default: %(default)s). """
-        """Note: this is updated as Pushshift ingests, `score` is not.""",
+        + r"""'[<>]\d+]' (default: %(default)s). """
+        + """Note: this is updated as Pushshift ingests, `score` is not.""",
     )
     arg_parser.add_argument(
         "-r",
@@ -384,7 +385,7 @@ def main(argv) -> argparse.Namespace:
         action="store_true",
         default=False,
         help="""sample complete date range up to limit, rather than """
-        """first submissions within limit""",
+        + """first submissions within limit""",
     )
     arg_parser.add_argument(
         "--skip",
@@ -399,7 +400,7 @@ def main(argv) -> argparse.Namespace:
         default=False,
         help=(
             """only throwaway accounts ('throw' and 'away') get """
-            """ fetched from Reddit"""
+            + """ fetched from Reddit"""
         ),
     )
     arg_parser.add_argument(
@@ -486,6 +487,6 @@ if __name__ == "__main__":
     number_results = len(posts_df)
     result_name = (
         f"""reddit_{date_str}_{args.subreddit}{comments_num}"""
-        f"""_l{args.limit}_n{number_results}{sample}{throwaway}"""
+        + f"""_l{args.limit}_n{number_results}{sample}{throwaway}"""
     )
     export_df(result_name, posts_df)

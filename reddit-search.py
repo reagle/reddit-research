@@ -49,7 +49,7 @@ def auto_search(query: str, subreddit: str, quote: str, target_url: str) -> None
     if "redditsearch.io" in query:  # use pushshift for auto_search
         query = (
             "https://api.pushshift.io/reddit/submission/search/"
-            "?subreddit={subreddit}&q={quote}"
+            + "?subreddit={subreddit}&q={quote}"
         )
 
     query_inexact = query.format(subreddit=subreddit, quote=quote)
@@ -64,7 +64,7 @@ def auto_search(query: str, subreddit: str, quote: str, target_url: str) -> None
     if target_url in response.text:
         print(
             f"auto_search: found inexact at "
-            f"{query_inexact.replace(' ', '+')}"  # TODO: properly quote
+            + f"{query_inexact.replace(' ', '+')}"  # TODO: properly quote
         )
         return
 
@@ -102,7 +102,7 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
         # Google query
         query_google = (
             """https://www.google.com/search"""
-            """?q=site:reddit.com {subreddit} {quote}"""
+            + """?q=site:reddit.com {subreddit} {quote}"""
         )
         auto_search(query_google, subreddit, quote, row["url"])
         query_google_final = query_google.format(
@@ -114,7 +114,7 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
         # Reddit query
         query_reddit = (
             """https://old.reddit.com/{subreddit}/search/"""
-            """?q={quote}&restrict_sr=on&include_over_18=on"""
+            + """?q={quote}&restrict_sr=on&include_over_18=on"""
         )
         auto_search(query_reddit, subreddit, quote, row["url"])
         query_reddit_final = query_reddit.format(
@@ -126,9 +126,9 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
         # RedditSearch (Pushshift)
         query_pushshift = (
             """https://redditsearch.io/"""
-            """?term={quote}&dataviz=false&aggs=false"""
-            """&subreddits={subreddit}&searchtype=posts,comments"""
-            """&search=true&start=0&end=1594758200&size=100"""
+            + """?term={quote}&dataviz=false&aggs=false"""
+            + """&subreddits={subreddit}&searchtype=posts,comments"""
+            + """&search=true&start=0&end=1594758200&size=100"""
         )
         auto_search(query_pushshift, subreddit, quote, row["url"])
         query_pushshift_final = query_pushshift.format(subreddit=subreddit, quote=quote)
