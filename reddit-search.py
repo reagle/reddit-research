@@ -76,7 +76,7 @@ def auto_search(query: str, subreddit: str, quote: str, target_url: str) -> None
         info(f"{query_exact=}")
         response = requests.get(query_exact, headers=HEADERS)
         if target_url in response.text:
-            print(f"auto_search: found   exact at {query_exact[0:30]}")
+            print(f"auto_search: found exact at {query_exact[0:30]}")
             return
 
 
