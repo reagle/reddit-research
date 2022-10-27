@@ -1,6 +1,39 @@
 Tools for scraping and analyzing Reddit and for messaging Redditors.
+The tools help messages (as of 2022-10-27) are below.
 
-As of 2022-07-28 the help messages read:
+## reddit-search.py
+
+```
+❯ reddit-search.py -h
+usage: reddit-search.py [-h] [-r] [-c COLUMN] [-L] [-V] [--version] FILE
+
+Facilitate a search of phrases appearing in a spreadsheet column
+(default: 'phrase') by generating queries against search engines and
+opening the results in browser tabs. Search engines include Google,
+Reddit, and RedditSearch/Pushshift.
+
+> reddit-search.py demo-phrases.csv -c phrase
+
+If you wish to test the efficacy of a disguised/spun phrase, also
+include a column of the spun phrase and the 'url' of the source. This
+will automatically check the results for that URL.
+
+> reddit-search.py demo-phrases.csv -c weakspins
+
+positional arguments:
+  FILE
+
+options:
+  -h, --help            show this help message and exit
+  -r, --recheck         recheck non-NULL values in 'found' column
+  -c COLUMN, --column COLUMN
+                        sheet column to query [default: 'phrase']
+  -L, --log-to-file     log to file reddit-search.py.log
+  -V, --verbose         Increase verbosity (specify multiple times for more)
+  --version             show program's version number and exit
+```
+
+## reddit-query.py
 
 ```
 usage: reddit-query.py [-h] [-a AFTER] [-b BEFORE] [-l LIMIT] 
@@ -38,6 +71,8 @@ options:
   --version             show program's version number and exit
 ```
 
+## reddit-watch.py
+
 ```
 usage: reddit-watch.py [-h] [-i INIT] [--hours HOURS] [-L] [-V] [--version]
 
@@ -53,6 +88,8 @@ options:
                         times for more)
   --version             show program's version number and exit
 ```
+
+## reddit-message.py
 
 ```
 usage: reddit-message.py [-h] -i FILENAME [-a FILENAME] [-g FILENAME] 
