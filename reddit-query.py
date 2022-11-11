@@ -336,19 +336,18 @@ def main(argv) -> argparse.Namespace:
         "--after",
         type=str,
         default=False,
-        help="""submissions after: epoch, integer[s|m|h|d], or"""
-        + """ Y-m-d (pendulum). Using it without before starts in 1970!""",
+        help="""submissions after: Y-m-d (any pendulum parsable)."""
+        + """ Using it without before starts in 1970!""",
     )
     arg_parser.add_argument(
         "-b",
         "--before",
         type=str,
         default=False,
-        help=(
-            """submissions before: epoch, integer[s|m|h|d],"""
-            + """ or Y-m-d (pendulum)."""
-        ),
+        help="""submissions before: Y-m-d (any pendulum parsable)."""
+        + """ Using it without before starts in 1970!""",
     )
+
     # # TODO: add cache clearing mechanism
     # arg_parser.add_argument(
     #     "-c",
