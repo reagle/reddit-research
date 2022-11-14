@@ -178,7 +178,8 @@ def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> typ.Any
                 pr.get("selftext", "") == "[deleted]",  # del_text_p(ushshift)
                 is_deleted_r,  # del_text_r(eddit)
                 is_removed_r,  # rem_text_r(eddit)
-                pr["full_link"] != pr["url"],  # crosspost
+                # the following uses `get` because of 1 screw case of 'url' missing
+                pr["full_link"] != pr.get("url"),  # crosspost
                 pr["full_link"],  # url
                 # PUSHSHIFT_API_URL + r["id"],
                 # REDDIT_API_URL + r["id"],
