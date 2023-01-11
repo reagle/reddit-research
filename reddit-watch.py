@@ -73,6 +73,7 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
     )
 
     submissions_d = collections.defaultdict(list)
+    # info(f"{submissions_d=}")
     for submission in submissions:
         created_utc_human = pendulum.from_timestamp(submission.created_utc).format(
             "YYYYMMDD HH:mm:ss"
@@ -104,9 +105,12 @@ def init_watch_pushshift(subreddit: str, hours: int) -> str:
 
 def init_watch_reddit(subreddit: str, limit: int) -> str:
     """
-    UNUSED
-    Initiate watch of subreddit using Pushshift, create CSV, return filename.
-    Reddit can return a maximum of only 1000 previous and recent submissions.
+    UNUSED: better to use Pushshift, if up to date without delay,
+    because it'll have ids which Reddit won't.
+
+    Initiate watch of subreddit using Reddit, create CSV, return filename.
+    Reddit can return a maximum of only 1000 recent and previous submissions.
+    Even when Pushshift is down, TODO
     """
 
     submissions_d = collections.defaultdict(list)
@@ -351,6 +355,7 @@ if __name__ == "__main__":
                 ini_fd.write("[watching]")
         config.read(INI_FN)
         for subreddit in args.init.split("+"):
+            # watched_fn = init_watch_reddit(subreddit, 1000)
             watched_fn = init_watch_pushshift(subreddit, args.hours)
             config.set("watching", f"{subreddit}{NOW_STR[0:8]}", watched_fn)
             updated_fn = update_watch(watched_fn)

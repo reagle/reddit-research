@@ -98,6 +98,9 @@ def get_pushshift_total(
         f"&size=0&metadata=true"
     )
     info(f"{PUSHSHIFT_META_URL=}")
+    # TODO: adapt to API change
+    # https://www.reddit.com/r/pushshift/comments/109ckav/did_the_api_change/
+    # https://www.reddit.com/r/pushshift/comments/zkggt0/update_on_colo_switchover_bug_fixes_reindexing/
     results_total = web_utils.get_JSON(PUSHSHIFT_META_URL)["metadata"]["total_results"]
     info(f"{results_total=}")
     return results_total
