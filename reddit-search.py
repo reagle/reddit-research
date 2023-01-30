@@ -63,7 +63,7 @@ def auto_search(query: str, subreddit: str, quote: str, target_url: str) -> None
         target_url = "/".join(target_url.split("/")[3:5])
     if target_url in response.text:
         print(
-            f"auto_search: found inexact at "
+            "auto_search: found inexact at "
             + f"{query_inexact.replace(' ', '+')}"  # TODO: properly quote
         )
         return

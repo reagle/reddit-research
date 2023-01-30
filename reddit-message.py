@@ -79,7 +79,7 @@ def select_users(args, df) -> set[str]:
             warning("  adding to users_del")
             users_del.add(row["author_p"])
     users_result = users_found.copy()
-    print(f"Users' statistics:")
+    print("Users' statistics:")
     print(f"  {len(users_found)= :4}")
     print(f"  {len(users_del)=   :4}  {len(users_del)/len(users_found):2.0%}")
     print(f"  {len(users_throw)= :4}  {len(users_throw)/len(users_found):2.0%}")
@@ -307,7 +307,7 @@ if __name__ == "__main__":
     df = pd.read_csv(args.input_fn)
     print(f"The input CSV file contains {df.shape[0]} rows.")
     print(
-        f"Unique and not-previously messaged users will be further winnowed by:\n"
+        "Unique and not-previously messaged users will be further winnowed by:\n"
         + f"  args.only_deleted   = {args.only_deleted}\n"
         + f"  args.only_existent  = {args.only_existent}\n"
         + f"  args.only_pseudonym = {args.only_pseudonym}\n"
@@ -315,7 +315,7 @@ if __name__ == "__main__":
     )
     users = select_users(args, df)
     print(
-        f"\nYour will be sending:\n"
+        "\nYour will be sending:\n"
         + f"  Subject: {subject}\n"
         + f"  Greeting: {greeting_trunc}..."
     )

@@ -96,7 +96,7 @@ def get_reddit_info(
         debug(f"reddit skipped because args.skip {author_pushshift=}")
     elif args.throwaway_only and not is_throwaway(author_pushshift):
         debug(
-            f"reddit skipped because args.throwaway_only but not throwaway "
+            "reddit skipped because args.throwaway_only but not throwaway "
             + f"{author_pushshift=}"
         )
     else:
@@ -256,7 +256,7 @@ def query_pushshift(
     # optional_params += f"&selftext:not=[removed]"
 
     pushshift_url = (
-        f"https://api.pushshift.io/reddit/submission/search/"
+        "https://api.pushshift.io/reddit/submission/search/"
         + f"?{limit_param}subreddit={subreddit}{optional_params}"
     )
     print(f"{pushshift_url=}")
