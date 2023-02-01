@@ -282,7 +282,6 @@ def collect_pushshift_results(
     info(f"{after=}, {before=}")
     info(f"{after.timestamp()=}, {before.timestamp()=}")
     if args.sample:  # collect PUSHSHIFT_LIMIT at offsets
-
         # TODO/BUG: comments_num won't work with sampling estimates
         #   because they'll throw off the estimates
 
@@ -322,7 +321,6 @@ def collect_pushshift_results(
 
 
 def export_df(name, df) -> None:
-
     df.to_csv(f"{name}.csv", encoding="utf-8-sig", index=False)
     print(f"saved dataframe of shape {df.shape} to '{name}.csv'")
 

@@ -190,7 +190,6 @@ def get_offsets(
 
 
 if __name__ == "__main__":
-
     start = "2022-01-01"
     end = "2022-06-10"
     after: pendulum.DateTime = pendulum.parse(start)
