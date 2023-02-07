@@ -82,7 +82,6 @@ def auto_search(query: str, subreddit: str, quote: str, target_url: str) -> None
 
 def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
     """Open browser on each search engine to help find quotes."""
-
     os.system("cls") if os.name == "nt" else os.system("clear")
     if row[heading] == "" or "found" not in row:
         return

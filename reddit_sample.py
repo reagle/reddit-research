@@ -69,9 +69,9 @@ def is_overlapping(offsets: list, PUSHSHIFT_LIMIT: int, results_per_hour: int) -
             continue
         else:
             critical(
-                f"  overlap:"
+                "  overlap:"
                 f"  offsets {offset} - {last} is not less than {hours_needed}"
-                f" "
+                " "
             )
             return True
     return False
@@ -93,9 +93,9 @@ def get_pushshift_total(
     before_epoch = int(before.int_timestamp)
     info(f"{before_epoch=}")
     PUSHSHIFT_META_URL = (
-        f"https://api.pushshift.io/reddit/submission/search/"
+        "https://api.pushshift.io/reddit/submission/search/"
         f"?subreddit={subreddit}&after={after_epoch}&before={before_epoch}"
-        f"&size=0&metadata=true"
+        "&size=0&metadata=true"
     )
     info(f"{PUSHSHIFT_META_URL=}")
     # TODO: adapt to API change
@@ -177,7 +177,7 @@ def get_offsets(
     else:
         print(
             f"I exhausted random sets of offsets at {SEEDS_TO_TRY=}"
-            f"Quitting because I'm too likely to pull overlapping results"
+            "Quitting because I'm too likely to pull overlapping results"
         )
         raise RuntimeError
 
