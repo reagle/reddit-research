@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # DESCRIPTION
 # This file is part of Reddit Tools
 # <https://github.com/reagle/reddit/>
@@ -113,7 +112,7 @@ class UsersArchive:
         if not os.path.exists(archive_fn):
             with open(archive_fn, "w", encoding="utf-8") as past_fd:
                 past_fd.write("name,timestamp\n")
-        with open(archive_fn, "r", encoding="utf-8") as past_fd:
+        with open(archive_fn, encoding="utf-8") as past_fd:
             csv_reader = csv.DictReader(past_fd)
             for row in csv_reader:
                 users_past_d[row["name"]] = row["timestamp"]
@@ -295,7 +294,7 @@ if __name__ == "__main__":
     for fn in (args.input_fn, args.greeting_fn):
         if not os.path.exists(fn):
             raise RuntimeError(f"necessary file {fn} does not exist")
-    with open(args.greeting_fn, "r") as fd:
+    with open(args.greeting_fn) as fd:
         greeting = fd.readlines()
         if greeting[0].startswith("subject: "):
             subject = greeting[0][9:].strip()

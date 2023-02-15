@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # DESCRIPTION
 # This file is part of Reddit Tools
 # <https://github.com/reagle/reddit/>

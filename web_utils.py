@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # This file is part of Reddit Tools
 # <https://github.com/reagle/reddit/>
@@ -18,7 +17,7 @@ import os
 import re
 import time
 import xml.sax.saxutils as saxutils
-from typing import Any, Match, Tuple, Union  # noqa: I801
+from typing import Any
 
 import cachier
 import lxml
@@ -46,7 +45,7 @@ def unescape_XML(text: str) -> str:  # .0937s 4.11%
 
     """
 
-    def fixup(m: Match):
+    def fixup(m: re.Match):
         text = m.group(0)
         if text[:2] == "&#":
             # character reference
@@ -73,7 +72,7 @@ def get_HTML(
     retry_counter: int = 0,
     rate_limit: int = 2,
     cache_control: str = None,
-) -> Tuple[bytes, Any, str, requests.models.Response]:
+) -> tuple[bytes, Any, str, requests.models.Response]:
     """Return [HTML content, response] of a given URL."""
 
     time.sleep(rate_limit)
@@ -84,7 +83,7 @@ def get_HTML(
     if "html" in r.headers["content-type"]:
         HTML_bytes = r.content
     else:
-        raise IOError("URL content is not HTML.")
+        raise OSError("URL content is not HTML.")
 
     parser_html = lxml.etree.HTMLParser()  # type: ignore
     doc = lxml.etree.fromstring(HTML_bytes, parser_html)  # type: ignore
@@ -106,7 +105,7 @@ def get_JSON(
     rate_limit: int = 2,
     cache_control: str = None,
     requested_content_type: str = "application/json",
-) -> Union[list, dict]:  # different services return [... or {...
+) -> list | dict:  # different services return [... or {...
     """Return [JSON content, response] of a given URL.
 
     Default rate limit is 2 seconds per request, though Pushshift
@@ -136,7 +135,7 @@ def get_JSON(
         json_content = json.loads(r.content)
         return json_content
     else:
-        raise IOError("URL content is not JSON.")
+        raise OSError("URL content is not JSON.")
 
 
 @cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
