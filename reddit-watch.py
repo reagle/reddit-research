@@ -266,7 +266,7 @@ def init_archive(updated_fn: str) -> None:
     """
 
     print(f"Initializing archive for {updated_fn=}")
-    head, tail = os.path.split(updated_fn)
+    _head, tail = os.path.split(updated_fn)
     bare_fn = tail.removeprefix("updated-").removesuffix(".csv")
     zipped_fn = f"{bare_fn}-arch.zip"
     print(f"  creating archive {zipped_fn=}")

@@ -67,11 +67,11 @@ def unescape_XML(text: str) -> str:  # .0937s 4.11%
 def get_HTML(
     url: str,
     referer: str = "",
-    data: str = None,
-    cookie: str = None,
+    data: str = "",
+    cookie: str = "",
     retry_counter: int = 0,
     rate_limit: int = 2,
-    cache_control: str = None,
+    cache_control: str = "",
 ) -> tuple[bytes, Any, str, requests.models.Response]:
     """Return [HTML content, response] of a given URL."""
 
@@ -99,11 +99,11 @@ def get_HTML(
 def get_JSON(
     url: str,
     referer: str = "",
-    data: str = None,
-    cookie: str = None,
+    data: str = "",
+    cookie: str = "",
     retry_counter: int = 0,
     rate_limit: int = 2,
-    cache_control: str = None,
+    cache_control: str = "",
     requested_content_type: str = "application/json",
 ) -> list | dict:  # different services return [... or {...
     """Return [JSON content, response] of a given URL.
