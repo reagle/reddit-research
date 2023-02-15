@@ -14,7 +14,6 @@ import contextlib as cl
 import html.entities
 import json
 import logging
-import lxml
 import os
 import re
 import time
@@ -22,8 +21,8 @@ import xml.sax.saxutils as saxutils
 from typing import Any, Match, Tuple, Union  # noqa: I801
 
 import cachier
+import lxml
 import requests  # http://docs.python-requests.org/en/latest/
-
 
 HOMEDIR = os.path.expanduser("~")
 

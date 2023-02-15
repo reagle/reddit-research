@@ -22,7 +22,6 @@ import sys
 import typing as typ
 
 # import time
-
 # import numpy as np
 import pandas as pd
 import pendulum  # https://pendulum.eustace.io/docs/
@@ -30,8 +29,8 @@ import praw  # type: ignore # https://praw.readthedocs.io/en/latest
 import tqdm  # progress bar https://github.com/tqdm/tqdm
 
 import reddit_sample as rs
-import web_utils
 import web_api_tokens as wat
+import web_utils
 
 # https://www.reddit.com/dev/api/
 # https://github.com/pushshift/api

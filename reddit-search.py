@@ -11,10 +11,10 @@ automate detection (for testing disguise) if source URL is provided.
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging
 import os
+import pathlib as pl  # https://docs.python.org/3/library/pathlib.html
 import sys
 import textwrap
 import webbrowser
-import pathlib as pl  # https://docs.python.org/3/library/pathlib.html
 
 import pandas as pd
 import requests
