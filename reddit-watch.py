@@ -160,7 +160,7 @@ def prefetch_reddit_posts(ids_req: tuple[str]) -> dict:
     return submissions_dict
 
 
-def update_watch(watched_fn: str) -> str:
+def update_watch(watched_fn: str) -> str:  # noqa: C901
     """Process a CSV, checking to see if values have changed and
     timestamping if so."""
 
