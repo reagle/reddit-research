@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-# (c) Copyright 2020 by Joseph Reagle
-# Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
+"""Generate queries for looking for phrases on Reddit.
 
-"""Facilitate a search of phrases appearing in a spreadsheet by generating
+Facilitate a search of phrases appearing in a spreadsheet by generating
 queries against search engines and opening the results in browser tabs. Can
 automate detection (for testing disguise) if source URL is provided.
 """
+
+__author__ = "Joseph Reagle"
+__copyright__ = "Copyright (C) 2009-2023 Joseph Reagle"
+__license__ = "GLPv3"
+__version__ = "1.0"
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging
@@ -89,10 +93,7 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
         info("checking")
         quote = row[heading]
         print(f"{quote}\n")
-        if row["subreddit"]:
-            subreddit = f"{row['subreddit']}".strip()
-        else:
-            subreddit = ""
+        subreddit = f"{row['subreddit']}".strip() if row["subreddit"] else ""
         prefixed_subreddit = "r/" + subreddit if subreddit else ""
         debug("-------------------------")
         debug(f"{row['phrase']}\n")
@@ -156,15 +157,13 @@ def grab_quotes(file_name: str, column: str, do_recheck: bool) -> None:
     else:
         print(f"{file_name}")
         raise ValueError("unknown file type/extension")
-        sys.exit()
 
 
 def main(argv) -> argparse.Namespace:
     """Process arguments"""
     arg_parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description=textwrap.dedent(
-            """
+        description=textwrap.dedent("""
         Facilitate a search of phrases appearing in a spreadsheet column
         (default: 'phrase') by generating queries against search engines and
         opening the results in browser tabs. Search engines include Google,
@@ -177,8 +176,7 @@ def main(argv) -> argparse.Namespace:
         will automatically check the results for that URL.
 
         > reddit-search.py demo-phrases.csv -c weakspins
-        """
-        ),
+        """),
     )
 
     # positional arguments

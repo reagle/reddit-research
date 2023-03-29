@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-# DESCRIPTION
-# This file is part of Reddit Tools
-# <https://github.com/reagle/reddit/>
-# (c) Copyright 2020-2022 by Joseph Reagle
-# Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
+"""Message Redditors.
 
-"""
-Obtain Redditor usernames from a CSV file and message those who fit 
+Obtain Redditor usernames from a CSV file and message those who fit
 criteria of throwaway or not, or deleted their post.
 Do not messages users messaged in the past.
 """
+
+__author__ = "Joseph Reagle"
+__copyright__ = "Copyright (C) 2021-2023 Joseph Reagle"
+__license__ = "GLPv3"
+__version__ = "1.0"
 
 # TODO
 # - perhaps make the exclusion of past users a command line argument

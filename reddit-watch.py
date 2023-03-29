@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-# DESCRIPTION
-# This file is part of Reddit Tools
-# <https://github.com/reagle/reddit/>
-# (c) Copyright 2020-2022 by Joseph Reagle
-# Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
+"""Watch the deletion and moderation status of messages tracked in a CSV.
 
-"""
-Watch the deletion and moderation status of messages tracked in a CSV.
 You must initialize the subreddit you wish to follow first.
 """
+
+__author__ = "Joseph Reagle"
+__copyright__ = "Copyright (C) 2022-2023 Joseph Reagle"
+__license__ = "GLPv3"
+__version__ = "1.0"
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import collections

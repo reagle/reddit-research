@@ -1,17 +1,15 @@
-#!/usr/bin/env python3
-# DESCRIPTION
-# This file is part of Reddit Tools
-# <https://github.com/reagle/reddit/>
-# (c) Copyright 2020-2022 by Joseph Reagle
-# Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
+"""Sample messages over significant spans, used by `reddit-query.py`.
 
-"""
-Module that includes sampling functions used by reddit-query.py . 
 Reddit itself doesn't  permit date-ranges, so I have to pull data from 
 Pushshift, estimate how many chunks (PUSHSHIFT_LIMIT) to take at hourly 
 offsets within the range, including the ability to sample throughout 
 the range.
 """
+
+__author__ = "Joseph Reagle"
+__copyright__ = "Copyright (C) 2009-2023 Joseph Reagle"
+__license__ = "GLPv3"
+__version__ = "1.0"
 
 import logging
 import math

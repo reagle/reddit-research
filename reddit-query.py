@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-# DESCRIPTION
-# This file is part of Reddit Tools
-# <https://github.com/reagle/reddit/>
-# (c) Copyright 2020-2022 by Joseph Reagle
-# Licensed under the GPLv3, see <http://www.gnu.org/licenses/gpl-3.0.html>
+""" Query Pushshift and Reddit data.
 
-"""
-This script pulls from the Pushshift and Reddit APIs and generates a file with columns
+Pull from the Pushshift and Reddit APIs and generate a file with columns
 for submissions' deletion status of author and message, at time of Pushshift's indexing
 (often within 24 hours) and Reddit's current version. This permits one to answer the
 question: What proportion of people on a subreddit delete their posts?
 """
+
+__author__ = "Joseph Reagle"
+__copyright__ = "Copyright (C) 2009-2023 Joseph Reagle"
+__license__ = "GLPv3"
+__version__ = "1.0"
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import collections
@@ -20,8 +20,6 @@ import shelve
 import sys
 import typing as typ
 
-# import time
-# import numpy as np
 import pandas as pd
 import pendulum  # https://pendulum.eustace.io/docs/
 import praw  # type: ignore # https://praw.readthedocs.io/en/latest
