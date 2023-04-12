@@ -27,6 +27,7 @@ import pandas as pd
 import pendulum  # https://pendulum.eustace.io/docs/
 import praw  # https://praw.readthedocs.io/en/latest
 import tqdm  # progress bar https://github.com/tqdm/tqdm
+from praw.exceptions import RedditAPIException
 
 import web_api_tokens as wat
 
@@ -68,7 +69,7 @@ def select_users(args, df) -> set[str]:
     users_found = set()
     users_del = set()
     users_throw = set()
-    for _counter, row in df.iterrows():
+    for _, row in df.iterrows():
         users_found.add(row["author_p"])
         warning(f'{row["author_p"]=}')
         if is_throwaway(row["author_p"]):
@@ -132,7 +133,7 @@ class UsersArchive:
                 csv_writer.writerow({"name": user, "timestamp": NOW_STR})
 
 
-def message_users(args, users: set, subject: str, greeting: str) -> None:
+def message_users(args, users: set[str], subject: str, greeting: str) -> None:
     """Post message to users, without repeating users"""
 
     user_archive = UsersArchive(args.archive_fn)
@@ -151,7 +152,7 @@ def message_users(args, users: set, subject: str, greeting: str) -> None:
             if not args.dry_run:
                 try:
                     REDDIT.redditor(user).message(subject=subject, message=greeting)
-                except praw.exceptions.RedditAPIException as error:
+                except RedditAPIException as error:
                     tqdm.tqdm.write(f"can't message {user}: {error} ")
                     if "RATELIMIT" in str(error):
                         raise error
@@ -159,12 +160,13 @@ def message_users(args, users: set, subject: str, greeting: str) -> None:
             pbar.update()
 
 
-def main(argv) -> argparse.Namespace:
+def process_args(argv) -> argparse.Namespace:
     """Process arguments"""
     arg_parser = argparse.ArgumentParser(
         description=(
-            "Message Redditors using CSV files from reddit-query.py"
-            + " or reddit-watch.py ."
+            "Message Redditors using CSV files from with usernames in column"
+            " `author_p`. Can take output of reddit-query.py or reddit-watch.py and"
+            " select users for messaging based on attributes."
         ),
     )
 
@@ -288,7 +290,7 @@ def main(argv) -> argparse.Namespace:
 
 
 if __name__ == "__main__":
-    args = main(sys.argv[1:])
+    args = process_args(sys.argv[1:])
 
     info(f"{args=}")
     for fn in (args.input_fn, args.greeting_fn):
@@ -296,23 +298,38 @@ if __name__ == "__main__":
             raise RuntimeError(f"necessary file {fn} does not exist")
     with open(args.greeting_fn) as fd:
         greeting = fd.readlines()
-        if greeting[0].startswith("subject: "):
+        if greeting[0].lower().startswith("subject: "):
             subject = greeting[0][9:].strip()
             greeting = "".join(greeting[1:]).strip()
         else:
             subject = "About your Reddit message"
             greeting = "".join(greeting).strip()
     greeting_trunc = greeting.replace("\n", " ")[0:70]
+
     df = pd.read_csv(args.input_fn)
     print(f"The input CSV file contains {df.shape[0]} rows.")
-    print(
-        "Unique and not-previously messaged users will be further winnowed by:\n"
-        + f"  args.only_deleted   = {args.only_deleted}\n"
-        + f"  args.only_existent  = {args.only_existent}\n"
-        + f"  args.only_pseudonym = {args.only_pseudonym}\n"
-        + f"  args.only_throwaway = {args.only_throwaway}\n"
-    )
-    users = select_users(args, df)
+    if {"author_p", "del_author_p", "del_text_r"}.issubset(df.columns):
+        print(
+            "Unique and not-previously messaged users will be further winnowed by:\n"
+            + f"  args.only_deleted   = {args.only_deleted}\n"
+            + f"  args.only_existent  = {args.only_existent}\n"
+            + f"  args.only_pseudonym = {args.only_pseudonym}\n"
+            + f"  args.only_throwaway = {args.only_throwaway}\n"
+        )
+        users = select_users(args, df)
+    elif "author_p" in df and not any(
+        [
+            args.only_deleted,
+            args.only_existent,
+            args.only_pseudonym,
+            args.only_throwaway,
+        ]
+    ):
+        print("Messaging without delete, existent, pseudonym, and throwaway selection")
+        users = set(df["author_p"])
+    else:
+        raise KeyError("One or more columns are missing from the CSV DataFrame.")
+
     print(
         "\nYour will be sending:\n"
         + f"  Subject: {subject}\n"
@@ -327,7 +344,7 @@ if __name__ == "__main__":
         else:
             sys.exit()
         if not args.only_existent or args.only_deleted:
-            print("WARNING: you are messaging users who deleted their messages.")
+            print("WARNING: you might be messaging users who deleted their messages.")
             confirm_q = input("`c` to confirm | any key to quit: ")
             if confirm_q == "c":
                 pass
