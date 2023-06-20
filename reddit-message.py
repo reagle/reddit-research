@@ -306,7 +306,7 @@ if __name__ == "__main__":
             greeting = "".join(greeting).strip()
     greeting_trunc = greeting.replace("\n", " ")[0:70]
 
-    df = pd.read_csv(args.input_fn)
+    df = pd.read_csv(args.input_fn, comment="#")
     print(f"The input CSV file contains {df.shape[0]} rows.")
     if {"author_p", "del_author_p", "del_text_r"}.issubset(df.columns):
         print(
@@ -325,7 +325,7 @@ if __name__ == "__main__":
             args.only_throwaway,
         ]
     ):
-        print("Messaging without delete, existent, pseudonym, and throwaway selection")
+        print("Messaging without delete, existent, pseudonym, and throwaway selection.")
         users = set(df["author_p"])
     else:
         raise KeyError("One or more columns are missing from the CSV DataFrame.")
