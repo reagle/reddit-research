@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Message Redditors.
-
-Obtain Redditor usernames from a CSV file and message those who fit
-criteria of throwaway or not, or deleted their post.
-Do not messages users messaged in the past.
+"""
+Message Redditors using CSV files from with usernames in column 
+`author_p`. Can take output of reddit-query.py or reddit-watch.py 
+and select users for messaging based on attributes (e.g., throwaway, 
+deleted, or already messaged)."
 """
 
 __author__ = "Joseph Reagle"
@@ -23,16 +23,13 @@ import pathlib as pl
 import sys
 import time
 
+import arrow  # https://arrow.readthedocs.io/en/latest/
 import pandas as pd
-import pendulum  # https://pendulum.eustace.io/docs/
-import praw  # https://praw.readthedocs.io/en/latest
+import praw  # https://praw.readthedocs.io/en/latest # type: ignore
 import tqdm  # progress bar https://github.com/tqdm/tqdm
-from praw.exceptions import RedditAPIException
+from praw.exceptions import RedditAPIException  # type: ignore
 
 import web_api_tokens as wat
-
-# https://github.com/pushshift/api
-# import psaw  # Pushshift API https://github.com/dmarx/psaw no exclude:not
 
 REDDIT = praw.Reddit(
     user_agent=wat.REDDIT_USER_AGENT,
@@ -42,7 +39,8 @@ REDDIT = praw.Reddit(
     password=wat.REDDIT_PASSWORD,
     ratelimit_seconds=600,
 )
-NOW = pendulum.now("UTC")
+
+NOW = arrow.utcnow()
 NOW_STR = NOW.format("YYYYMMDD HH:mm:ss")
 
 exception = logging.exception
