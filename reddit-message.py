@@ -25,9 +25,9 @@ import time
 
 import arrow  # https://arrow.readthedocs.io/en/latest/
 import pandas as pd
-import praw  # https://praw.readthedocs.io/en/latest # type: ignore
+import praw  # https://praw.readthedocs.io/en/latest
 import tqdm  # progress bar https://github.com/tqdm/tqdm
-from praw.exceptions import RedditAPIException  # type: ignore
+from praw.exceptions import RedditAPIException
 
 import web_api_tokens as wat
 

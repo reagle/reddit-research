@@ -59,4 +59,4 @@ enable_assertion_pass_hook = true
 [tool.pyright]
 reportMissingImports = false
 reportMissingTypeStubs = false
-pythonVersion = '3.11'
+pythonVersion = '3.12'
