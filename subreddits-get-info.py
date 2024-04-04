@@ -30,15 +30,14 @@ REDDIT = praw.Reddit(
     ratelimit_seconds=600,
 )
 
-def main(input_file):
+def main(input_file: Path) -> None:
     # Read subreddits from the input CSV file
     with open(input_file, newline='', encoding='utf-8') as file:
         reader = csv.DictReader(file)
         subreddits = list(reader)
 
-    # Create the output file path by appending "-info" to the input file name
-    # output_file = Path(input_file).stem.with_suffix('-info.csv')
-    output_file = Path(input_file).with_stem(f"{Path(input_file).stem}-info").with_suffix(".csv")
+    # Create the output file path by appending "_info" to the input file name
+    output_file = input_file.with_stem(f"{input_file.stem}_info").with_suffix(".csv")
 
     # Create a CSV file and write headers
     with open(output_file, 'w', newline='', encoding='utf-8') as file:
@@ -51,18 +50,8 @@ def main(input_file):
                 sub = REDDIT.subreddit(subreddit["subreddit"])
                 category = subreddit["category"]
 
-                # Fetch creation_date and subscribers only if not already provided
-                if "creation_date" not in subreddit:
-                    creation_date = datetime.datetime.fromtimestamp(
-                        sub.created, pytz.UTC
-                    ).strftime("%Y-%m-%d")
-                else:
-                    creation_date = subreddit["creation_date"]
-
-                if "subscribers" not in subreddit:
-                    subscribers = sub.subscribers
-                else:
-                    subscribers = subreddit["subscribers"]
+                creation_date = datetime.datetime.fromtimestamp(sub.created, pytz.UTC ).strftime("%Y-%m-%d")
+                subscribers = sub.subscribers
 
                 f.writerow([sub.display_name, creation_date, subscribers, category])
                 print(f"Writing data for r/{sub.display_name}")
@@ -73,7 +62,7 @@ def main(input_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fetch subreddit information from a CSV file.")
-    parser.add_argument("-i", "--input", required=True, help="Path to the input CSV file containing subreddits.")
+    parser.add_argument("-i", "--input", type=Path, required=True, help="Path to the input CSV file containing subreddits.")
     args = parser.parse_args()
 
     main(args.input)
