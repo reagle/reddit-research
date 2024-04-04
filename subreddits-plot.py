@@ -12,6 +12,7 @@ import argparse
 import os
 
 import matplotlib.dates as mdates
+import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -24,16 +25,16 @@ parser.add_argument("-i", "--input", required=True, help="Path to the input CSV 
 args = parser.parse_args()
 
 # Read in the CSV data
-df = pd.read_csv(args.input)
+df = pd.read_csv(args.input, comment="#")
 
-# Convert the 'creation' column to datetime
-df["creation"] = pd.to_datetime(df["creation"], format="%Y-%m-%d")
+# Convert the 'created' column to datetime
+df["created"] = pd.to_datetime(df["created"], format="%Y-%m-%d")
 
 # Sort by date
-df = df.sort_values("creation")
+df = df.sort_values("created")
 
 # Calculate the relative size of each subreddit
-df["Relative Size"] = df["subscribers"] / df["subscribers"].max() * 1000
+df["relative_size"] = df["subscribers"] / df["subscribers"].max() * 1000
 
 # Create a dictionary to map categories to colors
 category_colors = {
@@ -47,12 +48,12 @@ category_colors = {
 
 # Set the threshold values
 THRESHOLD_SIZE = 10000  # Ignore subreddits with subscribers less than this value
-THRESHOLD_YEAR = 2016  # Ignore subreddits created after this year
+THRESHOLD_YEAR = 2023  # Ignore subreddits created after this year
 
 # Create the plot
 fig, ax = plt.subplots(figsize=(12, 8))
-ADJUST_CIRCUMFERENCE = 7
-ADJUST_CIRCLE_LABEL_OFFSET = 10
+ADJUST_CIRCUMFERENCE = 5
+ADJUST_CIRCLE_LABEL_OFFSET = 8
 
 # Create a dictionary to store the legend handles and labels
 legend_handles = {}
@@ -60,8 +61,8 @@ legend_labels = {}
 
 # Plot each subreddit as a circle with color based on category
 for _, row in df.iterrows():
-    if row["subscribers"] < THRESHOLD_SIZE or row["creation"].year > THRESHOLD_YEAR:
-        continue  # Skip subreddits that don't meet the threshold criteria
+    if pd.isna(row["subscribers"]) or pd.isna(row["created"]) or row["subscribers"] < THRESHOLD_SIZE or row["created"].year > THRESHOLD_YEAR:
+        continue
 
     category = row["category"]
     color = category_colors.get(category, "gray")  # Default color if category not found
@@ -74,9 +75,9 @@ for _, row in df.iterrows():
         legend_labels[category] = category
 
     circle = ax.scatter(
-        row["creation"],
+        row["created"],
         row["subscribers"],
-        s=row["Relative Size"] * ADJUST_CIRCUMFERENCE,
+        s=row["relative_size"] * ADJUST_CIRCUMFERENCE,
         alpha=0.7,
         color=color,
     )
@@ -85,13 +86,17 @@ for _, row in df.iterrows():
         shift = pd.Timedelta(days=np.log(radius) * ADJUST_CIRCLE_LABEL_OFFSET)
     else:
         shift = pd.Timedelta(days=0)  # Set shift to 0 if radius is 0 or very small
+
     ax.text(
-        row["creation"] + shift,
+        row["created"] + shift,
         row["subscribers"],
         row["subreddit"],
-        fontsize=8,
+        fontsize=12,
         va="center",
-        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.7, "pad": 2},
+        path_effects=[
+            path_effects.withStroke(linewidth=2, foreground="white", alpha=0.7)
+        ],
+        # bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.5, "pad": 2},
     )
 
 # Format the x-axis as dates
@@ -112,7 +117,7 @@ ax.set_xlim(
 # Add labels
 ax.set_xlabel("Date Created")
 ax.set_ylabel("Number of Subscribers")
-ax.set_title("Growth of Popular Subreddits")
+ax.set_title("Creation and Size of Advice Subreddits")
 
 # Add the legend to the plot
 ax.legend(
@@ -123,6 +128,6 @@ plt.tight_layout()
 
 # Save the plot as a PNG file with the same name as the input file
 output_file = os.path.splitext(args.input)[0] + ".png"
-plt.savefig(output_file)
+plt.savefig(output_file, dpi=300)
 
 plt.show()
