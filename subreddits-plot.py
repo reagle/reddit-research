@@ -38,12 +38,14 @@ df["relative_size"] = df["subscribers"] / df["subscribers"].max() * 1000
 
 # Create a dictionary to map categories to colors
 category_colors = {
-    "general": "blue",
-    "funny": "orange",
-    "judgement": "green",
+    "finance": "olive",
+    "funny": "purple",
+    "gender": "green",
+    "general": "navy",
     "health": "red",
-    "gender": "purple",
-    "relationship": "brown",
+    "judgement": "orange",
+    "legal": "teal",
+    "relationship": "blue",
 }
 
 # Set the threshold values
@@ -61,7 +63,12 @@ legend_labels = {}
 
 # Plot each subreddit as a circle with color based on category
 for _, row in df.iterrows():
-    if pd.isna(row["subscribers"]) or pd.isna(row["created"]) or row["subscribers"] < THRESHOLD_SIZE or row["created"].year > THRESHOLD_YEAR:
+    if (
+        pd.isna(row["subscribers"])
+        or pd.isna(row["created"])
+        or row["subscribers"] < THRESHOLD_SIZE
+        or row["created"].year > THRESHOLD_YEAR
+    ):
         continue
 
     category = row["category"]
