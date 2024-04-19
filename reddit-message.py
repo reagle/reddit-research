@@ -162,7 +162,7 @@ def process_args(argv) -> argparse.Namespace:
     """Process arguments"""
     arg_parser = argparse.ArgumentParser(
         description=(
-            "Message Redditors using CSV files from with usernames in column"
+            "Message Redditors using CSV files with usernames in column"
             " `author_p`. Can take output of reddit-query.py or reddit-watch.py and"
             " select users for messaging based on attributes."
         ),
