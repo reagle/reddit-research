@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Plot subreddits creation and relative size.
-"""
+"""Plot subreddits creation and relative size."""
 
 __author__ = "Joseph Reagle"
 __copyright__ = "Copyright (C) 2024 Joseph Reagle"
@@ -38,19 +37,20 @@ df["relative_size"] = df["subscribers"] / df["subscribers"].max() * 1000
 
 # Create a dictionary to map categories to colors
 category_colors = {
-    "finance": "olive",
-    "funny": "purple",
-    "gender": "green",
-    "general": "navy",
-    "health": "red",
-    "judgement": "orange",
-    "legal": "teal",
+    "general": "magenta",
     "relationship": "blue",
+    "legal": "teal",
+    "finance": "olive",
+    "health": "red",
+    "fashion": "pink",
+    "gender": "green",
+    "funny": "purple",
+    "judgement": "orange",
 }
 
 # Set the threshold values
 THRESHOLD_SIZE = 10000  # Ignore subreddits with subscribers less than this value
-THRESHOLD_YEAR = 2023  # Ignore subreddits created after this year
+THRESHOLD_YEAR = 2024  # Ignore subreddits created after this year
 
 # Create the plot
 fig, ax = plt.subplots(figsize=(12, 8))
@@ -103,7 +103,6 @@ for _, row in df.iterrows():
         path_effects=[
             path_effects.withStroke(linewidth=2, foreground="white", alpha=0.7)
         ],
-        # bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.5, "pad": 2},
     )
 
 # Format the x-axis as dates
