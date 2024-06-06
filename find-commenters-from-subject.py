@@ -39,7 +39,7 @@ def process_args(argv: list) -> argparse.Namespace:
     """Process command-line arguments using argparse."""
 
     parser = argparse.ArgumentParser(
-        description="Find URLs for Reddit posts from a csv file."
+        description="Find URLs and commenters for Reddit posts."
     )
     parser.add_argument(
         "input_csv", type=Path, help="csv file containing Reddit posts."
@@ -85,7 +85,12 @@ def process_submissions(input_csv: Path) -> list[dict[str, str]]:
             if url:
                 usernames = get_commenters(url)
                 data.append(
-                    {"subreddit": subreddit, "title": title, "usernames": usernames}
+                    {
+                        "subreddit": subreddit,
+                        "title": title,
+                        "usernames": usernames,
+                        "url": url,
+                    }
                 )
 
             progress_bar.set_description(
@@ -99,7 +104,7 @@ def process_submissions(input_csv: Path) -> list[dict[str, str]]:
 
 
 def save_to_csv(data: list[dict[str, str]], output_path: Path):
-    fieldnames = ["subreddit", "title", "author_p"]
+    fieldnames = ["subreddit", "title", "author_p", "url"]
     output_path = Path(output_path)
 
     with output_path.open("w", newline="") as csvfile:
@@ -107,13 +112,14 @@ def save_to_csv(data: list[dict[str, str]], output_path: Path):
         writer.writeheader()
 
         for item in data:
-            subreddit = item["subreddit"]
-            title = item["title"]
-            usernames = item["usernames"]
-
-            for username in usernames:
+            for username in item["usernames"]:
                 writer.writerow(
-                    {"subreddit": subreddit, "title": title, "author_p": username}
+                    {
+                        "subreddit": item["subreddit"],
+                        "title": item["title"],
+                        "author_p": username,
+                        "url": item["url"],
+                    }
                 )
 
 
