@@ -9,12 +9,17 @@ The output CSV file has columns for subreddit, title, and author_p.
 
 import argparse
 import csv
+import re
+import string
 import sys
 from pathlib import Path
 
 import cachier
+import jsonlines
 import praw
-from tqdm import tqdm
+import zstandard as zstd
+from rapidfuzz import fuzz
+from tqdm import tqdm  # type: ignore
 
 import web_api_tokens as wat
 
@@ -47,16 +52,76 @@ def process_args(argv: list) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def decompress_file(compressed_file: Path) -> Path:
+    """Decompress a zstd compressed file."""
+    decompressed_file = compressed_file.with_suffix("")  # removes ".zst"
+
+    if not decompressed_file.exists():
+        with open(compressed_file, "rb") as compressed, open(
+            decompressed_file, "wb"
+        ) as decompressed:
+            print(f"decompressing {compressed_file}")
+            dctx = zstd.ZstdDecompressor()
+            reader = dctx.stream_reader(compressed)
+            decompressed.write(reader.read())
+
+    return decompressed_file
+
+
 @cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
-def get_post_url(subreddit: str, title: str) -> str:
+def count_lines(file_path: Path) -> int:
+    with open(file_path) as f:
+        return sum(1 for _ in f)
+
+
+@cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
+def api_get_post_url(subreddit: str, title: str) -> tuple[str, str]:
     """Search for a post in a subreddit by title and return its URL."""
+    # NOTE: I'm not using this presently since the Reddit API won't
+    # return titles of deleted or removed messages.
     for submission in REDDIT.subreddit(subreddit).search(title, limit=1):
-        return submission.url
-    return ""
+        return (submission.title, submission.url)
+    return ("", "")
 
 
 @cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
-def get_commenters(url: str) -> list[str]:
+def jsonl_get_post_url(subreddit: str, title: str) -> tuple[str, str]:
+    """Given the name of a subreddit, see if the file "{DUMPS_Path}/{subreddit}_submissions.jsonl.zst" exists;
+    If the file exists, decompress it and search for the title.
+    If the title is found, return the title and corresponding URL.
+    """
+    DUMPS_PATH = Path("~/data/1work/2020/advice/subreddits/").expanduser()
+
+    compressed_file = DUMPS_PATH / f"{subreddit}_submissions.jsonl.zst"
+
+    if not compressed_file.exists():
+        print(f"NOT found: {compressed_file}")
+        return ("", "")
+
+    decompressed_file = decompress_file(compressed_file)
+    total_lines = count_lines(decompressed_file)
+
+    with jsonlines.open(decompressed_file) as reader:
+        print(f"Checking {decompressed_file}")
+        print(f"Looking for: {title}")
+
+        for obj in tqdm(reader, total=total_lines):
+            similarity_ratio = fuzz.ratio(obj["title"], title)
+            if similarity_ratio > 95:
+                print(f"\nFOUND with {similarity_ratio}:")
+                print(f"  {title}")
+                print(f"  {obj['title']}")
+                return obj["title"], obj["url"]
+
+        print(f"NOT found: {title}")
+        return (title, "")
+
+
+# jsonl_get_post_url.clear_cache()
+
+
+@cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
+def api_get_commenters(url: str) -> list[str]:
     """Get the usernames of users who commented on a given post."""
     submission = REDDIT.submission(url=url)
     usernames = [
@@ -68,6 +133,9 @@ def get_commenters(url: str) -> list[str]:
 
 
 def process_submissions(input_csv: Path) -> list[dict[str, str]]:
+    """Process the input CSV file to find URLs and commenters.
+    Because Reddit always returns, check if the queried and returned
+    title are sufficiently close."""
     data = []
 
     with input_csv.open(newline="") as csvfile:
@@ -79,19 +147,29 @@ def process_submissions(input_csv: Path) -> list[dict[str, str]]:
 
         for row in reader:
             subreddit = row["subreddit"]
+            usernames = ["null20240614"]
+            diff_ratio = 0
             title = row["title"]
-            url = get_post_url(subreddit, title)
-            usernames = []
-            if url:
-                usernames = get_commenters(url)
-                data.append(
-                    {
-                        "subreddit": subreddit,
-                        "title": title,
-                        "usernames": usernames,
-                        "url": url,
-                    }
-                )
+            submission_url = ""
+
+            submission_title, submission_url = jsonl_get_post_url(subreddit, title)
+
+            if submission_url:
+                # not the actual title, probably deleted
+                diff_ratio = fuzz.ratio(title, submission_title)
+                if diff_ratio < 90:
+                    submission_url = ""
+                else:
+                    usernames = api_get_commenters(submission_url)
+            data.append(
+                {
+                    "subreddit": subreddit,
+                    "usernames": usernames,
+                    "diff_ratio": diff_ratio,
+                    "title": title,
+                    "url": submission_url,
+                }
+            )
 
             progress_bar.set_description(
                 f"Processing submissions (Found {len(usernames)} usernames)"
@@ -104,7 +182,7 @@ def process_submissions(input_csv: Path) -> list[dict[str, str]]:
 
 
 def save_to_csv(data: list[dict[str, str]], output_path: Path):
-    fieldnames = ["subreddit", "title", "author_p", "url"]
+    fieldnames = ["subreddit", "author_p", "diff_ratio", "title", "url"]
     output_path = Path(output_path)
 
     with output_path.open("w", newline="") as csvfile:
@@ -116,8 +194,9 @@ def save_to_csv(data: list[dict[str, str]], output_path: Path):
                 writer.writerow(
                     {
                         "subreddit": item["subreddit"],
-                        "title": item["title"],
                         "author_p": username,
+                        "diff_ratio": item["diff_ratio"],
+                        "title": item["title"],
                         "url": item["url"],
                     }
                 )
