@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """
-Find the usernames of commenters associated with submissions title and subreddits.
-Read a CSV file of Reddit submission titles and use PRAW to find the URL of each post.
-For each URL, fnd the usernames of users who commented on that post.
+Find the usernames of commenters associated with submission titles
+(and their subreddits).
+
+Read a CSV file of Reddit submission titles and use a JSONL dump file
+or PRAW to find the URL of each post.
+For each URL, find the usernames of users who commented on that post.
 The input CSV file has columns for subreddit and title.
 The output CSV file has columns for subreddit, title, and author_p.
+
+TODO: For performance, match the list of subreddit+title with titles in
+database dumps using rapidfuzz.process.cdist. Presently find with a
+small list (~100).
 """
 
 import argparse
 import csv
-import re
-import string
 import sys
 from pathlib import Path
 
@@ -86,9 +91,9 @@ def api_get_post_url(subreddit: str, title: str) -> tuple[str, str]:
 
 @cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def jsonl_get_post_url(subreddit: str, title: str) -> tuple[str, str]:
-    """Given the name of a subreddit, see if the file "{DUMPS_Path}/{subreddit}_submissions.jsonl.zst" exists;
-    If the file exists, decompress it and search for the title.
-    If the title is found, return the title and corresponding URL.
+    """Given the name of a subreddit, look for the compressed or decompressed
+    "{DUMPS_Path}/{subreddit}_submissions.jsonl[.zst]" file;
+    Search for the title and return the found title and corresponding URL.
     """
     DUMPS_PATH = Path("~/data/1work/2020/advice/subreddits/").expanduser()
 
@@ -135,7 +140,11 @@ def api_get_commenters(url: str) -> list[str]:
 def process_submissions(input_csv: Path) -> list[dict[str, str]]:
     """Process the input CSV file to find URLs and commenters.
     Because Reddit always returns, check if the queried and returned
-    title are sufficiently close."""
+    title are sufficiently close.
+
+    TODO: for performance, sort CSV file by subreddit so I don't have to
+    open the corresponding dumps multiple times.
+    """
     data = []
 
     with input_csv.open(newline="") as csvfile:
