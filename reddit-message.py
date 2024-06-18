@@ -139,7 +139,7 @@ def message_users(args, users: set[str], subject: str, greeting: str) -> None:
     users_todo = users - users_past
     print(f"\nExcluding {len(users_past)} past users from the {len(users)}.")
     if args.show_csv_users:
-        print(f"The remaining users to do are: {users_todo}.")
+        print(f"The remaining {len(users_todo)} users to do are: {users_todo}.")
 
     with tqdm.tqdm(
         total=len(users_todo), bar_format="{l_bar}{bar:30}{r_bar}{bar:-10b}"
