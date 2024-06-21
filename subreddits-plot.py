@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
+
 """Plot subreddits creation and relative size."""
 
 __author__ = "Joseph Reagle"
 __copyright__ = "Copyright (C) 2024 Joseph Reagle"
 __license__ = "GLPv3"
 __version__ = "0.1"
-
 
 import argparse
 import os
@@ -15,16 +15,18 @@ import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from adjustText import adjust_text
 
 # Create an argument parser
-parser = argparse.ArgumentParser(
-    description="Plot subreddits creation and relative size."
-)
+parser = argparse.ArgumentParser(description="Plot subreddits creation and relative size.")
 parser.add_argument("-i", "--input", required=True, help="Path to the input CSV file")
 args = parser.parse_args()
 
 # Read in the CSV data
 df = pd.read_csv(args.input, comment="#")
+
+# Convert the 'subscribers' column to numeric, replacing non-numeric values with NaN
+df["subscribers"] = pd.to_numeric(df["subscribers"], errors="coerce")
 
 # Convert the 'created' column to datetime
 df["created"] = pd.to_datetime(df["created"], format="%Y-%m-%d")
@@ -54,12 +56,15 @@ THRESHOLD_YEAR = 2024  # Ignore subreddits created after this year
 
 # Create the plot
 fig, ax = plt.subplots(figsize=(12, 8))
+
 ADJUST_CIRCUMFERENCE = 5
 ADJUST_CIRCLE_LABEL_OFFSET = 8
 
 # Create a dictionary to store the legend handles and labels
 legend_handles = {}
 legend_labels = {}
+
+texts = []
 
 # Plot each subreddit as a circle with color based on category
 for _, row in df.iterrows():
@@ -88,13 +93,14 @@ for _, row in df.iterrows():
         alpha=0.7,
         color=color,
     )
+
     radius = circle.get_sizes()[0] / 2
     if radius > 0:
         shift = pd.Timedelta(days=np.log(radius) * ADJUST_CIRCLE_LABEL_OFFSET)
     else:
         shift = pd.Timedelta(days=0)  # Set shift to 0 if radius is 0 or very small
 
-    ax.text(
+    text = ax.text(
         row["created"] + shift,
         row["subscribers"],
         row["subreddit"],
@@ -104,6 +110,7 @@ for _, row in df.iterrows():
             path_effects.withStroke(linewidth=2, foreground="white", alpha=0.7)
         ],
     )
+    texts.append(text)
 
 # Format the x-axis as dates
 ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
@@ -116,9 +123,7 @@ ax.set_yscale("log")
 # Adjust x-axis limits to provide extra space on the right side
 x_min, x_max = ax.get_xlim()
 x_max_date = mdates.num2date(x_max)  # Convert x_max to datetime
-ax.set_xlim(
-    x_min, mdates.date2num(x_max_date + pd.Timedelta(days=365))
-)  # Add one year of extra space
+ax.set_xlim(x_min, mdates.date2num(x_max_date + pd.Timedelta(days=365)))  # Add one year of extra space
 
 # Add labels
 ax.set_xlabel("Date Created")
@@ -126,14 +131,14 @@ ax.set_ylabel("Number of Subscribers")
 ax.set_title("Creation and Size of Advice Subreddits")
 
 # Add the legend to the plot
-ax.legend(
-    handles=legend_handles.values(), labels=legend_labels.values(), loc="upper right"
-)
+ax.legend(handles=legend_handles.values(), labels=legend_labels.values(), loc="upper right")
 
 plt.tight_layout()
+
+# Adjust overlapping labels
+adjust_text(texts, only_move={'points':'y', 'texts':'y'}, arrowprops={'arrowstyle': "-", 'color': "black", 'lw': 0.0})
 
 # Save the plot as a PNG file with the same name as the input file
 output_file = os.path.splitext(args.input)[0] + ".png"
 plt.savefig(output_file, dpi=300)
-
 plt.show()
