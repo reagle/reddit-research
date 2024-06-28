@@ -10,8 +10,8 @@ The input CSV file has columns for subreddit and title.
 The output CSV file has columns for subreddit, title, and author_p.
 
 TODO: For performance, match the list of subreddit+title with titles in
-database dumps using rapidfuzz.process.cdist. Presently find with a
-small list (~100).
+database dumps using rapidfuzz.process.cdist.
+Presently fine with a small list (~100).
 """
 
 import argparse
