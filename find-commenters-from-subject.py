@@ -7,7 +7,8 @@ Read a CSV file of Reddit submission titles and use a JSONL dump file
 or PRAW to find the URL of each post.
 For each URL, find the usernames of users who commented on that post.
 The input CSV file has columns for subreddit and title.
-The output CSV file has columns for subreddit, title, and author_p.
+The output CSV file has columns for subreddit, title (original and reddit)
+, title difference ratio, and author_p.
 
 TODO: For performance, match the list of subreddit+title with titles in
 database dumps using rapidfuzz.process.cdist.
