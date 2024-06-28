@@ -158,25 +158,25 @@ def process_submissions(input_csv: Path) -> list[dict[str, str]]:
             subreddit = row["subreddit"]
             usernames = ["null20240614"]
             diff_ratio = 0
-            title = row["title"]
-            submission_url = ""
+            title_ori = row["title"]
+            url_red = ""
 
-            submission_title, submission_url = jsonl_get_post_url(subreddit, title)
+            title_red, url_red = jsonl_get_post_url(subreddit, title_ori)
 
-            if submission_url:
-                # not the actual title, probably deleted
-                diff_ratio = fuzz.ratio(title, submission_title)
+            if url_red:
+                diff_ratio = fuzz.ratio(title_ori, title_red)
                 if diff_ratio < 90:
-                    submission_url = ""
+                    url_red = ""
                 else:
-                    usernames = api_get_commenters(submission_url)
+                    usernames = api_get_commenters(url_red)
             data.append(
                 {
                     "subreddit": subreddit,
                     "usernames": usernames,
                     "diff_ratio": diff_ratio,
-                    "title": title,
-                    "url": submission_url,
+                    "title_ori": title_ori,
+                    "title_red": title_red,
+                    "url": url_red,
                 }
             )
 
@@ -191,7 +191,14 @@ def process_submissions(input_csv: Path) -> list[dict[str, str]]:
 
 
 def save_to_csv(data: list[dict[str, str]], output_path: Path):
-    fieldnames = ["subreddit", "author_p", "diff_ratio", "title", "url"]
+    fieldnames = [
+        "subreddit",
+        "author_p",
+        "diff_ratio",
+        "title_ori",
+        "title_red",
+        "url",
+    ]
     output_path = Path(output_path)
 
     with output_path.open("w", newline="") as csvfile:
@@ -205,7 +212,8 @@ def save_to_csv(data: list[dict[str, str]], output_path: Path):
                         "subreddit": item["subreddit"],
                         "author_p": username,
                         "diff_ratio": item["diff_ratio"],
-                        "title": item["title"],
+                        "title_ori": item["title_ori"],
+                        "title_red": item["title_red"],
                         "url": item["url"],
                     }
                 )
