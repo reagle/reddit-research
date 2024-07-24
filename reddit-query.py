@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""" Query Pushshift and Reddit data.
+"""Query Pushshift and Reddit data.
 
 Pull from the Pushshift and Reddit APIs and generate a file with columns
 for submissions' deletion status of author and message, at time of Pushshift's indexing
@@ -14,7 +14,7 @@ __version__ = "1.0"
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import collections
-import logging
+import logging as log
 import pathlib as pl
 import shelve
 import sys
@@ -45,15 +45,8 @@ reddit = praw.Reddit(
     ratelimit_seconds=600,
 )
 
-exception = logging.exception
-critical = logging.critical
-error = logging.error
-warning = logging.warning
-info = logging.info
-debug = logging.debug
 
-
-# this is duplicated in reddit-query.py and reddit-message.py
+# This is duplicated in reddit-query.py and reddit-message.py
 def is_throwaway(user_name: str) -> bool:
     name = user_name.lower()
     # "throwra" is common throwaway in (relationship) advice subreddits
@@ -89,9 +82,9 @@ def get_reddit_info(
     is_deleted = "NA"
     is_removed = "NA"
     if args.skip:
-        debug(f"reddit skipped because args.skip {author_pushshift=}")
+        log.debug(f"reddit skipped because args.skip {author_pushshift=}")
     elif args.throwaway_only and not is_throwaway(author_pushshift):
-        debug(
+        log.debug(
             "reddit skipped because args.throwaway_only but not throwaway "
             + f"{author_pushshift=}"
         )
@@ -109,8 +102,8 @@ def get_reddit_info(
             print(f"WARNING: {id_=} not in shelf")
             return "[deleted]", "False", "False"
         author_reddit = "[deleted]" if not submission.author else submission.author
-        debug(f"reddit found {author_pushshift=}")
-        debug(f"{submission=}")
+        log.debug(f"reddit found {author_pushshift=}")
+        log.debug(f"{submission=}")
         # https://www.reddit.com/r/pushshift/comments/v6vrmo/was_this_message_removed_or_deleted/
         is_removed = submission.selftext == "[removed]"
         if (
@@ -148,7 +141,7 @@ def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> typ.Any
     ids_all = [message["id"] for message in pushshift_results]
     shelf = prefetch_reddit_posts(ids_all)
     for pr in tqdm.tqdm(pushshift_results, total=len(ids_all)):
-        debug(f"{pr['id']=} {pr['author']=} {pr['title']=}\n")
+        log.debug(f"{pr['id']=} {pr['author']=} {pr['title']=}\n")
         ids_counter[pr["id"]] += 1
         created_utc = pendulum.from_timestamp(pr["created_utc"]).format(
             "YYYYMMDD HH:mm:ss"
@@ -181,7 +174,7 @@ def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> typ.Any
                 # REDDIT_API_URL + r["id"],
             )
         )
-    debug(results_row)
+    log.debug(results_row)
     posts_df = pd.DataFrame(
         results_row,
         columns=[
@@ -233,10 +226,10 @@ def query_pushshift(
 
     after_human = after.format("YYYY-MM-DD HH:mm:ss")
     before_human = before.format("YYYY-MM-DD HH:mm:ss")
-    critical(f"******* between {after_human} and {before_human}")
+    log.critical(f"******* between {after_human} and {before_human}")
     after_timestamp = after.int_timestamp
     before_timestamp = before.int_timestamp
-    debug(f"******* between {after_timestamp} and {before_timestamp}")
+    log.debug(f"******* between {after_timestamp} and {before_timestamp}")
 
     optional_params = ""
     if after:
@@ -275,19 +268,19 @@ def collect_pushshift_results(
     so need multiple queries to collect results in date range up to
     or sampled at limit."""
 
-    info(f"{after=}, {before=}")
-    info(f"{after.timestamp()=}, {before.timestamp()=}")
+    log.info(f"{after=}, {before=}")
+    log.info(f"{after.timestamp()=}, {before.timestamp()=}")
     if args.sample:  # collect PUSHSHIFT_LIMIT at offsets
         # TODO/BUG: comments_num won't work with sampling estimates
         #   because they'll throw off the estimates
 
         results_total = rs.get_pushshift_total(subreddit, after, before)
         offsets = rs.get_offsets(subreddit, after, before, limit, PUSHSHIFT_LIMIT)
-        info(f"{offsets=}")
+        log.info(f"{offsets=}")
         results_found = []
         for query_iteration, after_offset in enumerate(offsets):
-            info(f"{after_offset=}, {before=}")
-            critical(f"{query_iteration}")
+            log.info(f"{after_offset=}, {before=}")
+            log.critical(f"{query_iteration}")
             results = query_pushshift(
                 limit, after_offset, before, subreddit, query, comments_num
             )
@@ -301,7 +294,7 @@ def collect_pushshift_results(
             limit, after, before, subreddit, query, comments_num
         )
         while len(results) != 0 and len(results_found) < limit:
-            critical(f"{query_iteration=}")
+            log.critical(f"{query_iteration=}")
             query_iteration += 1
             after_new = pendulum.from_timestamp(results[-1]["created_utc"])
             results = query_pushshift(
@@ -311,8 +304,8 @@ def collect_pushshift_results(
         results_found = results_found[0:limit]
         print(f"returning {len(results_found)} (first) posts in range\n")
 
-    info(f"{results_total=}")
-    info(f"{results_found=}")
+    log.info(f"{results_total=}")
+    log.info(f"{results_found=}")
     return results_total, results_found
 
 
@@ -414,25 +407,18 @@ def main(argv) -> argparse.Namespace:
     arg_parser.add_argument("--version", action="version", version="0.4")
     args = arg_parser.parse_args(argv)
 
-    log_level = logging.ERROR  # 40
-
-    if args.verbose == 1:
-        log_level = logging.WARNING  # 30
-    elif args.verbose == 2:
-        log_level = logging.INFO  # 20
-    elif args.verbose >= 3:
-        log_level = logging.DEBUG  # 10
-    LOG_FORMAT = "%(levelname).3s %(funcName).5s: %(message)s"
+    log_level = (log.CRITICAL) - (args.verbose * 10)
+    LOG_FORMAT = "%(levelname).4s %(funcName).10s:%(lineno)-4d| %(message)s"
     if args.log_to_file:
         print("logging to file")
-        logging.basicConfig(
-            filename=f"{str(pl.PurePath(__file__).name)}.log",
+        log.basicConfig(
+            filename=f"{pl.PurePath(__file__).name!s}.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
         )
     else:
-        logging.basicConfig(level=log_level, format=LOG_FORMAT)
+        log.basicConfig(level=log_level, format=LOG_FORMAT)
 
     return args
 
@@ -459,14 +445,8 @@ if __name__ == "__main__":
         comments_num = "_c" + comments_num
     else:
         comments_num = ""
-    if args.sample:
-        sample = "_sampled"
-    else:
-        sample = ""
-    if args.throwaway_only:
-        throwaway = "_throwaway"
-    else:
-        throwaway = ""
+    sample = "_sampled" if args.sample else ""
+    throwaway = "_throwaway" if args.throwaway_only else ""
 
     query = {
         "limit": args.limit,

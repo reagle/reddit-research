@@ -12,7 +12,7 @@ __license__ = "GLPv3"
 __version__ = "1.0"
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
-import logging
+import logging as log
 import os
 import pathlib as pl  # https://docs.python.org/3/library/pathlib.html
 import sys
@@ -30,12 +30,6 @@ import requests
 
 HOME = str(pl.Path("~").expanduser())
 
-exception = logging.exception
-critical = logging.critical
-error = logging.error
-warning = logging.warning
-info = logging.info
-debug = logging.debug
 
 HEADERS = {"User-Agent": "Reddit Search https://github.com/reagle/reddit"}
 
@@ -43,8 +37,8 @@ HEADERS = {"User-Agent": "Reddit Search https://github.com/reagle/reddit"}
 def auto_search(query: str, subreddit: str, quote: str, target_url: str) -> None:
     """Does the URL appear in the query results?"""
 
-    info(f"{subreddit=}")
-    info(f"{query=}")
+    log.info(f"{subreddit=}")
+    log.info(f"{query=}")
     if not target_url:  # there's nothing to test against in results
         print("auto_search: N/A, no URL to test against.")
         return
@@ -56,7 +50,7 @@ def auto_search(query: str, subreddit: str, quote: str, target_url: str) -> None
         )
 
     query_inexact = query.format(subreddit=subreddit, quote=quote)
-    info(f"{query_inexact=}")
+    log.info(f"{query_inexact=}")
     response = requests.get(query_inexact, headers=HEADERS)
 
     # remove url scheme and netloc from https://old.reddit.com/...
@@ -73,10 +67,10 @@ def auto_search(query: str, subreddit: str, quote: str, target_url: str) -> None
 
     # Google does well with exact searches, so run again as exact
     if "google.com" in query:
-        info("google query EXACT")
-        info(f"{query=}")
+        log.info("google query EXACT")
+        log.info(f"{query=}")
         query_exact = query.format(subreddit=subreddit, quote=f'"{quote}"')
-        info(f"{query_exact=}")
+        log.info(f"{query_exact=}")
         response = requests.get(query_exact, headers=HEADERS)
         if target_url in response.text:
             print(f"auto_search: found exact at {query_exact[0:30]}")
@@ -88,15 +82,15 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
     os.system("cls") if os.name == "nt" else os.system("clear")
     if row[heading] == "" or "found" not in row:
         return
-    info(f"{row['found']=}")
+    log.info(f"{row['found']=}")
     if do_recheck or row["found"] == "" or pd.isnull(row["found"]):
-        info("checking")
+        log.info("checking")
         quote = row[heading]
         print(f"{quote}\n")
         subreddit = f"{row['subreddit']}".strip() if row["subreddit"] else ""
         prefixed_subreddit = "r/" + subreddit if subreddit else ""
-        debug("-------------------------")
-        debug(f"{row['phrase']}\n")
+        log.debug("-------------------------")
+        log.debug(f"{row['phrase']}\n")
 
         # Google query
         query_google = (
@@ -107,7 +101,7 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
         query_google_final = query_google.format(
             subreddit=prefixed_subreddit, quote=quote
         )
-        debug(f"Google query:       {query_google_final}")
+        log.debug(f"Google query:       {query_google_final}")
         webbrowser.open(query_google_final)
 
         # Reddit query
@@ -119,7 +113,7 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
         query_reddit_final = query_reddit.format(
             subreddit=prefixed_subreddit, quote=quote
         )
-        debug(f"Reddit query:       {query_reddit_final}")
+        log.debug(f"Reddit query:       {query_reddit_final}")
         webbrowser.open(query_reddit_final)
 
         # RedditSearch (Pushshift)
@@ -131,7 +125,7 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
         )
         auto_search(query_pushshift, subreddit, quote, row["url"])
         query_pushshift_final = query_pushshift.format(subreddit=subreddit, quote=quote)
-        debug(f"Pushshift query:       {query_pushshift_final}")
+        log.debug(f"Pushshift query:       {query_pushshift_final}")
         webbrowser.open(query_pushshift_final)
 
         character = input("\n`enter` to continue | `q` to quit: ")
@@ -142,7 +136,7 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
 def grab_quotes(file_name: str, column: str, do_recheck: bool) -> None:
     """Read a column of quotes from a spreadsheet."""
 
-    info(f"{file_name=}, {column=}, {do_recheck=}")
+    log.info(f"{file_name=}, {column=}, {do_recheck=}")
     suffix = pl.Path(file_name).suffix
     if suffix in [".xls", ".xlsx", ".odf", ".ods", ".odt"]:
         df = pd.read_excel(file_name, keep_default_na=False)
@@ -216,30 +210,23 @@ def main(argv) -> argparse.Namespace:
     arg_parser.add_argument("--version", action="version", version="0.2")
     args = arg_parser.parse_args(argv)
 
-    log_level = logging.ERROR  # 40
-
-    if args.verbose == 1:
-        log_level = logging.WARNING  # 30
-    elif args.verbose == 2:
-        log_level = logging.INFO  # 20
-    elif args.verbose >= 3:
-        log_level = logging.DEBUG  # 10
-    LOG_FORMAT = "%(levelname).3s %(funcName).5s: %(message)s"
+    log_level = (log.CRITICAL) - (args.verbose * 10)
+    LOG_FORMAT = "%(levelname).4s %(funcName).10s:%(lineno)-4d| %(message)s"
     if args.log_to_file:
         print("logging to file")
-        logging.basicConfig(
+        log.basicConfig(
             filename="reddit-search.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
         )
     else:
-        logging.basicConfig(level=log_level, format=LOG_FORMAT)
+        log.basicConfig(level=log_level, format=LOG_FORMAT)
 
     return args
 
 
 if __name__ == "__main__":
     args = main(sys.argv[1:])
-    debug(f"{args=}")
+    log.debug(f"{args=}")
     grab_quotes(args.file_name[0], args.column, args.recheck)

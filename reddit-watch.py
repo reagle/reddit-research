@@ -12,7 +12,7 @@ __version__ = "1.0"
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import collections
 import configparser as cp
-import logging
+import logging as log
 import os
 import pathlib as pl
 import pprint
@@ -43,13 +43,6 @@ reddit = praw.Reddit(
     client_secret=wat.REDDIT_CLIENT_SECRET,
     ratelimit_seconds=600,
 )
-
-exception = logging.exception
-critical = logging.critical
-error = logging.error
-warning = logging.warning
-info = logging.info
-debug = logging.debug
 
 
 def init_watch_pushshift(subreddit: str, hours: int) -> str:
@@ -174,7 +167,7 @@ def update_watch(watched_fn: str) -> str:  # noqa: C901
         if id_ not in submissions:
             print(f"{id_=} no longer in submissions, continuing")
             continue
-        info(f"{row['id']=}, {row['author_p']=}")
+        log.info(f"{row['id']=}, {row['author_p']=}")
         # Different removed_by_category statuses:
         # https://www.reddit.com/r/redditdev/comments/kypjmk/check_if_submission_has_been_removed_by_a_mod/
         sub = submissions[id_]  # fetch and update if True
@@ -255,7 +248,7 @@ def rotate_archive_fns(updated_fn: str) -> None:
         print(f"deleting {stamped_fn=}")
         os.remove(stamped_fn)
     else:
-        critical(f"can't append stamped, {zipped_fn} not found")
+        log.critical(f"can't append stamped, {zipped_fn} not found")
 
 
 def init_archive(updated_fn: str) -> None:
@@ -318,26 +311,18 @@ def main(argv) -> argparse.Namespace:
     arg_parser.add_argument("--version", action="version", version="0.3")
     args = arg_parser.parse_args(argv)
 
-    log_level = logging.ERROR  # 40
-
-    if args.verbose == 1:
-        log_level = logging.WARNING  # 30
-    elif args.verbose == 2:
-        log_level = logging.INFO  # 20
-    elif args.verbose >= 3:
-        log_level = logging.DEBUG  # 10
-    LOG_FORMAT = "%(levelname).3s %(funcName).5s: %(message)s"
-
+    log_level = (log.CRITICAL) - (args.verbose * 10)
+    LOG_FORMAT = "%(levelname).4s %(funcName).10s:%(lineno)-4d| %(message)s"
     if args.log_to_file:
         print("logging to file")
-        logging.basicConfig(
-            filename=f"{str(pl.PurePath(__file__).name)}.log",
+        log.basicConfig(
+            filename=f"{pl.PurePath(__file__).name!s}.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
         )
     else:
-        logging.basicConfig(level=log_level, format=LOG_FORMAT)
+        log.basicConfig(level=log_level, format=LOG_FORMAT)
 
     return args
 

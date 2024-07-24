@@ -1,8 +1,8 @@
 """Sample messages over significant spans, used by `reddit-query.py`.
 
-Reddit itself doesn't  permit date-ranges, so I have to pull data from 
-Pushshift, estimate how many chunks (PUSHSHIFT_LIMIT) to take at hourly 
-offsets within the range, including the ability to sample throughout 
+Reddit itself doesn't  permit date-ranges, so I have to pull data from
+Pushshift, estimate how many chunks (PUSHSHIFT_LIMIT) to take at hourly
+offsets within the range, including the ability to sample throughout
 the range.
 """
 
@@ -13,11 +13,11 @@ __version__ = "1.0"
 
 import logging
 import math
-import os
 import random
 
 import cachier
 import numpy as np
+import Path
 import pendulum  # https://pendulum.eustace.io/docs/
 import praw
 
@@ -35,15 +35,15 @@ REDDIT = praw.Reddit(
     ratelimit_seconds=600,
 )
 
-HOMEDIR = os.path.expanduser("~")
+HOMEDIR = Path.home()
 
 log = logging.getLogger("reddit_sample")
-exception = logging.exception
-critical = logging.critical
-error = logging.error
-warning = logging.warning
-info = logging.info
-debug = logging.debug
+log.exception = logging.exception
+log.critical = logging.critical
+log.error = logging.error
+log.warning = logging.warning
+log.info = logging.info
+log.debug = logging.debug
 
 
 def is_overlapping(offsets: list, PUSHSHIFT_LIMIT: int, results_per_hour: int) -> bool:
@@ -54,18 +54,18 @@ def is_overlapping(offsets: list, PUSHSHIFT_LIMIT: int, results_per_hour: int) -
 
     last = None
     hours_needed = math.ceil(PUSHSHIFT_LIMIT / results_per_hour)
-    info(f"{offsets=}")
-    warning(f"{hours_needed=} between each offset")
+    log.info(f"{offsets=}")
+    log.warning(f"{hours_needed=} between each offset")
     for offset in offsets:
         if last is None:  # initial offset, so proceed to next
             last = offset
             continue
-        info(f"  {offset} - {last} = {offset - last}")
+        log.info(f"  {offset} - {last} = {offset - last}")
         if offset - last > hours_needed:
             last = offset
             continue
         else:
-            critical(
+            log.critical(
                 "  overlap:"
                 f"  offsets {offset} - {last} is not less than {hours_needed}"
                 " "
@@ -82,24 +82,24 @@ def get_pushshift_total(
 ) -> int:
     """Get the total number of results in a Pushshift query via the
     '&metadata=true' parameter"""
-    info("*************")
-    info(f"after = {after.format('YYYY-MM-DD HH:mm:ss ZZ')}")
+    log.info("*************")
+    log.info(f"after = {after.format('YYYY-MM-DD HH:mm:ss ZZ')}")
     after_epoch = int(after.int_timestamp)
-    info(f"{after_epoch=}")
-    info(f"before = {before.format('YYYY-MM-DD HH:mm:ss ZZ')}")
+    log.info(f"{after_epoch=}")
+    log.info(f"before = {before.format('YYYY-MM-DD HH:mm:ss ZZ')}")
     before_epoch = int(before.int_timestamp)
-    info(f"{before_epoch=}")
+    log.info(f"{before_epoch=}")
     PUSHSHIFT_META_URL = (
         "https://api.pushshift.io/reddit/submission/search/"
         f"?subreddit={subreddit}&after={after_epoch}&before={before_epoch}"
         "&size=0&metadata=true"
     )
-    info(f"{PUSHSHIFT_META_URL=}")
+    log.info(f"{PUSHSHIFT_META_URL=}")
     # TODO: adapt to API change
     # https://www.reddit.com/r/pushshift/comments/109ckav/did_the_api_change/
     # https://www.reddit.com/r/pushshift/comments/zkggt0/update_on_colo_switchover_bug_fixes_reindexing/
     results_total = web_utils.get_JSON(PUSHSHIFT_META_URL)["metadata"]["total_results"]
-    info(f"{results_total=}")
+    log.info(f"{results_total=}")
     return results_total
 
 
@@ -147,27 +147,27 @@ def get_offsets(
     after, that should not overlap"""
 
     duration = before - after
-    info(f"{duration.in_days()=}")
-    info(f"{duration.in_hours()=}")
-    info(f"{duration.in_weeks()=}")
+    log.info(f"{duration.in_days()=}")
+    log.info(f"{duration.in_hours()=}")
+    log.info(f"{duration.in_weeks()=}")
     results_total = get_pushshift_total(subreddit, after, before)
     results_per_hour = math.ceil(results_total / duration.in_hours())
-    info(f"{results_per_hour=} on average")
+    log.info(f"{results_per_hour=} on average")
 
-    info(f"{PUSHSHIFT_LIMIT=}")
-    info(f"{sample_size=}")
+    log.info(f"{PUSHSHIFT_LIMIT=}")
+    log.info(f"{sample_size=}")
     queries_total = math.ceil(sample_size / PUSHSHIFT_LIMIT)
-    info(f"{queries_total=}")
-    info(f"{range(duration.in_hours())=}")
+    log.info(f"{queries_total=}")
+    log.info(f"{range(duration.in_hours())=}")
 
     SEEDS_TO_TRY = 300
     seed = int(after.timestamp())
     for seed_counter in range(SEEDS_TO_TRY):
         seed += seed_counter  # increment seed
-        warning(f"attempt {seed_counter} to find non-overlapping offsets")
+        log.warning(f"attempt {seed_counter} to find non-overlapping offsets")
         offsets = get_cacheable_randos(duration.in_hours(), queries_total, seed)
         if is_overlapping(offsets, PUSHSHIFT_LIMIT, results_per_hour):
-            critical(f"  seed attempt {seed_counter} failed")
+            log.critical(f"  seed attempt {seed_counter} failed")
             continue
         else:
             break
@@ -182,7 +182,7 @@ def get_offsets(
     for offset_as_hour in offsets:
         offset_as_datetime = after.add(hours=offset_as_hour)
         offsets_as_datetime.append(offset_as_datetime)
-    info(f"{len(offsets)=}")
+    log.info(f"{len(offsets)=}")
     return offsets_as_datetime
 
 
@@ -199,7 +199,7 @@ if __name__ == "__main__":
     total = get_pushshift_total("AmItheAsshole", after, before)
     offsets = get_offsets("AmItheAsshole", after, before, sample_size, PUSHSHIFT_LIMIT)
     for count, offset in enumerate(sorted(offsets)):
-        info(f"{count: <5} {offset.to_datetime_string()=}")
+        log.info(f"{count: <5} {offset.to_datetime_string()=}")
     print(
         f"\n{total=:,} messages between"
         f" {after.to_datetime_string()} and {before.to_datetime_string()}\n"

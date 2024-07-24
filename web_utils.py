@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Web utility functions.
-"""
+"""Web utility functions."""
 
 __author__ = "Joseph Reagle"
 __copyright__ = "Copyright (C) 2020-2023 Joseph Reagle"
@@ -14,19 +13,18 @@ import logging
 import os
 import re
 import time
-import xml.sax.saxutils as saxutils
 from typing import Any
+from xml.sax import saxutils
 
 import cachier
 import lxml
+import Path
 import requests  # http://docs.python-requests.org/en/latest/
 
-HOMEDIR = os.path.expanduser("~")
+HOMEDIR = Path.home()
+
 
 log = logging.getLogger("web_utils")
-critical = logging.critical
-info = logging.info
-dbg = logging.debug
 
 
 def escape_XML(text: str) -> str:  # http://wiki.python.org/moin/EscapingXml
@@ -115,7 +113,7 @@ def get_JSON(
 
     # TODO: put limiter here? https://github.com/shaypal5/cachier/issues/65
     AGENT_HEADERS = {"User-Agent": "Reddit Tools https://github.com/reagle/reddit/"}
-    info(f"{url=}")
+    log.info(f"{url=}")
     # TODO: use a HTTPAdapter with max_retires
     # https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/#retry-on-failure
 
@@ -123,12 +121,12 @@ def get_JSON(
         r = requests.get(url, headers=AGENT_HEADERS, verify=True)
         r.raise_for_status()
     except requests.exceptions.RequestException as err:
-        critical(f"{err=} -- waiting 5 minutes, try again, quit if fail")
+        log.critical(f"{err=} -- waiting 5 minutes, try again, quit if fail")
         time.sleep(300)  # wait 5 minutes
         r = requests.get(url, headers=AGENT_HEADERS, verify=True)
         r.raise_for_status()
     returned_content_type = r.headers["content-type"].split(";")[0]
-    info(f"{requested_content_type=} == {returned_content_type=}?")
+    log.info(f"{requested_content_type=} == {returned_content_type=}?")
     if requested_content_type == returned_content_type:
         json_content = json.loads(r.content)
         return json_content
@@ -139,7 +137,5 @@ def get_JSON(
 @cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def get_text(url: str) -> str:
     """Textual version of url"""
-
-    import os
 
     return str(os.popen(f'w3m -O utf8 -cols 10000 -dump "{url}"').read())

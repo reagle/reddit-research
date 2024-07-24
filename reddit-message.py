@@ -17,7 +17,7 @@ __version__ = "1.0"
 
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import csv
-import logging
+import logging as log
 import os
 import pathlib as pl
 import sys
@@ -43,13 +43,6 @@ REDDIT = praw.Reddit(
 NOW = arrow.utcnow()
 NOW_STR = NOW.format("YYYYMMDD HH:mm:ss")
 
-exception = logging.exception
-critical = logging.critical
-error = logging.error
-warning = logging.warning
-info = logging.info
-debug = logging.debug
-
 
 # this is duplicated in reddit-query.py and reddit-message.py
 def is_throwaway(user_name: str) -> bool:
@@ -69,12 +62,12 @@ def select_users(args, df) -> set[str]:
     users_throw = set()
     for _, row in df.iterrows():
         users_found.add(row["author_p"])
-        warning(f'{row["author_p"]=}')
+        log.warning(f'{row["author_p"]=}')
         if is_throwaway(row["author_p"]):
-            warning("  adding to users_throw")
+            log.warning("  adding to users_throw")
             users_throw.add(row["author_p"])
         if row["del_author_p"] is False and row["del_text_r"] is True:
-            warning("  adding to users_del")
+            log.warning("  adding to users_del")
             users_del.add(row["author_p"])
     users_result = users_found.copy()
     print("Users' statistics:")
@@ -264,25 +257,18 @@ def process_args(argv) -> argparse.Namespace:
     arg_parser.add_argument("--version", action="version", version="0.3")
     args = arg_parser.parse_args(argv)
 
-    log_level = logging.ERROR  # 40
-
-    if args.verbose == 1:
-        log_level = logging.WARNING  # 30
-    elif args.verbose == 2:
-        log_level = logging.INFO  # 20
-    elif args.verbose >= 3:
-        log_level = logging.DEBUG  # 10
-    LOG_FORMAT = "%(levelname).3s %(funcName).5s: %(message)s"
+    log_level = (log.CRITICAL) - (args.verbose * 10)
+    LOG_FORMAT = "%(levelname).4s %(funcName).10s:%(lineno)-4d| %(message)s"
     if args.log_to_file:
         print("logging to file")
-        logging.basicConfig(
-            filename=f"{str(pl.PurePath(__file__).name)}.log",
+        log.basicConfig(
+            filename=f"{pl.PurePath(__file__).name!s}.log",
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
         )
     else:
-        logging.basicConfig(level=log_level, format=LOG_FORMAT)
+        log.basicConfig(level=log_level, format=LOG_FORMAT)
 
     return args
 
@@ -290,7 +276,7 @@ def process_args(argv) -> argparse.Namespace:
 if __name__ == "__main__":
     args = process_args(sys.argv[1:])
 
-    info(f"{args=}")
+    log.info(f"{args=}")
     for fn in (args.input_fn, args.greeting_fn):
         if not os.path.exists(fn):
             raise RuntimeError(f"necessary file {fn} does not exist")
