@@ -11,17 +11,12 @@ __copyright__ = "Copyright (C) 2021-2023 Joseph Reagle"
 __license__ = "GLPv3"
 __version__ = "1.0"
 
-# TODO
-# - perhaps make the exclusion of past users a command line argument
-#   and refactor it as a feature of select_users() 2022-07-27
-
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import csv
 import logging as log
-import os
-import pathlib as pl
 import sys
 import time
+from pathlib import Path
 
 import arrow  # https://arrow.readthedocs.io/en/latest/
 import pandas as pd
@@ -44,19 +39,12 @@ NOW = arrow.utcnow()
 NOW_STR = NOW.format("YYYYMMDD HH:mm:ss")
 
 
-# this is duplicated in reddit-query.py and reddit-message.py
 def is_throwaway(user_name: str) -> bool:
     name = user_name.lower()
-    # "throwra" is common throwaway in (relationship) advice subreddits
     return ("throw" in name and "away" in name) or ("throwra" in name)
 
 
 def select_users(args, df) -> set[str]:
-    """Return a list of users fitting criteria
-    - only_deleted: deleted on Reddit
-    - only_existent: NOT deleted
-    - only_throwaway: "throw" and "away" appears in username
-    - only_pseudo: NOT throwaway"""
     users_found = set()
     users_del = set()
     users_throw = set()
@@ -95,19 +83,14 @@ def select_users(args, df) -> set[str]:
 
 
 class UsersArchive:
-    """A persistent set-like store plaintext/csv back-end."""
-
-    def __init__(self, archive_fn: str) -> None:
-        """Create file if it doesn't exist, otherwise read in."""
+    def __init__(self, archive_fn: Path) -> None:
         self.archive_fn = archive_fn
         users_past_d = {}
-        if not os.path.exists(archive_fn):
-            with open(archive_fn, "w", encoding="utf-8") as past_fd:
-                past_fd.write("name,timestamp\n")
-        with open(archive_fn, encoding="utf-8") as past_fd:
-            csv_reader = csv.DictReader(past_fd)
-            for row in csv_reader:
-                users_past_d[row["name"]] = row["timestamp"]
+        if not archive_fn.exists():
+            archive_fn.write_text("name,timestamp\n", encoding="utf-8")
+        csv_reader = csv.DictReader(archive_fn.open(encoding="utf-8"))
+        for row in csv_reader:
+            users_past_d[row["name"]] = row["timestamp"]
         self.users_past = set(users_past_d.keys())
 
     def get(self) -> set:
@@ -116,17 +99,12 @@ class UsersArchive:
     def update(self, user: str) -> None:
         if not args.dry_run and user not in self.users_past:
             self.users_past.add(user)
-            # TODO: I'm not worried about disk IO speed because of the network IO rate
-            # limit but this still feels wasteful, can/should I keep the file
-            # descriptor open across updates?
-            with open(self.archive_fn, "a", encoding="utf-8") as past_fd:
+            with self.archive_fn.open("a", encoding="utf-8") as past_fd:
                 csv_writer = csv.DictWriter(past_fd, fieldnames=["name", "timestamp"])
                 csv_writer.writerow({"name": user, "timestamp": NOW_STR})
 
 
 def message_users(args, users: set[str], subject: str, greeting: str) -> None:
-    """Post message to users, without repeating users"""
-
     user_archive = UsersArchive(args.archive_fn)
     users_past = user_archive.get()
     users_todo = users - users_past
@@ -152,7 +130,6 @@ def message_users(args, users: set[str], subject: str, greeting: str) -> None:
 
 
 def process_args(argv) -> argparse.Namespace:
-    """Process arguments"""
     arg_parser = argparse.ArgumentParser(
         description=(
             "Message Redditors using CSV files with usernames in column"
@@ -161,20 +138,21 @@ def process_args(argv) -> argparse.Namespace:
         ),
     )
 
-    # non-positional arguments
     arg_parser.add_argument(
         "-i",
         "--input-fn",
         metavar="FILENAME",
         required=True,
+        type=Path,
         help="CSV filename, with usernames, created by reddit-query.py",
     )
     arg_parser.add_argument(
         "-a",
         "--archive-fn",
-        default="reddit-message-users-past.csv",
+        default=Path("reddit-message-users-past.csv"),
         metavar="FILENAME",
         required=False,
+        type=Path,
         help=(
             "CSV filename of previously messaged users to skip;"
             + " created if doesn't exist"
@@ -184,9 +162,10 @@ def process_args(argv) -> argparse.Namespace:
     arg_parser.add_argument(
         "-g",
         "--greeting-fn",
-        default="greeting.txt",
+        default=Path("greeting.txt"),
         metavar="FILENAME",
         required=False,
+        type=Path,
         help="greeting message filename (default: %(default)s)",
     )
     arg_parser.add_argument(
@@ -262,7 +241,7 @@ def process_args(argv) -> argparse.Namespace:
     if args.log_to_file:
         print("logging to file")
         log.basicConfig(
-            filename=f"{pl.PurePath(__file__).name!s}.log",
+            filename=Path(__file__).with_suffix(".log"),
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,
@@ -278,9 +257,9 @@ if __name__ == "__main__":
 
     log.info(f"{args=}")
     for fn in (args.input_fn, args.greeting_fn):
-        if not os.path.exists(fn):
+        if not fn.exists():
             raise RuntimeError(f"necessary file {fn} does not exist")
-    with open(args.greeting_fn) as fd:
+    with args.greeting_fn.open() as fd:
         greeting = fd.readlines()
         if greeting[0].lower().startswith("subject: "):
             subject = greeting[0][9:].strip()

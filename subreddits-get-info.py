@@ -33,15 +33,13 @@ REDDIT = praw.Reddit(
 
 def main(input_file: Path) -> None:
     # Read subreddits from the input CSV file
-    with open(input_file, newline="", encoding="utf-8") as file:
-        reader = csv.DictReader(file)
-        subreddits = list(reader)
+    subreddits = list(csv.DictReader(input_file.open(newline="", encoding="utf-8")))
 
     # Create the output file path by appending "_info" to the input file name
     output_file = input_file.with_stem(f"{input_file.stem}_info").with_suffix(".csv")
 
     # Create a CSV file and write headers
-    with open(output_file, "w", newline="", encoding="utf-8") as file:
+    with output_file.open("w", newline="", encoding="utf-8") as file:
         f = csv.writer(file)
         f.writerow(["subreddit", "created", "subscribers", "category"])
 

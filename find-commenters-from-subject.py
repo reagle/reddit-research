@@ -61,24 +61,17 @@ def process_args(argv: list) -> argparse.Namespace:
 def decompress_file(compressed_file: Path) -> Path:
     """Decompress a zstd compressed file."""
     decompressed_file = compressed_file.with_suffix("")  # removes ".zst"
-
     if not decompressed_file.exists():
-        with open(compressed_file, "rb") as compressed, open(
-            decompressed_file, "wb"
-        ) as decompressed:
-            print(f"decompressing {compressed_file}")
-            dctx = zstd.ZstdDecompressor()
-            reader = dctx.stream_reader(compressed)
-            decompressed.write(reader.read())
-
+        print(f"decompressing {compressed_file}")
+        dctx = zstd.ZstdDecompressor()
+        compressed_data = compressed_file.read_bytes()
+        decompressed_data = dctx.decompress(compressed_data)
+        decompressed_file.write_bytes(decompressed_data)
     return decompressed_file
-
 
 @cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def count_lines(file_path: Path) -> int:
-    with open(file_path) as f:
-        return sum(1 for _ in f)
-
+    return sum(1 for _ in file_path.open())
 
 @cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def api_get_post_url(subreddit: str, title: str) -> tuple[str, str]:

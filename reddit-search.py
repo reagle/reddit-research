@@ -14,23 +14,15 @@ __version__ = "1.0"
 import argparse  # http://docs.python.org/dev/library/argparse.html
 import logging as log
 import os
-import pathlib as pl  # https://docs.python.org/3/library/pathlib.html
 import sys
 import textwrap
 import webbrowser
+from pathlib import Path  # https://docs.python.org/3/library/pathlib.html
 
 import pandas as pd
 import requests
 
-# import urllib
-
-
-# from phantomjs import Phantom # TODO: use this for searching DOM?
-
-
-HOME = str(pl.Path("~").expanduser())
-
-
+HOME = Path.home()
 HEADERS = {"User-Agent": "Reddit Search https://github.com/reagle/reddit"}
 
 
@@ -133,11 +125,11 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
             sys.exit()
 
 
-def grab_quotes(file_name: str, column: str, do_recheck: bool) -> None:
+def grab_quotes(file_name: Path, column: str, do_recheck: bool) -> None:
     """Read a column of quotes from a spreadsheet."""
 
     log.info(f"{file_name=}, {column=}, {do_recheck=}")
-    suffix = pl.Path(file_name).suffix
+    suffix = file_name.suffix
     if suffix in [".xls", ".xlsx", ".odf", ".ods", ".odt"]:
         df = pd.read_excel(file_name, keep_default_na=False)
         for _counter, row in df.iterrows():
@@ -178,6 +170,7 @@ def main(argv) -> argparse.Namespace:
         "file_name",
         nargs=1,
         metavar="FILE",
+        type=Path,
     )
     # optional arguments
     arg_parser.add_argument(
@@ -215,7 +208,7 @@ def main(argv) -> argparse.Namespace:
     if args.log_to_file:
         print("logging to file")
         log.basicConfig(
-            filename="reddit-search.log",
+            filename=Path("reddit-search.log"),
             filemode="w",
             level=log_level,
             format=LOG_FORMAT,

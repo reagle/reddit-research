@@ -8,7 +8,7 @@ __license__ = "GLPv3"
 __version__ = "0.1"
 
 import argparse
-import os
+from pathlib import Path
 
 import matplotlib.dates as mdates
 import matplotlib.patheffects as path_effects
@@ -18,8 +18,12 @@ import pandas as pd
 from adjustText import adjust_text
 
 # Create an argument parser
-parser = argparse.ArgumentParser(description="Plot subreddits creation and relative size.")
-parser.add_argument("-i", "--input", required=True, help="Path to the input CSV file")
+parser = argparse.ArgumentParser(
+    description="Plot subreddits creation and relative size."
+)
+parser.add_argument(
+    "-i", "--input", type=Path, required=True, help="Path to the input CSV file"
+)
 args = parser.parse_args()
 
 # Read in the CSV data
@@ -123,7 +127,9 @@ ax.set_yscale("log")
 # Adjust x-axis limits to provide extra space on the right side
 x_min, x_max = ax.get_xlim()
 x_max_date = mdates.num2date(x_max)  # Convert x_max to datetime
-ax.set_xlim(x_min, mdates.date2num(x_max_date + pd.Timedelta(days=365)))  # Add one year of extra space
+ax.set_xlim(
+    x_min, mdates.date2num(x_max_date + pd.Timedelta(days=365))
+)  # Add one year of extra space
 
 # Add labels
 ax.set_xlabel("Date Created")
@@ -131,14 +137,20 @@ ax.set_ylabel("Number of Subscribers")
 ax.set_title("Creation and Size of Advice Subreddits")
 
 # Add the legend to the plot
-ax.legend(handles=legend_handles.values(), labels=legend_labels.values(), loc="upper right")
+ax.legend(
+    handles=legend_handles.values(), labels=legend_labels.values(), loc="upper right"
+)
 
 plt.tight_layout()
 
 # Adjust overlapping labels
-adjust_text(texts, only_move={'points':'y', 'texts':'y'}, arrowprops={'arrowstyle': "-", 'color': "black", 'lw': 0.0})
+adjust_text(
+    texts,
+    only_move={"points": "y", "texts": "y"},
+    arrowprops={"arrowstyle": "-", "color": "black", "lw": 0.0},
+)
 
 # Save the plot as a PNG file with the same name as the input file
-output_file = os.path.splitext(args.input)[0] + ".png"
+output_file = Path(args.input).with_suffix(".png")
 plt.savefig(output_file, dpi=300)
 plt.show()
