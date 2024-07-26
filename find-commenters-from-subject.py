@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Find the usernames of commenters associated with submission titles
+"""Find the usernames of commenters associated with submission titles
 (and their subreddits).
 
 Read a CSV file of Reddit submission titles and use a JSONL dump file
@@ -48,7 +47,6 @@ REDDIT = praw.Reddit(
 
 def process_args(argv: list) -> argparse.Namespace:
     """Process command-line arguments using argparse."""
-
     parser = argparse.ArgumentParser(
         description="Find URLs and commenters for Reddit posts."
     )

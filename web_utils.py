@@ -28,16 +28,17 @@ log = logging.getLogger("web_utils")
 
 
 def escape_XML(text: str) -> str:  # http://wiki.python.org/moin/EscapingXml
-    """Escape XML character entities; & < > are defaulted"""
+    """Escape XML character entities; & < > are defaulted."""
     extras = {"\t": "  "}
     return saxutils.escape(text, extras)
 
 
 def unescape_XML(text: str) -> str:  # .0937s 4.11%
-    """
-    Removes HTML or XML character references and entities from text.
+    """Remove HTML or XML character references and entities from text.
+
     http://effbot.org/zone/re-sub.htm#unescape-htmlentitydefs
-    Marginally faster than `from xml.sax.saxutils import escape, unescape`
+
+    Marginally faster than `from xml.sax.saxutils import escape, unescape`.
 
     """
 
@@ -70,7 +71,6 @@ def get_HTML(
     cache_control: str = "",
 ) -> tuple[bytes, Any, str, requests.models.Response]:
     """Return [HTML content, response] of a given URL."""
-
     time.sleep(rate_limit)
 
     AGENT_HEADERS = {"User-Agent": "MacOS:reddit-query.py:v0.5 (by /u/reagle-reseach)"}
@@ -108,7 +108,6 @@ def get_JSON(
     can limit me down to 3 minutes!
     https://www.reddit.com/r/pushshift/comments/shg1sy/rate_limit/
     """
-
     time.sleep(rate_limit)
 
     # TODO: put limiter here? https://github.com/shaypal5/cachier/issues/65
@@ -136,6 +135,5 @@ def get_JSON(
 
 @cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def get_text(url: str) -> str:
-    """Textual version of url"""
-
+    """Textual version of url."""
     return str(os.popen(f'w3m -O utf8 -cols 10000 -dump "{url}"').read())

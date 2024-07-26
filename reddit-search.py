@@ -27,8 +27,7 @@ HEADERS = {"User-Agent": "Reddit Search https://github.com/reagle/reddit"}
 
 
 def auto_search(query: str, subreddit: str, quote: str, target_url: str) -> None:
-    """Does the URL appear in the query results?"""
-
+    """Does the URL appear in the query results?."""
     log.info(f"{subreddit=}")
     log.info(f"{query=}")
     if not target_url:  # there's nothing to test against in results
@@ -127,7 +126,6 @@ def quotes_search(row: dict, heading: str, do_recheck: bool) -> None:
 
 def grab_quotes(file_name: Path, column: str, do_recheck: bool) -> None:
     """Read a column of quotes from a spreadsheet."""
-
     log.info(f"{file_name=}, {column=}, {do_recheck=}")
     suffix = file_name.suffix
     if suffix in [".xls", ".xlsx", ".odf", ".ods", ".odt"]:
@@ -146,7 +144,7 @@ def grab_quotes(file_name: Path, column: str, do_recheck: bool) -> None:
 
 
 def main(argv) -> argparse.Namespace:
-    """Process arguments"""
+    """Process arguments."""
     arg_parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=textwrap.dedent("""

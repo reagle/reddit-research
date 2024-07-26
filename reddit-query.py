@@ -54,11 +54,9 @@ def is_throwaway(user_name: str) -> bool:
 
 
 def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf[typ.Any]:
-    """
-    Use praw's info() method to grab reddit info all at once
+    """Use praw's info() method to grab reddit info all at once
     and store on a disk for quick retrieval.
     """
-
     # TODO if key already in shelf continue, otherwise grab
     # Break up into 100s
     shelf = shelve.open("shelf-reddit.dbm")
@@ -77,7 +75,6 @@ def get_reddit_info(
     shelf: shelve.DbfilenameShelf, id_: str, author_pushshift: str
 ) -> tuple[str, str, str]:
     """Given id, returns info from reddit."""
-
     author_reddit = "NA"
     is_deleted = "NA"
     is_removed = "NA"
@@ -128,7 +125,6 @@ def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> typ.Any
     https://www.reddit.com/dev/api/
     https://praw.readthedocs.io/en/latest
     """
-
     # Use these for manual confirmation of results
     # PUSHSHIFT_API_URL = (
     #     "https://api.pushshift.io/reddit/submission/search?ids="
@@ -214,7 +210,6 @@ def query_pushshift(
     comments_num: str = ">0",
 ) -> typ.Any:
     """Given search parameters, query pushshift and return JSON."""
-
     # https://github.com/pushshift/api
 
     # no need to pass different limit params beyond 100 (Pushshift's limit)
@@ -266,8 +261,8 @@ def collect_pushshift_results(
 ) -> tuple[int, typ.Any]:
     """Pushshift limited to PUSHSHIFT_LIMIT (100) results,
     so need multiple queries to collect results in date range up to
-    or sampled at limit."""
-
+    or sampled at limit.
+    """
     log.info(f"{after=}, {before=}")
     log.info(f"{after.timestamp()=}, {before.timestamp()=}")
     if args.sample:  # collect PUSHSHIFT_LIMIT at offsets
@@ -315,7 +310,7 @@ def export_df(name, df) -> None:
 
 
 def main(argv) -> argparse.Namespace:
-    """Process arguments"""
+    """Process arguments."""
     arg_parser = argparse.ArgumentParser(description="Query Pushshift and Reddit APIs.")
 
     # optional arguments

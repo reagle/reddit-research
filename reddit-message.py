@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""
+"""Message Redditors listed in CSV.
+
 Message Redditors using CSV files from with usernames in column
 `author_p`. Can take output of reddit-query.py or reddit-watch.py
 and select users for messaging based on attributes (e.g., throwaway,
-deleted, or already messaged)."
+deleted, or already messaged).".
 """
 
 __author__ = "Joseph Reagle"

@@ -47,11 +47,9 @@ log.debug = logging.debug
 
 
 def is_overlapping(offsets: list, PUSHSHIFT_LIMIT: int, results_per_hour: int) -> bool:
+    """If I grab PUSHSHIFT_LIMIT results at an offset hour, am I enough
+    hours in the future from the last offset hour to avoid overlap.
     """
-    If I grab PUSHSHIFT_LIMIT results at an offset hour, am I enough
-    hours in the future from the last offset hour to avoid overlap
-    """
-
     last = None
     hours_needed = math.ceil(PUSHSHIFT_LIMIT / results_per_hour)
     log.info(f"{offsets=}")
@@ -81,7 +79,8 @@ def get_pushshift_total(
     before: pendulum.DateTime,
 ) -> int:
     """Get the total number of results in a Pushshift query via the
-    '&metadata=true' parameter"""
+    '&metadata=true' parameter.
+    """
     log.info("*************")
     log.info(f"after = {after.format('YYYY-MM-DD HH:mm:ss ZZ')}")
     after_epoch = int(after.int_timestamp)
@@ -105,16 +104,16 @@ def get_pushshift_total(
 
 def get_sequence(size: int, samples: int) -> list[int]:
     """Return [0,size, k=samples). This is not very cacheable as different
-    sample sizes generate different offsets."""
-
+    sample sizes generate different offsets.
+    """
     step = math.ceil(size / samples)
     return list(range(0, size, step))
 
 
 def get_cacheable_np_randos(size: int, samples: int, seed: int):
     """Return k=samples of random integers in range up to `size` such that a
-    larger sample result includes smaller sample results. Using numpy"""
-
+    larger sample result includes smaller sample results. Using numpy.
+    """
     # random.seed(seed)
     return sorted(np.random.randint(low=0, high=size + 1, size=samples))
 
@@ -127,7 +126,7 @@ def get_cacheable_randos(size: int, samples: int, seed: int):
     >>> get_cacheable_randos(50, 10, seed=7)
     [3, 4, 6, 9, 20, 23, 25, 34, 37, 41]
     >>> get_cacheable_randos(50, 15, seed=7)
-    [2, 3, 4, 5, 6, 9, 13, 20, 23, 25, 32, 34, 37, 41, 45]
+    [2, 3, 4, 5, 6, 9, 13, 20, 23, 25, 32, 34, 37, 41, 45].
     """
     # TODO: Replace with low-discrepancy, quasi-random numbers
     # (qmc.Sobol.integers() is forthcoming in scipy 1.9)
@@ -144,8 +143,8 @@ def get_offsets(
     PUSHSHIFT_LIMIT: int,
 ) -> list[pendulum.DateTime]:
     """For sampling, return a set of hourly offsets, beginning near
-    after, that should not overlap"""
-
+    after, that should not overlap.
+    """
     duration = before - after
     log.info(f"{duration.in_days()=}")
     log.info(f"{duration.in_hours()=}")
