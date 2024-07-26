@@ -41,11 +41,13 @@ NOW_STR = NOW.format("YYYYMMDD HH:mm:ss")
 
 
 def is_throwaway(user_name: str) -> bool:
+    """Return True if the username is a throwaway."""
     name = user_name.lower()
     return ("throw" in name and "away" in name) or ("throwra" in name)
 
 
 def select_users(args, df) -> set[str]:
+    """Select users based on arguments and DataFrame."""
     users_found = set()
     users_del = set()
     users_throw = set()
@@ -84,6 +86,8 @@ def select_users(args, df) -> set[str]:
 
 
 class UsersArchive:
+    """Maintain a set of users who have been messaged."""
+
     def __init__(self, archive_fn: Path) -> None:
         self.archive_fn = archive_fn
         users_past_d = {}
@@ -106,6 +110,7 @@ class UsersArchive:
 
 
 def message_users(args, users: set[str], subject: str, greeting: str) -> None:
+    """Message users."""
     user_archive = UsersArchive(args.archive_fn)
     users_past = user_archive.get()
     users_todo = users - users_past
@@ -131,6 +136,7 @@ def message_users(args, users: set[str], subject: str, greeting: str) -> None:
 
 
 def process_args(argv) -> argparse.Namespace:
+    """Process command-line arguments."""
     arg_parser = argparse.ArgumentParser(
         description=(
             "Message Redditors using CSV files with usernames in column"
