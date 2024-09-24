@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 
-"""Plot subreddits creation and relative size."""
+"""Plot subreddits creation and relative size.
+
+Create a bubble plot of subreddits in which the horizontal access is year created
+and the vertical axis is a log of the number of subscribers each subreddit has.
+Color each bubble according to its category.
+Label each bubble by its subreddit name, offset to the right of each bubble and
+using a 2 pixel white shadow to improve their visibility.
+Ensure that labels are not far from their bubbles and do not overlap,
+adjusting them vertically as necessary.
+"""
 
 __author__ = "Joseph Reagle"
 __copyright__ = "Copyright (C) 2024 Joseph Reagle"
@@ -61,7 +70,7 @@ THRESHOLD_YEAR = 2024  # Ignore subreddits created after this year
 # Create the plot
 fig, ax = plt.subplots(figsize=(12, 8))
 
-ADJUST_CIRCUMFERENCE = 5
+ADJUST_CIRCUMFERENCE = 4
 ADJUST_CIRCLE_LABEL_OFFSET = 8
 
 # Create a dictionary to store the legend handles and labels
@@ -127,9 +136,8 @@ ax.set_yscale("log")
 # Adjust x-axis limits to provide extra space on the right side
 x_min, x_max = ax.get_xlim()
 x_max_date = mdates.num2date(x_max)  # Convert x_max to datetime
-ax.set_xlim(
-    x_min, mdates.date2num(x_max_date + pd.Timedelta(days=365))
-)  # Add one year of extra space
+# Add one year of extra space
+ax.set_xlim(x_min, mdates.date2num(x_max_date + pd.Timedelta(days=365)))
 
 # Add labels
 ax.set_xlabel("Date Created")
@@ -143,7 +151,8 @@ ax.legend(
 
 plt.tight_layout()
 
-# Adjust overlapping labels
+# Adjust overlapping labels keeping them as close as possible without overlap.
+# Hide lines.
 adjust_text(
     texts,
     only_move={"points": "y", "texts": "y"},
