@@ -51,7 +51,7 @@ category_colors = {
     "health": "red",
     "fashion": "pink",
     "gender": "green",
-    "funny": "purple",
+    "disclosure": "purple",
     "judgement": "orange",
 }
 
