@@ -1,12 +1,34 @@
-[tool.black]
-
-line-length = 88
-preview = true
+[project]
+name = "reddit-research"
+version = "1.0.0"
+description = "Tools for scraping and analyzing Reddit"
+authors = [{ name = "Joseph Reagle"}]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "adjusttext>=1.2.0",
+    "arrow>=1.3.0",
+    "cachier>=3.0.1",
+    "fuzz>=0.1.1",
+    "jsonlines>=4.0.0",
+    "lxml>=5.3.0",
+    "matplotlib>=3.9.2",
+    "numpy>=2.1.2",
+    "pandas>=2.2.3",
+    "pendulum>=3.0.0",
+    "praw>=7.7.1",
+    "psaw>=0.1.0",
+    "pytz>=2024.2",
+    "requests>=2.32.3",
+    "seaborn>=0.13.2",
+    "tqdm>=4.66.5",
+    "zstandard>=0.23.0",
+]
 
 [tool.ruff]
 
-# Same as Black.
-line-length = 88
+line-length = 88 # Same as Black
 
 lint.select = [
 "A", # flake8-builtins        https://tinyurl.com/ruff-rules#flake8-builtins-a
@@ -47,6 +69,9 @@ lint.unfixable = [
 "F401", # keep unused modules as I'm likely to use them shortly
 ]
 
+# Allow unused variables when underscore-prefixed.
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
 # Exclude a variety of commonly ignored directories.
 exclude = [
     ".bzr",
@@ -71,18 +96,12 @@ exclude = [
     "_old",
 ]
 
-# Allow unused variables when underscore-prefixed.
-lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
 [tool.ruff.lint.mccabe] # enabled via "C90" above
 max-complexity = 10
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-r a -q --doctest-modules"
-testpaths = [
-    "biblio", "formats", "tests"
-]
 filterwarnings = "ignore::DeprecationWarning"
 enable_assertion_pass_hook = true
 
