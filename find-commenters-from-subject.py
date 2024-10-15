@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Find the usernames of commenters associated with submission titles
-(and their subreddits).
+"""Find usernames of commenters associated with submission titles and their subreddits.
 
 Read a CSV file of Reddit submission titles and use a JSONL dump file
 or PRAW to find the URL of each post.
@@ -67,9 +66,11 @@ def decompress_file(compressed_file: Path) -> Path:
         decompressed_file.write_bytes(decompressed_data)
     return decompressed_file
 
+
 @cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def count_lines(file_path: Path) -> int:
     return sum(1 for _ in file_path.open())
+
 
 @cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def api_get_post_url(subreddit: str, title: str) -> tuple[str, str]:
@@ -83,7 +84,9 @@ def api_get_post_url(subreddit: str, title: str) -> tuple[str, str]:
 
 @cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
 def jsonl_get_post_url(subreddit: str, title: str) -> tuple[str, str]:
-    """Given the name of a subreddit, look for the compressed or decompressed
+    """Get Reddit data dump given subreddit name.
+
+    Given the name of a subreddit, look for the compressed or decompressed
     "{DUMPS_Path}/{subreddit}_submissions.jsonl[.zst]" file;
     Search for the title and return the found title and corresponding URL.
     """
@@ -131,6 +134,7 @@ def api_get_commenters(url: str) -> list[str]:
 
 def process_submissions(input_csv: Path) -> list[dict[str, str]]:
     """Process the input CSV file to find URLs and commenters.
+
     Because Reddit always returns, check if the queried and returned
     title are sufficiently close.
 
@@ -183,6 +187,7 @@ def process_submissions(input_csv: Path) -> list[dict[str, str]]:
 
 
 def save_to_csv(data: list[dict[str, str]], output_path: Path):
+    """Save the data to a CSV file."""
     fieldnames = [
         "subreddit",
         "author_p",

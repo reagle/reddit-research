@@ -87,12 +87,12 @@ def init_watch_pushshift(subreddit: str, hours: int) -> Path:
 
 
 def init_watch_reddit(subreddit: str, limit: int) -> Path:
-    """UNUSED: better to use Pushshift, if up to date without delay,
-    because it'll have ids which Reddit won't.
+    """Initiate watch of subreddit using Reddit, create CSV, return filename.
 
-    Initiate watch of subreddit using Reddit, create CSV, return filename.
     Reddit can return a maximum of only 1000 recent and previous submissions.
-    Even when Pushshift is down, TODO
+    Even when Pushshift is down.
+
+    DEPRECATED as Pushshift should have ids which Reddit won't.
     """
     submissions_d = collections.defaultdict(list)
     print(f"fetching initial posts from {subreddit}")
@@ -141,9 +141,7 @@ def prefetch_reddit_posts(ids_req: tuple[str]) -> dict:
 
 
 def update_watch(watched_fn: Path) -> Path:
-    """Process a CSV, checking to see if values have changed and
-    timestamping if so.
-    """
+    """Process a CSV, checking to see if values have changed and timestamping if so."""
     print(f"Updating {watched_fn=}")
     assert watched_fn.exists()
     watched_df = pd.read_csv(watched_fn, encoding="utf-8-sig", index_col=0)
@@ -191,9 +189,7 @@ def update_watch(watched_fn: Path) -> Path:
 
 
 def rotate_archive_fns(updated_fn: Path) -> None:
-    """Given an updated filename, archive it to the zip file and rename it to
-    be the latest.
-    """
+    """Archive file to the zip file and rename it to be the latest."""
     print(f"Rotating and archiving {updated_fn=}")
     if not updated_fn.exists():
         raise RuntimeError(f"{updated_fn.exists()}")
@@ -224,9 +220,7 @@ def rotate_archive_fns(updated_fn: Path) -> None:
 
 
 def init_archive(updated_fn: Path) -> None:
-    """Initialize the archive file with most recent version, to be added to with
-    timestamped versions.
-    """
+    """Initialize the archive file with most recent version."""
     print(f"Initializing archive for {updated_fn=}")
     bare_fn = updated_fn.name.removeprefix("updated-").removesuffix(".csv")
     zipped_fn = updated_fn.parent / f"{bare_fn}-arch.zip"
