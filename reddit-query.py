@@ -48,15 +48,14 @@ reddit = praw.Reddit(
 
 # This is duplicated in reddit-query.py and reddit-message.py
 def is_throwaway(user_name: str) -> bool:
+    """Determine if a user name is a throwaway account."""
     name = user_name.lower()
     # "throwra" is common throwaway in (relationship) advice subreddits
     return ("throw" in name and "away" in name) or ("throwra" in name)
 
 
-def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf[typ.Any]:
-    """Use praw's info() method to grab reddit info all at once
-    and store on a disk for quick retrieval.
-    """
+def prefetch_reddit_posts(ids_req: list[str]) -> shelve.Shelf[typ.Any]:
+    """Use praw's info() method to pre-fetch and cache Reddit info."""
     # TODO if key already in shelf continue, otherwise grab
     # Break up into 100s
     shelf = shelve.open("shelf-reddit.dbm")
@@ -72,12 +71,12 @@ def prefetch_reddit_posts(ids_req: list[str]) -> shelve.DbfilenameShelf[typ.Any]
 
 
 def get_reddit_info(
-    shelf: shelve.DbfilenameShelf, id_: str, author_pushshift: str
-) -> tuple[str, str, str]:
+    shelf: shelve.Shelf[typ.Any], id_: str, author_pushshift: str
+) -> tuple[str, bool, bool]:
     """Given id, returns info from reddit."""
     author_reddit = "NA"
-    is_deleted = "NA"
-    is_removed = "NA"
+    is_deleted = False
+    is_removed = False
     if args.skip:
         log.debug(f"reddit skipped because args.skip {author_pushshift=}")
     elif args.throwaway_only and not is_throwaway(author_pushshift):
@@ -87,8 +86,6 @@ def get_reddit_info(
         )
     else:
         author_reddit = "[deleted]"
-        is_deleted = "False"
-        is_removed = "False"
 
         # submission = REDDIT.submission(id=id_)
         if id_ in shelf:
@@ -97,7 +94,7 @@ def get_reddit_info(
             # These instances are very rare 0.001%
             # https://www.reddit.com/r/pushshift/comments/vby7c2/rare_pushshift_has_a_submission_id_reddit_returns/icbbtkr/?context=3
             print(f"WARNING: {id_=} not in shelf")
-            return "[deleted]", "False", "False"
+            return "[deleted]", False, False
         author_reddit = "[deleted]" if not submission.author else submission.author
         log.debug(f"reddit found {author_pushshift=}")
         log.debug(f"{submission=}")
@@ -110,14 +107,13 @@ def get_reddit_info(
             is_deleted = True
         # when removed and then deleted, set deleted as well
         if submission.removed_by_category == "deleted":
-            is_deleted = "True"
+            is_deleted = True
 
     return author_reddit, is_deleted, is_removed
 
 
 def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> typ.Any:
-    """Given pushshift query results, return dataframe of info about
-    submissions.
+    """Given pushshift query results, return dataframe of info about submissions.
 
     https://github.com/pushshift/api
     https://github.com/dmarx/psaw
@@ -259,7 +255,9 @@ def collect_pushshift_results(
     query: str = "",
     comments_num: str = ">0",
 ) -> tuple[int, typ.Any]:
-    """Pushshift limited to PUSHSHIFT_LIMIT (100) results,
+    """Breakup queries by PUSHSHIFT_LIMIT.
+
+    Pushshift limited to PUSHSHIFT_LIMIT (100) results,
     so need multiple queries to collect results in date range up to
     or sampled at limit.
     """
@@ -305,6 +303,7 @@ def collect_pushshift_results(
 
 
 def export_df(name, df) -> None:
+    """Export dataframe to CSV."""
     df.to_csv(f"{name}.csv", encoding="utf-8-sig", index=False)
     print(f"saved dataframe of shape {df.shape} to '{name}.csv'")
 
@@ -397,7 +396,7 @@ def main(argv) -> argparse.Namespace:
         "--verbose",
         action="count",
         default=0,
-        help="increase logging verbosity (specify multiple times for more)",
+        help="increase verbosity from critical though error, warning, info, and debug",
     )
     arg_parser.add_argument("--version", action="version", version="0.4")
     args = arg_parser.parse_args(argv)
