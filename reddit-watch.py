@@ -271,7 +271,7 @@ def main(argv) -> argparse.Namespace:
         "--verbose",
         action="count",
         default=0,
-        help="increase logging verbosity (specify multiple times for more)",
+        help="increase verbosity from critical though error, warning, info, and debug",
     )
 
     arg_parser.add_argument("--version", action="version", version="0.3")
