@@ -1,6 +1,6 @@
 """Sample messages over significant spans, used by `reddit-query.py`.
 
-Reddit itself doesn't  permit date-ranges, so I have to pull data from
+Reddit itself doesn't permit date-ranges, so I have to pull data from
 Pushshift, estimate how many chunks (PUSHSHIFT_LIMIT) to take at hourly
 offsets within the range, including the ability to sample throughout
 the range.
@@ -47,7 +47,9 @@ log.debug = logging.debug
 
 
 def is_overlapping(offsets: list, PUSHSHIFT_LIMIT: int, results_per_hour: int) -> bool:
-    """If I grab PUSHSHIFT_LIMIT results at an offset hour, am I enough
+    """Determine if my time, determined by PUSHSHIFT_LIMIT, overlaps.
+
+    If I grab PUSHSHIFT_LIMIT results at an offset hour, am I enough
     hours in the future from the last offset hour to avoid overlap.
     """
     last = None
@@ -78,8 +80,9 @@ def get_pushshift_total(
     after: pendulum.DateTime,
     before: pendulum.DateTime,
 ) -> int:
-    """Get the total number of results in a Pushshift query via the
-    '&metadata=true' parameter.
+    """Get the total number of results in a Pushshift query.
+
+    Uses the '&metadata=true' parameter.
     """
     log.info("*************")
     log.info(f"after = {after.format('YYYY-MM-DD HH:mm:ss ZZ')}")
@@ -103,24 +106,27 @@ def get_pushshift_total(
 
 
 def get_sequence(size: int, samples: int) -> list[int]:
-    """Return [0,size, k=samples). This is not very cacheable as different
-    sample sizes generate different offsets.
+    """Return [0,size, k=samples).
+
+    This is not very cacheable as different sample sizes generate different offsets.
     """
     step = math.ceil(size / samples)
     return list(range(0, size, step))
 
 
 def get_cacheable_np_randos(size: int, samples: int, seed: int):
-    """Return k=samples of random integers in range up to `size` such that a
-    larger sample result includes smaller sample results. Using numpy.
+    """Return k=samples of random integers in range up to `size`.
+
+    A larger sample result includes smaller sample results. Using numpy.
     """
     # random.seed(seed)
     return sorted(np.random.randint(low=0, high=size + 1, size=samples))
 
 
 def get_cacheable_randos(size: int, samples: int, seed: int):
-    """Return k=samples of random integers in range up to `size` such that a
-    larger sample result includes smaller sample results.
+    """Return k=samples of random integers in range up to `size`.
+
+    A larger sample result includes smaller sample results.
     >>> get_cacheable_randos(50, 5, seed=7)
     [3, 9, 20, 25, 41]
     >>> get_cacheable_randos(50, 10, seed=7)
@@ -142,8 +148,9 @@ def get_offsets(
     sample_size: int,
     PUSHSHIFT_LIMIT: int,
 ) -> list[pendulum.DateTime]:
-    """For sampling, return a set of hourly offsets, beginning near
-    after, that should not overlap.
+    """For sampling, return a set of hourly offsets.
+
+    Begins near after that should not overlap.
     """
     duration = before - after
     log.info(f"{duration.in_days()=}")
