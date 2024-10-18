@@ -1,5 +1,4 @@
 Tools for scraping and analyzing Reddit and for messaging Redditors.
-The tools help messages (as of 2022-10-27) are below.
 
 ## reddit-search.py
 
