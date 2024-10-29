@@ -13,18 +13,32 @@ import logging
 import os
 import re
 import time
+from pathlib import Path
 from typing import Any
 from xml.sax import saxutils
 
 import cachier
+import keyring
 import lxml
-import Path
 import requests  # http://docs.python-requests.org/en/latest/
 
 HOMEDIR = Path.home()
 
-
 log = logging.getLogger("web_utils")
+
+
+def get_credential(service: str, key: str) -> str:
+    """Retrieve credential from keychain or prompt user if missing."""
+    value = keyring.get_password(service, key)
+
+    if not value:
+        print(f"\nCredential {key} not found in keychain.")
+        value = input(f"Enter {key}: ")
+        # value = getpass(f"Enter {key}: ")
+        keyring.set_password(service, key, value)
+        print(f"Stored {key} in keychain")
+
+    return value
 
 
 def escape_XML(text: str) -> str:  # http://wiki.python.org/moin/EscapingXml

@@ -26,10 +26,8 @@ import praw  # type: ignore # https://praw.readthedocs.io/en/latest
 import tqdm  # progress bar https://github.com/tqdm/tqdm
 
 import reddit_sample as rs
-import web_api_tokens as wat
 import web_utils
 
-# https://www.reddit.com/dev/api/
 # https://github.com/pushshift/api
 # import psaw  # Pushshift API https://github.com/dmarx/psaw no exclude:not
 
@@ -38,10 +36,10 @@ NOW_STR = NOW.format("YYYYMMDD")
 PUSHSHIFT_LIMIT = 100
 REDDIT_LIMIT = 100
 
-reddit = praw.Reddit(
-    user_agent=wat.REDDIT_USER_AGENT,
-    client_id=wat.REDDIT_CLIENT_ID,
-    client_secret=wat.REDDIT_CLIENT_SECRET,
+REDDIT = praw.Reddit(
+    user_agent=web_utils.get_credential("Reddit_API", "REDDIT_USER_AGENT"),
+    client_id=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_ID"),
+    client_secret=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_SECRET"),
     ratelimit_seconds=600,
 )
 
