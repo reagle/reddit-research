@@ -22,18 +22,18 @@ import pendulum  # https://pendulum.eustace.io/docs/
 import praw
 
 import web_api_tokens as wat
-import web_utils  # https://github.com/reagle/thunderdell
 
 # datetime: date, time, datetime, timedelta
 # pendulum: datetime, Duration (timedelta), Period (Duration)
-
+import web_utils  # https://github.com/reagle/thunderdell
 
 REDDIT = praw.Reddit(
-    user_agent=wat.REDDIT_USER_AGENT,
-    client_id=wat.REDDIT_CLIENT_ID,
-    client_secret=wat.REDDIT_CLIENT_SECRET,
+    user_agent=web_utils.get_credential("Reddit_API", "REDDIT_USER_AGENT"),
+    client_id=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_ID"),
+    client_secret=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_SECRET"),
     ratelimit_seconds=600,
 )
+
 
 HOMEDIR = Path.home()
 

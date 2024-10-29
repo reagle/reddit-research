@@ -23,9 +23,8 @@ import pendulum  # https://pendulum.eustace.io/docs/
 import praw  # type: ignore # https://praw.readthedocs.io/en/latest
 import tqdm  # progress bar https://github.com/tqdm/tqdm
 
-import web_api_tokens as wat
+import web_utils
 
-DATA_DIR = Path("/Users/reagle/data/1work/2020/reddit-del")
 INI_FN = DATA_DIR / "watch-reddit.ini"
 NOW = pendulum.now("UTC")
 NOW_STR = NOW.format("YYYYMMDD HH:mm:ss")
@@ -33,10 +32,10 @@ PUSHSHIFT_LIMIT = 100
 REDDIT_LIMIT = 100
 pp = pprint.PrettyPrinter(indent=4)
 
-reddit = praw.Reddit(
-    user_agent=wat.REDDIT_USER_AGENT,
-    client_id=wat.REDDIT_CLIENT_ID,
-    client_secret=wat.REDDIT_CLIENT_SECRET,
+REDDIT = praw.Reddit(
+    user_agent=web_utils.get_credential("Reddit_API", "REDDIT_USER_AGENT"),
+    client_id=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_ID"),
+    client_secret=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_SECRET"),
     ratelimit_seconds=600,
 )
 

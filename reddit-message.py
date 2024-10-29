@@ -25,14 +25,14 @@ import praw  # https://praw.readthedocs.io/en/latest
 import tqdm  # progress bar https://github.com/tqdm/tqdm
 from praw.exceptions import RedditAPIException
 
-import web_api_tokens as wat
+import web_utils
 
 REDDIT = praw.Reddit(
-    user_agent=wat.REDDIT_USER_AGENT,
-    client_id=wat.REDDIT_CLIENT_ID,
-    client_secret=wat.REDDIT_CLIENT_SECRET,
-    username=wat.REDDIT_USERNAME,
-    password=wat.REDDIT_PASSWORD,
+    user_agent=web_utils.get_credential("Reddit_API", "REDDIT_USER_AGENT"),
+    client_id=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_ID"),
+    client_secret=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_SECRET"),
+    username=web_utils.get_credential("Reddit_API", "REDDIT_USERNAME"),
+    password=web_utils.get_credential("Reddit_API", "REDDIT_PASSWORD"),
     ratelimit_seconds=600,
 )
 
