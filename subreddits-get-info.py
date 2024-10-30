@@ -15,26 +15,24 @@ import datetime
 from pathlib import Path
 
 import praw
+import prawcore
 import pytz
 
-# import web_api_tokens as wat
 import web_utils
 
 REDDIT = praw.Reddit(
-    user_agent=web_utils.get_credential("Reddit_API", "REDDIT_USER_AGENT"),
-    client_id=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_ID"),
-    client_secret=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_SECRET"),
-    username=web_utils.get_credential("Reddit_API", "REDDIT_USERNAME"),
-    password=web_utils.get_credential("Reddit_API", "REDDIT_PASSWORD"),
+    user_agent=web_utils.get_credential("REDDIT_USER_AGENT"),
+    client_id=web_utils.get_credential("REDDIT_CLIENT_ID"),
+    client_secret=web_utils.get_credential("REDDIT_CLIENT_SECRET"),
+    username=web_utils.get_credential("REDDIT_USERNAME"),
+    password=web_utils.get_credential("REDDIT_PASSWORD"),
     ratelimit_seconds=600,
 )
 
 
 def main(input_file: Path) -> None:
-    # Read subreddits from the input CSV file
+    """Read subreddits from CSV, fetch information, write to new CSV."""
     subreddits = list(csv.DictReader(input_file.open(newline="", encoding="utf-8")))
-
-    # Create the output file path by appending "_info" to the input file name
     output_file = input_file.with_stem(f"{input_file.stem}_info").with_suffix(".csv")
 
     # Create a CSV file and write headers
@@ -55,8 +53,8 @@ def main(input_file: Path) -> None:
 
                 f.writerow([sub.display_name, creation_date, subscribers, category])
                 print(f"Writing data for r/{sub.display_name}")
-            except Exception as e:
-                print(f"Error while fetching data for r/{subreddit['subreddit']}: {e}")
+            except prawcore.PrawcoreException as err:
+                print(f"Error fetching data for r/{subreddit['subreddit']}: {err}")
                 # Write the name with null values for creation_date and subscribers
                 f.writerow([subreddit["subreddit"], "", "", subreddit["category"]])
 

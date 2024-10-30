@@ -17,26 +17,27 @@ from pathlib import Path
 from typing import Any
 from xml.sax import saxutils
 
-import cachier
-import keyring
+import cachier  # https://pypi.org/project/cachier/
+import dotenv  # https://pypi.org/project/python-dotenv/
 import lxml
 import requests  # http://docs.python-requests.org/en/latest/
-
-HOMEDIR = Path.home()
 
 log = logging.getLogger("web_utils")
 
 
-def get_credential(service: str, key: str) -> str:
-    """Retrieve credential from keychain or prompt user if missing."""
-    value = keyring.get_password(service, key)
+def get_credential(key: str) -> str:
+    """Retrieve credential from environ, file, or solicitation."""
+    ENV_FN = Path.home() / ".config" / "api-info.env"
+    # Make sure the file is not public for security's sake
+    if ENV_FN.stat().st_mode & 0o777 != 0o600:
+        print(f"WARNING: {ENV_FN} is not 0o600; fixing")
+        ENV_FN.chmod(0o600)
 
-    if not value:
-        print(f"\nCredential {key} not found in keychain.")
-        value = input(f"Enter {key}: ")
-        # value = getpass(f"Enter {key}: ")
-        keyring.set_password(service, key, value)
-        print(f"Stored {key} in keychain")
+    # Load from file; environment value wins unless `override=True`
+    dotenv.load_dotenv(dotenv_path=ENV_FN)
+    if (value := os.getenv(key)) is None:
+        value = input(f"Enter value for {key}: ").strip()
+        dotenv.set_key(ENV_FN, key, value)
 
     return value
 
