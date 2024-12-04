@@ -21,11 +21,12 @@ from pathlib import Path
 import cachier
 import jsonlines
 import praw
+import web_api_tokens as wat
 import zstandard as zstd
 from rapidfuzz import fuzz
 from tqdm import tqdm  # type: ignore
 
-import web_api_tokens as wat
+import web_utils
 
 __author__ = "Joseph Reagle"
 __copyright__ = "Copyright (C) 2024 Joseph Reagle"
@@ -33,13 +34,12 @@ __license__ = "GLPv3"
 __version__ = "0.1"
 
 
-# Create a Reddit instance
 REDDIT = praw.Reddit(
-    user_agent=wat.REDDIT_USER_AGENT,
-    client_id=wat.REDDIT_CLIENT_ID,
-    client_secret=wat.REDDIT_CLIENT_SECRET,
-    username=wat.REDDIT_USERNAME,
-    password=wat.REDDIT_PASSWORD,
+    user_agent=web_utils.get_credential("REDDIT_USER_AGENT"),
+    client_id=web_utils.get_credential("REDDIT_CLIENT_ID"),
+    client_secret=web_utils.get_credential("REDDIT_CLIENT_SECRET"),
+    username=web_utils.get_credential("REDDIT_USERNAME"),
+    password=web_utils.get_credential("REDDIT_PASSWORD"),
     ratelimit_seconds=600,
 )
 
