@@ -25,8 +25,8 @@ import pendulum  # https://pendulum.eustace.io/docs/
 import praw  # type: ignore # https://praw.readthedocs.io/en/latest
 import tqdm  # progress bar https://github.com/tqdm/tqdm
 
-import reddit_sample as rs
-import web_utils
+from reddit_research import reddit_sample as rs
+from reddit_research import web_utils
 
 # https://github.com/pushshift/api
 # import psaw  # Pushshift API https://github.com/dmarx/psaw no exclude:not
@@ -37,9 +37,11 @@ PUSHSHIFT_LIMIT = 100
 REDDIT_LIMIT = 100
 
 REDDIT = praw.Reddit(
-    user_agent=web_utils.get_credential("Reddit_API", "REDDIT_USER_AGENT"),
-    client_id=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_ID"),
-    client_secret=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_SECRET"),
+    user_agent=web_utils.get_credential("REDDIT_USER_AGENT"),
+    client_id=web_utils.get_credential("REDDIT_CLIENT_ID"),
+    client_secret=web_utils.get_credential("REDDIT_CLIENT_SECRET"),
+    username=web_utils.get_credential("REDDIT_USERNAME"),
+    password=web_utils.get_credential("REDDIT_PASSWORD"),
     ratelimit_seconds=600,
 )
 
@@ -60,7 +62,7 @@ def prefetch_reddit_posts(ids_req: list[str]) -> shelve.Shelf[typ.Any]:
     ids_shelved = set(shelf.keys())
     ids_needed = set(ids_req) - ids_shelved
     t3_ids = [i if i.startswith("t3_") else f"t3_{i}" for i in ids_needed]
-    submissions = reddit.info(fullnames=t3_ids)
+    submissions = REDDIT.info(fullnames=t3_ids)
     print("pre-fetch: storing in shelf")
     for submission in tqdm.tqdm(submissions, total=len(t3_ids)):
         # print(f"{count: <3} {submission.id} {submission.title}")
@@ -306,7 +308,7 @@ def export_df(name, df) -> None:
     print(f"saved dataframe of shape {df.shape} to '{name}.csv'")
 
 
-def main(argv) -> argparse.Namespace:
+def process_args(argv) -> argparse.Namespace:
     """Process arguments."""
     arg_parser = argparse.ArgumentParser(description="Query Pushshift and Reddit APIs.")
 
@@ -415,10 +417,9 @@ def main(argv) -> argparse.Namespace:
     return args
 
 
-if __name__ == "__main__":
-    args = main(sys.argv[1:])
-
+def main() -> None:
     # syntactical tweaks to filename
+    args = process_args(sys.argv[1:])
     if args.after and args.before:
         after: pendulum.DateTime = pendulum.parse(args.after)
         before: pendulum.DateTime = pendulum.parse(args.before)
@@ -456,3 +457,7 @@ if __name__ == "__main__":
         + f"""_l{args.limit}_n{number_results}{sample}{throwaway}"""
     )
     export_df(result_name, posts_df)
+
+
+if __name__ == "__main__":
+    main()

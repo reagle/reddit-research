@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Create a csv wherein each row corresponds to the queried subreddit name, its creation date in format YYYY-MM-DD, and its current number of members.
 
-Resulting CSV can be used with `subreddit-plot.py`.
+Resulting CSV can be used with `subreddit-plot`.
 """
 
 __author__ = "Joseph Reagle"
@@ -12,13 +12,14 @@ __version__ = "0.1"
 import argparse
 import csv
 import datetime
+import sys
 from pathlib import Path
 
 import praw
 import prawcore
 import pytz
 
-import web_utils
+from reddit_research import web_utils
 
 REDDIT = praw.Reddit(
     user_agent=web_utils.get_credential("REDDIT_USER_AGENT"),
@@ -30,8 +31,11 @@ REDDIT = praw.Reddit(
 )
 
 
-def main(input_file: Path) -> None:
+def main() -> None:
     """Read subreddits from CSV, fetch information, write to new CSV."""
+    args = process_args(sys.argv[1:])
+    print(f"{args=}")
+    input_file = args.input_file
     subreddits = list(csv.DictReader(input_file.open(newline="", encoding="utf-8")))
     output_file = input_file.with_stem(f"{input_file.stem}_info").with_suffix(".csv")
 
@@ -59,17 +63,20 @@ def main(input_file: Path) -> None:
                 f.writerow([subreddit["subreddit"], "", "", subreddit["category"]])
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
+def process_args(argv) -> argparse.Namespace:
+    arg_parser = argparse.ArgumentParser(
         description="Fetch subreddit information from a CSV file."
     )
-    parser.add_argument(
+    arg_parser.add_argument(
         "-i",
-        "--input",
+        "--input-file",
         type=Path,
         required=True,
         help="Path to the input CSV file containing subreddits.",
     )
-    args = parser.parse_args()
+    args = arg_parser.parse_args(argv)
+    return args
 
-    main(args.input)
+
+if __name__ == "__main__":
+    main()

@@ -1,6 +1,7 @@
 [project]
-name = "reddit-research"
-version = "1.0.0"
+
+name = "reddit_research"
+version = "1.1.0"
 description = "Tools for scraping and analyzing Reddit"
 authors = [{ name = "Joseph Reagle"}]
 license = { text = "MIT" }
@@ -20,11 +21,29 @@ dependencies = [
     "praw>=7.7.1",
     "psaw>=0.1.0",
     "pytz>=2024.2",
+    "python-dotenv>=1.0.0",
+    "rapidfuzz>=3.11.0",
     "requests>=2.32.3",
     "seaborn>=0.13.2",
     "tqdm>=4.66.5",
     "zstandard>=0.23.0",
+    "pip>=24.3.1",
+    "ipython>=8.31.0",
+    "sh>=2.1.0",
+    "ipdb>=0.13.13",
 ]
+
+[project.scripts]
+reddit-search = "reddit_research.reddit_search:main"
+reddit-watch = "reddit_research.reddit_watch:main"
+reddit-query = "reddit_research.reddit_query:main"
+reddit-message = "reddit_research.reddit_message:main"
+subreddits-get-info = "reddit_research.subreddits_get_info:main"
+subreddits-plot = "reddit_research.subreddits_plot:main"
+redditors-from-subject = "reddit_research.redditors_from_subject:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 [tool.ruff]
 

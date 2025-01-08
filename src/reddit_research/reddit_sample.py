@@ -14,23 +14,23 @@ __version__ = "1.0"
 import logging
 import math
 import random
+from pathlib import Path
 
 import cachier
 import numpy as np
-import Path
 import pendulum  # https://pendulum.eustace.io/docs/
 import praw
 
-import web_api_tokens as wat
-
 # datetime: date, time, datetime, timedelta
 # pendulum: datetime, Duration (timedelta), Period (Duration)
-import web_utils  # https://github.com/reagle/thunderdell
+from reddit_research import web_utils  # https://github.com/reagle/thunderdell
 
 REDDIT = praw.Reddit(
-    user_agent=web_utils.get_credential("Reddit_API", "REDDIT_USER_AGENT"),
-    client_id=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_ID"),
-    client_secret=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_SECRET"),
+    user_agent=web_utils.get_credential("REDDIT_USER_AGENT"),
+    client_id=web_utils.get_credential("REDDIT_CLIENT_ID"),
+    client_secret=web_utils.get_credential("REDDIT_CLIENT_SECRET"),
+    username=web_utils.get_credential("REDDIT_USERNAME"),
+    password=web_utils.get_credential("REDDIT_PASSWORD"),
     ratelimit_seconds=600,
 )
 
@@ -192,7 +192,7 @@ def get_offsets(
     return offsets_as_datetime
 
 
-if __name__ == "__main__":
+def main():
     start = "2022-01-01"
     end = "2022-06-10"
     after: pendulum.DateTime = pendulum.parse(start)
@@ -226,3 +226,8 @@ if __name__ == "__main__":
     print(f"{get_pushshift_total('Advice', after, before)=}")
     print(f"{get_pushshift_total('AmItheAsshole', after, before)=}")
     print(f"{get_pushshift_total('relationship_advice', after, before)=}")
+
+
+# this is a module, but included a main for testing (outside of project)
+if __name__ == "__main__":
+    main()

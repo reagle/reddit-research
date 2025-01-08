@@ -21,12 +21,11 @@ from pathlib import Path
 import cachier
 import jsonlines
 import praw
-import web_api_tokens as wat
 import zstandard as zstd
 from rapidfuzz import fuzz
 from tqdm import tqdm  # type: ignore
 
-import web_utils
+from reddit_research import web_utils
 
 __author__ = "Joseph Reagle"
 __copyright__ = "Copyright (C) 2024 Joseph Reagle"
@@ -216,8 +215,12 @@ def save_to_csv(data: list[dict[str, str]], output_path: Path):
                 )
 
 
-if __name__ == "__main__":
+def main():
     args = process_args(sys.argv[1:])
     results = process_submissions(args.input_csv)
     csv_output = Path(f"{args.input_csv.stem}-usernames.csv")
     save_to_csv(results, csv_output)
+
+
+if __name__ == "__main__":
+    main()
