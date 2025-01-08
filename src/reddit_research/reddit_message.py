@@ -2,7 +2,7 @@
 """Message Redditors listed in CSV.
 
 Message Redditors using CSV files from with usernames in column
-`author_p`. Can take output of reddit-query.py or reddit-watch.py
+`author_p`. Can take output of reddit-query or reddit-watch
 and select users for messaging based on attributes (e.g., throwaway,
 deleted, or already messaged).".
 """
@@ -25,16 +25,17 @@ import praw  # https://praw.readthedocs.io/en/latest
 import tqdm  # progress bar https://github.com/tqdm/tqdm
 from praw.exceptions import RedditAPIException
 
-import web_utils
+from reddit_research import web_utils
 
 REDDIT = praw.Reddit(
-    user_agent=web_utils.get_credential("Reddit_API", "REDDIT_USER_AGENT"),
-    client_id=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_ID"),
-    client_secret=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_SECRET"),
-    username=web_utils.get_credential("Reddit_API", "REDDIT_USERNAME"),
-    password=web_utils.get_credential("Reddit_API", "REDDIT_PASSWORD"),
+    user_agent=web_utils.get_credential("REDDIT_USER_AGENT"),
+    client_id=web_utils.get_credential("REDDIT_CLIENT_ID"),
+    client_secret=web_utils.get_credential("REDDIT_CLIENT_SECRET"),
+    username=web_utils.get_credential("REDDIT_USERNAME"),
+    password=web_utils.get_credential("REDDIT_PASSWORD"),
     ratelimit_seconds=600,
 )
+
 
 NOW = arrow.utcnow()
 NOW_STR = NOW.format("YYYYMMDD HH:mm:ss")
@@ -140,7 +141,7 @@ def process_args(argv) -> argparse.Namespace:
     arg_parser = argparse.ArgumentParser(
         description=(
             "Message Redditors using CSV files with usernames in column"
-            " `author_p`. Can take output of reddit-query.py or reddit-watch.py and"
+            " `author_p`. Can take output of reddit-query or reddit-watch and"
             " select users for messaging based on attributes."
         ),
     )
@@ -151,7 +152,7 @@ def process_args(argv) -> argparse.Namespace:
         metavar="FILENAME",
         required=True,
         type=Path,
-        help="CSV filename, with usernames, created by reddit-query.py",
+        help="CSV filename, with usernames, created by reddit-query",
     )
     arg_parser.add_argument(
         "-a",
@@ -259,9 +260,8 @@ def process_args(argv) -> argparse.Namespace:
     return args
 
 
-if __name__ == "__main__":
+def main() -> None:
     args = process_args(sys.argv[1:])
-
     log.info(f"{args=}")
     for fn in (args.input_fn, args.greeting_fn):
         if not fn.exists():
@@ -321,3 +321,7 @@ if __name__ == "__main__":
             else:
                 sys.exit()
     message_users(args, users, subject, greeting)
+
+
+if __name__ == "__main__":
+    main()

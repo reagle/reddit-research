@@ -143,7 +143,7 @@ def grab_quotes(file_name: Path, column: str, do_recheck: bool) -> None:
         raise ValueError("unknown file type/extension")
 
 
-def main(argv) -> argparse.Namespace:
+def process_args(argv) -> argparse.Namespace:
     """Process arguments."""
     arg_parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
@@ -153,13 +153,13 @@ def main(argv) -> argparse.Namespace:
         opening the results in browser tabs. Search engines include Google,
         Reddit, and RedditSearch/Pushshift.
 
-        > reddit-search.py demo-phrases.csv -c phrase
+        > reddit-search demo-phrases.csv -c phrase
 
         If you wish to test the efficacy of a disguised/spun phrase, also
         include a column of the spun phrase and the 'url' of the source. This
         will automatically check the results for that URL.
 
-        > reddit-search.py demo-phrases.csv -c weakspins
+        > reddit-search demo-phrases.csv -c weakspins
         """),
     )
 
@@ -217,7 +217,11 @@ def main(argv) -> argparse.Namespace:
     return args
 
 
-if __name__ == "__main__":
-    args = main(sys.argv[1:])
+def main():
+    args = process_args(sys.argv[1:])
     log.debug(f"{args=}")
     grab_quotes(args.file_name[0], args.column, args.recheck)
+
+
+if __name__ == "__main__":
+    main()

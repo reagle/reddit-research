@@ -23,9 +23,11 @@ import pendulum  # https://pendulum.eustace.io/docs/
 import praw  # type: ignore # https://praw.readthedocs.io/en/latest
 import tqdm  # progress bar https://github.com/tqdm/tqdm
 
-import web_utils
+from reddit_research import web_utils
 
-INI_FN = DATA_DIR / "watch-reddit.ini"
+HOMEDIR = Path.home()
+DATA_DIR = HOMEDIR / "data/1work/2020/reddit-del/"
+INI_FN = DATA_DIR / "watch-REDDIT.ini"
 NOW = pendulum.now("UTC")
 NOW_STR = NOW.format("YYYYMMDD HH:mm:ss")
 PUSHSHIFT_LIMIT = 100
@@ -33,9 +35,11 @@ REDDIT_LIMIT = 100
 pp = pprint.PrettyPrinter(indent=4)
 
 REDDIT = praw.Reddit(
-    user_agent=web_utils.get_credential("Reddit_API", "REDDIT_USER_AGENT"),
-    client_id=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_ID"),
-    client_secret=web_utils.get_credential("Reddit_API", "REDDIT_CLIENT_SECRET"),
+    user_agent=web_utils.get_credential("REDDIT_USER_AGENT"),
+    client_id=web_utils.get_credential("REDDIT_CLIENT_ID"),
+    client_secret=web_utils.get_credential("REDDIT_CLIENT_SECRET"),
+    username=web_utils.get_credential("REDDIT_USERNAME"),
+    password=web_utils.get_credential("REDDIT_PASSWORD"),
     ratelimit_seconds=600,
 )
 
@@ -96,7 +100,7 @@ def init_watch_reddit(subreddit: str, limit: int) -> Path:
     submissions_d = collections.defaultdict(list)
     print(f"fetching initial posts from {subreddit}")
     prog_bar = tqdm.tqdm(total=limit)
-    for submission in reddit.subreddit(subreddit).new(limit=limit):
+    for submission in REDDIT.subreddit(subreddit).new(limit=limit):
         created_utc_human = pendulum.from_timestamp(submission.created_utc).format(
             "YYYYMMDD HH:mm:ss"
         )
@@ -132,7 +136,7 @@ def prefetch_reddit_posts(ids_req: tuple[str]) -> dict:
     t3_ids = [i if i.startswith("t3_") else f"t3_{i}" for i in ids_req]
     print(f"prefetching {len(t3_ids)} ids...")
     prog_bar = tqdm.tqdm(total=len(t3_ids))
-    for submission in reddit.info(fullnames=t3_ids):
+    for submission in REDDIT.info(fullnames=t3_ids):
         submissions_dict[submission.id] = submission
         prog_bar.update(1)
     prog_bar.close()
@@ -229,7 +233,7 @@ def init_archive(updated_fn: Path) -> None:
         archive.write(updated_fn, arcname=updated_fn.name)
 
 
-def main(argv) -> argparse.Namespace:
+def process_args(argv) -> argparse.Namespace:
     """Process arguments."""
     arg_parser = argparse.ArgumentParser(
         description=(
@@ -286,9 +290,8 @@ def main(argv) -> argparse.Namespace:
     return args
 
 
-if __name__ == "__main__":
-    args = main(sys.argv[1:])
-
+def main():
+    args = process_args(sys.argv[1:])
     config = cp.ConfigParser(strict=False)
 
     if args.init:
@@ -301,9 +304,14 @@ if __name__ == "__main__":
             updated_fn = update_watch(watched_fn)
             init_archive(updated_fn)
             rotate_archive_fns(updated_fn)
-        INI_FN.write_text(config.write(None))
+        with INI_FN.open("w") as configfile:
+            config.write(configfile)
     else:
         config.read(INI_FN)
         for _watched, fn in config["watching"].items():
             updated_fn = update_watch(Path(fn))
             rotate_archive_fns(updated_fn)
+
+
+if __name__ == "__main__":
+    main()
