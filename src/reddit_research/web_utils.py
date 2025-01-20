@@ -116,7 +116,7 @@ def get_JSON(
     rate_limit: int = 2,
     cache_control: str = "",
     requested_content_type: str = "application/json",
-) -> list | dict:  # different services return [... or {...
+) -> list | dict:  # some services return list some a dict
     """Return [JSON content, response] of a given URL.
 
     Default rate limit is 2 seconds per request, though Pushshift

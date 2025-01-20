@@ -71,7 +71,10 @@ def prefetch_reddit_posts(ids_req: list[str]) -> shelve.Shelf[typ.Any]:
 
 
 def get_reddit_info(
-    shelf: shelve.Shelf[typ.Any], id_: str, author_pushshift: str
+    args: argparse.Namespace,
+    shelf: shelve.Shelf[typ.Any],
+    id_: str,
+    author_pushshift: str,
 ) -> tuple[str, bool, bool]:
     """Given id, returns info from reddit."""
     author_reddit = "NA"
@@ -112,7 +115,7 @@ def get_reddit_info(
     return author_reddit, is_deleted, is_removed
 
 
-def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> typ.Any:
+def construct_df(args, pushshift_total: int, pushshift_results: list[dict]) -> typ.Any:
     """Given pushshift query results, return dataframe of info about submissions.
 
     https://github.com/pushshift/api
@@ -140,7 +143,7 @@ def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> typ.Any
         )
         elapsed_hours = round((pr["retrieved_on"] - pr["created_utc"]) / 3600)
         author_r, is_deleted_r, is_removed_r = get_reddit_info(
-            shelf, pr["id"], pr["author"]
+            args, shelf, pr["id"], pr["author"]
         )
         results_row.append(
             (  # comments correspond to headings in dataframe below
@@ -167,9 +170,9 @@ def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> typ.Any
             )
         )
     log.debug(results_row)
-    posts_df = pd.DataFrame(
-        results_row,
-        columns=[
+
+    COLUMNS = (
+        [
             "subreddit",
             "total_p",
             "author_r",
@@ -191,6 +194,7 @@ def construct_df(pushshift_total: int, pushshift_results: list[dict]) -> typ.Any
             # "url_api_r",
         ],
     )
+    posts_df = pd.DataFrame(results_row, columns=pd.Index(COLUMNS))
     ids_repeating = [m_id for m_id, count in ids_counter.items() if count > 1]
     if ids_repeating:
         print(f"WARNING: repeat IDs = {ids_repeating=}")
@@ -248,6 +252,7 @@ def query_pushshift(
 
 
 def collect_pushshift_results(
+    args: argparse.Namespace,
     limit: int,
     after: pendulum.DateTime,
     before: pendulum.DateTime,
@@ -418,7 +423,9 @@ def process_args(argv) -> argparse.Namespace:
 
 
 def main() -> None:
+    """Set up arguments and call functions."""
     # syntactical tweaks to filename
+    after = before = date_str = None
     args = process_args(sys.argv[1:])
     if args.after and args.before:
         after: pendulum.DateTime = pendulum.parse(args.after)
@@ -428,7 +435,10 @@ def main() -> None:
         after = pendulum.parse(args.after)
         date_str = f"{after.format('YYYYMMDD')}-{NOW_STR}"
     elif args.before:
-        raise RuntimeError("--before cannot be used without --after")
+        raise ValueError("--before cannot be used without --after")
+    else:
+        raise ValueError("Invalid date range specified")
+
     if args.comments_num:
         comments_num = args.comments_num
         if comments_num[0] == ">":
@@ -449,8 +459,8 @@ def main() -> None:
         "comments_num": args.comments_num,
     }
     print(f"{query=}")
-    ps_total, ps_results = collect_pushshift_results(**query)
-    posts_df = construct_df(ps_total, ps_results)
+    ps_total, ps_results = collect_pushshift_results(args, **query)
+    posts_df = construct_df(args, ps_total, ps_results)
     number_results = len(posts_df)
     result_name = (
         f"""reddit_{date_str}_{args.subreddit}{comments_num}"""
