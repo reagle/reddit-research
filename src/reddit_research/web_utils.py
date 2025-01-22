@@ -107,6 +107,8 @@ def get_HTML(
 
 
 @cachier.cachier(pickle_reload=False)  # stale_after=dt.timedelta(days=7)
+from typing import Union
+
 def get_JSON(
     url: str,
     referer: str = "",
@@ -116,7 +118,7 @@ def get_JSON(
     rate_limit: int = 2,
     cache_control: str = "",
     requested_content_type: str = "application/json",
-) -> list | dict:  # some services return list some a dict
+) -> Union[list, dict]:  # some services return list some a dict
     """Return [JSON content, response] of a given URL.
 
     Default rate limit is 2 seconds per request, though Pushshift
