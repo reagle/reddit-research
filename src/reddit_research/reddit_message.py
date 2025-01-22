@@ -47,7 +47,7 @@ def is_throwaway(user_name: str) -> bool:
     return ("throw" in name and "away" in name) or ("throwra" in name)
 
 
-def select_users(args, df) -> set[str]:
+def select_users(args: argparse.Namespace, df: pd.DataFrame) -> set[str]:
     """Select users based on arguments and DataFrame."""
     users_found = set()
     users_del = set()
@@ -110,7 +110,7 @@ class UsersArchive:
                 csv_writer.writerow({"name": user, "timestamp": NOW_STR})
 
 
-def message_users(args, users: set[str], subject: str, greeting: str) -> None:
+def message_users(args: argparse.Namespace, users: set[str], subject: str, greeting: str) -> None:
     """Message users."""
     user_archive = UsersArchive(args.archive_fn)
     users_past = user_archive.get()
@@ -136,7 +136,7 @@ def message_users(args, users: set[str], subject: str, greeting: str) -> None:
             pbar.update()
 
 
-def process_args(argv) -> argparse.Namespace:
+def process_args(argv: list[str]) -> argparse.Namespace:
     """Process command-line arguments."""
     arg_parser = argparse.ArgumentParser(
         description=(
@@ -262,63 +262,49 @@ def process_args(argv) -> argparse.Namespace:
 
 def main() -> None:
     args = process_args(sys.argv[1:])
-    log.info(f"{args=}")
+    log.info(f"Parsed arguments: {args}")
+    
     for fn in (args.input_fn, args.greeting_fn):
         if not fn.exists():
-            raise RuntimeError(f"necessary file {fn} does not exist")
+            raise RuntimeError(f"Necessary file {fn} does not exist")
+
     with args.greeting_fn.open() as fd:
-        greeting = fd.readlines()
-        if greeting[0].lower().startswith("subject: "):
-            subject = greeting[0][9:].strip()
-            greeting = "".join(greeting[1:]).strip()
+        greeting_lines = fd.readlines()
+        if greeting_lines[0].lower().startswith("subject: "):
+            subject = greeting_lines[0][9:].strip()
+            greeting = "".join(greeting_lines[1:]).strip()
         else:
             subject = "About your Reddit message"
-            greeting = "".join(greeting).strip()
-    greeting_trunc = greeting.replace("\n", " ")[0:70]
+            greeting = "".join(greeting_lines).strip()
+    greeting_trunc = greeting.replace("\n", " ")[:70]
 
     df = pd.read_csv(args.input_fn, comment="#")
-    print(f"The input CSV file contains {df.shape[0]} rows.")
+    log.info(f"The input CSV file contains {df.shape[0]} rows.")
+    
     if {"author_p", "del_author_p", "del_text_r"}.issubset(df.columns):
-        print(
-            "Unique and not-previously messaged users will be further winnowed by:\n"
-            + f"  args.only_deleted   = {args.only_deleted}\n"
-            + f"  args.only_existent  = {args.only_existent}\n"
-            + f"  args.only_pseudonym = {args.only_pseudonym}\n"
-            + f"  args.only_throwaway = {args.only_throwaway}\n"
-        )
+        log.info("Unique and not-previously messaged users will be further winnowed by:")
+        log.info(f"  args.only_deleted   = {args.only_deleted}")
+        log.info(f"  args.only_existent  = {args.only_existent}")
+        log.info(f"  args.only_pseudonym = {args.only_pseudonym}")
+        log.info(f"  args.only_throwaway = {args.only_throwaway}")
         users = select_users(args, df)
     elif "author_p" in df and not any(
-        [
-            args.only_deleted,
-            args.only_existent,
-            args.only_pseudonym,
-            args.only_throwaway,
-        ]
+        [args.only_deleted, args.only_existent, args.only_pseudonym, args.only_throwaway]
     ):
-        print("Messaging without delete, existent, pseudonym, and throwaway selection.")
+        log.info("Messaging without delete, existent, pseudonym, and throwaway selection.")
         users = set(df["author_p"])
     else:
         raise KeyError("One or more columns are missing from the CSV DataFrame.")
 
-    print(
-        "\nYour will be sending:\n"
-        + f"  Subject: {subject}\n"
-        + f"  Greeting: {greeting_trunc}..."
-    )
+    log.info(f"\nYou will be sending:\n  Subject: {subject}\n  Greeting: {greeting_trunc}...")
 
     if not args.dry_run:
-        print("Do you want to proceed?")
-        proceed_q = input("`p` to proceed | any key to quit: ")
-        if proceed_q == "p":
-            pass
-        else:
+        proceed_q = input("Do you want to proceed? `p` to proceed | any key to quit: ")
+        if proceed_q != "p":
             sys.exit()
         if not args.only_existent or args.only_deleted:
-            print("WARNING: you might be messaging users who deleted their messages.")
-            confirm_q = input("`c` to confirm | any key to quit: ")
-            if confirm_q == "c":
-                pass
-            else:
+            confirm_q = input("WARNING: you might be messaging users who deleted their messages. `c` to confirm | any key to quit: ")
+            if confirm_q != "c":
                 sys.exit()
     message_users(args, users, subject, greeting)
 
