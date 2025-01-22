@@ -64,12 +64,12 @@ def select_users(args: argparse.Namespace, df: pd.DataFrame) -> set[str]:
     users_result = users_found.copy()
     print("Users' statistics:")
     print(f"  {len(users_found)= :4}")
-    print(f"  {len(users_del)=   :4}  {len(users_del)/len(users_found):2.0%}")
-    print(f"  {len(users_throw)= :4}  {len(users_throw)/len(users_found):2.0%}")
+    print(f"  {len(users_del)=   :4}  {len(users_del) / len(users_found):2.0%}")
+    print(f"  {len(users_throw)= :4}  {len(users_throw) / len(users_found):2.0%}")
     print(
         f"  {len(users_del & users_throw)=}"
-        + f"  {len(users_del & users_throw)/len(users_found):2.0%} of found;"
-        + f"  {len(users_del & users_throw)/len(users_throw):2.0%} of throwaway"
+        + f"  {len(users_del & users_throw) / len(users_found):2.0%} of found;"
+        + f"  {len(users_del & users_throw) / len(users_throw):2.0%} of throwaway"
     )
     if args.only_deleted:
         users_result = users_result & users_del
@@ -89,6 +89,7 @@ def select_users(args: argparse.Namespace, df: pd.DataFrame) -> set[str]:
 class UsersArchive:
     """Maintain a set of users who have been messaged."""
 
+    # AI! instead of passing all of args, pass only the one that is needed i.e., args.dry_run
     def __init__(self, archive_fn: Path, args: argparse.Namespace) -> None:
         self.args = args
         self.archive_fn = archive_fn
@@ -111,7 +112,9 @@ class UsersArchive:
                 csv_writer.writerow({"name": user, "timestamp": NOW_STR})
 
 
-def message_users(args: argparse.Namespace, users: set[str], subject: str, greeting: str) -> None:
+def message_users(
+    args: argparse.Namespace, users: set[str], subject: str, greeting: str
+) -> None:
     """Message users."""
     user_archive = UsersArchive(args.archive_fn, args)
     users_past = user_archive.get()
@@ -262,9 +265,10 @@ def process_args(argv: list[str]) -> argparse.Namespace:
 
 
 def main() -> None:
+    """Process arguments and call functions."""
     args = process_args(sys.argv[1:])
     log.info(f"Parsed arguments: {args}")
-    
+
     for fn in (args.input_fn, args.greeting_fn):
         if not fn.exists():
             raise RuntimeError(f"Necessary file {fn} does not exist")
@@ -281,30 +285,43 @@ def main() -> None:
 
     df = pd.read_csv(args.input_fn, comment="#")
     log.info(f"The input CSV file contains {df.shape[0]} rows.")
-    
+
     if {"author_p", "del_author_p", "del_text_r"}.issubset(df.columns):
-        log.info("Unique and not-previously messaged users will be further winnowed by:")
+        log.info(
+            "Unique and not-previously messaged users will be further winnowed by:"
+        )
         log.info(f"  args.only_deleted   = {args.only_deleted}")
         log.info(f"  args.only_existent  = {args.only_existent}")
         log.info(f"  args.only_pseudonym = {args.only_pseudonym}")
         log.info(f"  args.only_throwaway = {args.only_throwaway}")
         users = select_users(args, df)
     elif "author_p" in df and not any(
-        [args.only_deleted, args.only_existent, args.only_pseudonym, args.only_throwaway]
+        [
+            args.only_deleted,
+            args.only_existent,
+            args.only_pseudonym,
+            args.only_throwaway,
+        ]
     ):
-        log.info("Messaging without delete, existent, pseudonym, and throwaway selection.")
+        log.info(
+            "Messaging without delete, existent, pseudonym, and throwaway selection."
+        )
         users = set(df["author_p"])
     else:
         raise KeyError("One or more columns are missing from the CSV DataFrame.")
 
-    log.info(f"\nYou will be sending:\n  Subject: {subject}\n  Greeting: {greeting_trunc}...")
+    log.info(
+        f"\nYou will be sending:\n  Subject: {subject}\n  Greeting: {greeting_trunc}..."
+    )
 
     if not args.dry_run:
         proceed_q = input("Do you want to proceed? `p` to proceed | any key to quit: ")
         if proceed_q != "p":
             sys.exit()
         if not args.only_existent or args.only_deleted:
-            confirm_q = input("WARNING: you might be messaging users who deleted their messages. `c` to confirm | any key to quit: ")
+            confirm_q = input(
+                "WARNING: you might be messaging users who deleted their messages. `c` to confirm | any key to quit: "
+            )
             if confirm_q != "c":
                 sys.exit()
     message_users(args, users, subject, greeting)
