@@ -244,8 +244,12 @@ def query_pushshift(
         + f"?{limit_param}subreddit={subreddit}{optional_params}"
     )
     print(f"{pushshift_url=}")
-    # AI? get_JSON is specified to return list or dict, in my use here, it will always be a dict so how to mollify pyright that get_JSON might return a list?
-    pushshift_data = web_utils.get_JSON(pushshift_url)["data"]
+    pushshift_data = web_utils.get_JSON(pushshift_url)
+
+    if not isinstance(pushshift_data, dict):
+        raise TypeError("Expected a dictionary from get_JSON")
+
+    pushshift_data = pushshift_data["data"]
     if len(pushshift_data) != 100:
         print(f"short on some entries {len(pushshift_data)}")
         # breakpoint()
