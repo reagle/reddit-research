@@ -89,9 +89,8 @@ def select_users(args: argparse.Namespace, df: pd.DataFrame) -> set[str]:
 class UsersArchive:
     """Maintain a set of users who have been messaged."""
 
-    # AI! instead of passing all of args, pass only the one that is needed i.e., args.dry_run
-    def __init__(self, archive_fn: Path, args: argparse.Namespace) -> None:
-        self.args = args
+    def __init__(self, archive_fn: Path, dry_run: bool) -> None:
+        self.dry_run = dry_run
         self.archive_fn = archive_fn
         users_past_d = {}
         if not archive_fn.exists():
@@ -105,7 +104,7 @@ class UsersArchive:
         return self.users_past
 
     def update(self, user: str) -> None:
-        if not self.args.dry_run and user not in self.users_past:
+        if not self.dry_run and user not in self.users_past:
             self.users_past.add(user)
             with self.archive_fn.open("a", encoding="utf-8") as past_fd:
                 csv_writer = csv.DictWriter(past_fd, fieldnames=["name", "timestamp"])
@@ -116,7 +115,7 @@ def message_users(
     args: argparse.Namespace, users: set[str], subject: str, greeting: str
 ) -> None:
     """Message users."""
-    user_archive = UsersArchive(args.archive_fn, args)
+    user_archive = UsersArchive(args.archive_fn, args.dry_run)
     users_past = user_archive.get()
     users_todo = users - users_past
     print(f"\nExcluding {len(users_past)} past users from the {len(users)}.")
