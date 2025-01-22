@@ -245,10 +245,8 @@ def query_pushshift(
     )
     print(f"{pushshift_url=}")
     pushshift_data = web_utils.get_JSON(pushshift_url)
-
     if not isinstance(pushshift_data, dict):
         raise TypeError("Expected a dictionary from get_JSON")
-
     pushshift_data = pushshift_data["data"]
     if len(pushshift_data) != 100:
         print(f"short on some entries {len(pushshift_data)}")
