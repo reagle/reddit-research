@@ -55,7 +55,7 @@ def select_users(args: argparse.Namespace, df: pd.DataFrame) -> set[str]:
     for _, row in df.iterrows():
         users_found.add(row["author_p"])
         log.warning(f'{row["author_p"]=}')
-        if is_throwaway(row["author_p"]):
+        if is_throwaway(str(row["author_p"])):
             log.warning("  adding to users_throw")
             users_throw.add(row["author_p"])
         if row["del_author_p"] is False and row["del_text_r"] is True:
