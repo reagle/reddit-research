@@ -1,5 +1,9 @@
 Tools for scraping and analyzing Reddit and for messaging Redditors.
-You can download and install with `uv tool install reddit-research`.
+
+```
+uv tool install https://github.com/reagle/reddit-research.git
+uv tool uninstall reddit-research
+```
 
 ## reddit-search
 
