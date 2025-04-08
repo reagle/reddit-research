@@ -1,8 +1,9 @@
 Tools for scraping and analyzing Reddit and for messaging Redditors.
 
+Note that the following install is pinned to pendulum 2.1.2 ([pendulum 3 requires rust and cargo](https://pendulum.eustace.io/blog/announcing-pendulum-3-0-0.html)) and that requires python 3.11's setup tools.
+
 ```
 uv tool install https://github.com/reagle/reddit-research.git
-uv tool uninstall reddit-research
 ```
 
 ## reddit-search
