@@ -15,9 +15,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from adjustText import adjust_text
+from matplotlib.lines import Line2D
 
 
-def process_args():
+def process_args() -> argparse.Namespace:
     """Process command-line arguments."""
     parser = argparse.ArgumentParser(
         description="Plot subreddits creation and relative size."
@@ -28,8 +29,8 @@ def process_args():
     return parser.parse_args()
 
 
-def main():
-    """Main entry point of the script."""
+def main() -> None:
+    """Enter main."""
     args = process_args()
 
     # Read in the CSV data
@@ -58,7 +59,7 @@ def main():
         "fashion": "pink",
         "gender": "green",
         "disclosure": "purple",
-        "judgement": "orange",
+        "judgment": "orange",
     }
 
     # Set the threshold values
@@ -75,8 +76,9 @@ def main():
 
     # Create the plot using Seaborn
     plt.figure(figsize=(12, 8))
+    # Explicitly cast to DataFrame to satisfy type checker
     sns.scatterplot(
-        data=df_filtered,
+        data=pd.DataFrame(df_filtered),
         x="created",
         y="subscribers",
         size="relative_size",
@@ -95,7 +97,7 @@ def main():
 
     # Create a custom legend for categories only
     legend_elements = [
-        plt.Line2D(
+        Line2D(
             [0],
             [0],
             marker="o",
@@ -115,11 +117,12 @@ def main():
 
     texts = []
     for _, row in df_filtered.iterrows():
+        # Extract scalar values from Series for type safety
         texts.append(
             plt.text(
-                row["created"],
-                row["subscribers"],
-                row["subreddit"],
+                float(mdates.date2num(row["created"])),
+                float(row["subscribers"]),
+                str(row["subreddit"]),
                 fontsize=10,
                 va="center",
                 ha="left",
