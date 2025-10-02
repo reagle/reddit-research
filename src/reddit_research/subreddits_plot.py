@@ -60,6 +60,7 @@ def main() -> None:
         "gender": "green",
         "disclosure": "purple",
         "judgment": "orange",
+        "popular": "gray",
     }
 
     # Set the threshold values
