@@ -1,0 +1,11 @@
+[console_scripts]
+reddit-boro-thanks = reddit_research.reddit_boro_thanks:main
+reddit-demographics = reddit_research.reddit_demographics:main
+reddit-message = reddit_research.reddit_message:main
+reddit-query = reddit_research.reddit_query:main
+reddit-search = reddit_research.reddit_search:main
+reddit-user-posts = reddit_research.reddit_user_posts:main
+reddit-watch = reddit_research.reddit_watch:main
+redditors-from-subject = reddit_research.redditors_from_subject:main
+subreddits-get-info = reddit_research.subreddits_get_info:main
+subreddits-plot = reddit_research.subreddits_plot:main

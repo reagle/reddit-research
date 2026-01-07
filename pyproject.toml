@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 
 name = "reddit_research"
@@ -20,11 +24,13 @@ dependencies = [
     "pendulum>=3.0.0",
     "praw>=7.7.1",
     "psaw>=0.1.0",
+    "pyarrow>=17.0.0",
     "pytz>=2024.2",
     "python-dotenv>=1.0.0",
     "rapidfuzz>=3.11.0",
     "requests>=2.32.3",
     "seaborn>=0.13.2",
+    "tabulate>=0.9.0",
     "tqdm>=4.66.5",
     "zstandard>=0.23.0",
     "pip>=24.3.1",
@@ -42,6 +48,8 @@ reddit-user-posts = "reddit_research.reddit_user_posts:main"
 subreddits-get-info = "reddit_research.subreddits_get_info:main"
 subreddits-plot = "reddit_research.subreddits_plot:main"
 redditors-from-subject = "reddit_research.redditors_from_subject:main"
+reddit-boro-thanks = "reddit_research.reddit_boro_thanks:main"
+reddit-demographics = "reddit_research.reddit_demographics:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

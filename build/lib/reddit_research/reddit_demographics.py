@@ -1,11 +1,12 @@
 #!/usr/bin/env -S uv run
 # /// script
 # requires-python = ">=3.13"
-# dependencies = ["pandas", "pyarrow", "tqdm"]
+# dependencies = ["pandas", "pyarrow", "tabulate", "tqdm"]
 # ///
 """Generate demographic statistics table from Reddit submission parquet files."""
 
 import argparse
+import json
 import re
 from pathlib import Path
 
@@ -14,12 +15,12 @@ from tqdm import tqdm
 
 PATTERN = re.compile(r"(I|My) ?[(\[](\d\d)([FM])[)\]]", re.IGNORECASE)
 SUBREDDITS = [
-    "relationship_advice",
-    "legaladvice",
     "AmItheAsshole",
-    "personalfinance",
     "AskDocs",
+    "legaladvice",
     "offmychest",
+    "personalfinance",
+    "relationship_advice",
 ]
 
 
@@ -64,7 +65,10 @@ def format_count(n: int) -> str:
 
 
 def process_subreddit(
-    parquet_path: Path, start_year: int, end_year: int, verbose: bool = False
+    parquet_path: Path,
+    start_year: int,
+    end_year: int,
+    verbose: bool = False,
 ) -> dict | None:
     """Process a single subreddit's parquet file."""
     sub_name = parquet_path.stem.replace("_submissions", "")
@@ -75,16 +79,30 @@ def process_subreddit(
     if verbose:
         print(f"{len(df):,} rows")
 
-    # Filter by year using created_utc
-    df["year"] = pd.to_datetime(df["created_utc"], unit="s").dt.year
+    # Filter by year using created_utc (handle mixed int/string types)
+    utc_col = df["created_utc"]
+    if utc_col.dtype == "object":
+        # Mixed types: coerce to numeric first
+        utc_col = pd.to_numeric(utc_col, errors="coerce")
+    df["year"] = pd.to_datetime(utc_col, unit="s", errors="coerce").dt.year
     df = df[(df["year"] >= start_year) & (df["year"] <= end_year)]
     if verbose:
         print(f"  Filtered to {start_year}--{end_year}: {len(df):,} rows")
 
-    # Try selftext first, fall back to title
-    text_col = "selftext" if "selftext" in df.columns else "title"
+    # Default behavior: Combine title and selftext if available
+    if "title" in df.columns and "selftext" in df.columns:
+        df["_text"] = df["title"].fillna("") + " " + df["selftext"].fillna("")
+        text_col = "_text"
+        text_source = "title+selftext"
+    elif "selftext" in df.columns:
+        text_col = "selftext"
+        text_source = "selftext"
+    else:
+        text_col = "title"
+        text_source = "title"
+
     if verbose:
-        print(f"  Extracting demographics from '{text_col}'...")
+        print(f"  Extracting demographics from '{text_source}'...")
         texts = df[text_col].tolist()
         df["demo"] = [
             extract_demographics(t)
@@ -114,6 +132,7 @@ def process_subreddit(
         print(f"  Filtered invalid ages: {pre_filter:,} -> {len(matched):,}")
 
     n = len(matched)
+    total = len(df)
     age_20 = int(matched["age"].quantile(0.20))
     age_80 = int(matched["age"].quantile(0.80))
     pct_female = matched["gender"].eq("F").mean() * 100
@@ -124,7 +143,8 @@ def process_subreddit(
         "age": f"{age_20}--{age_80}",
         "% female": round(pct_female),
         "% male": round(pct_male),
-        "messages matched": format_count(n),
+        "matched": format_count(n),
+        "% matched": round(100 * n / total, 1),
     }
 
 
@@ -141,14 +161,14 @@ def process_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--start-year",
         type=int,
-        default=2020,
-        help="Start year (default: 2020)",
+        default=2021,
+        help="Start year (default: 2021)",
     )
     parser.add_argument(
         "--end-year",
         type=int,
-        default=2024,
-        help="End year (default: 2024)",
+        default=2025,
+        help="End year (default: 2025)",
     )
     parser.add_argument(
         "--subreddits",
@@ -162,6 +182,17 @@ def process_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Show detailed diagnostics",
     )
+    parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=None,
+        help="Directory to cache intermediate results (default: data_dir/.demographics_cache)",
+    )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Ignore cached results and recompute all",
+    )
     return parser.parse_args(argv)
 
 
@@ -169,10 +200,19 @@ def main(argv: list[str] | None = None) -> None:
     """Generate demographic statistics table."""
     args = process_args(argv)
 
+    # Set up cache directory
+    cache_dir = args.cache_dir or (args.data_dir / ".demographics_cache")
+    if not args.no_cache:
+        cache_dir.mkdir(exist_ok=True)
+
+    cache_key = f"{args.start_year}-{args.end_year}"
+
     if args.verbose:
         print(
             f"Processing {len(args.subreddits)} subreddits for {args.start_year}--{args.end_year}"
         )
+        if not args.no_cache:
+            print(f"Cache directory: {cache_dir}")
 
     results = []
     subreddit_iter = (
@@ -182,14 +222,34 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     for sub in subreddit_iter:
+        cache_file = cache_dir / f"{sub}_{cache_key}.json"
+
+        # Check cache first
+        if not args.no_cache and cache_file.exists():
+            if args.verbose:
+                print(f"\n  {sub}: loaded from cache")
+            with cache_file.open() as f:
+                results.append(json.load(f))
+            continue
+
         parquet_path = args.data_dir / f"{sub}_submissions.parquet"
         if not parquet_path.exists():
             print(f"Warning: {parquet_path} not found, skipping")
             continue
+
         if stats := process_subreddit(
-            parquet_path, args.start_year, args.end_year, args.verbose
+            parquet_path,
+            args.start_year,
+            args.end_year,
+            args.verbose,
         ):
             results.append(stats)
+            # Save to cache
+            if not args.no_cache:
+                with cache_file.open("w") as f:
+                    json.dump(stats, f)
+                if args.verbose:
+                    print(f"  Cached to {cache_file.name}")
 
     if not results:
         print("No data found")
