@@ -122,3 +122,44 @@ options:
                         warning, info, and debug
   --version             show program's version number and exit
 ```
+
+## reddit-boro-thanks
+
+```
+usage: reddit-boro-thanks [-h] [-s N] [-d DATA_DIR]
+
+Calculate percent of BORU submissions containing thanks.
+
+options:
+  -h, --help            show this help message and exit
+  -s, --sample N        print N evenly spaced examples of matching posts
+  -d, --data-dir DATA_DIR
+                        directory containing parquet files (default: .)
+```
+
+## reddit-demographics
+
+```
+usage: reddit-demographics [-h] [--start-year START_YEAR] [--end-year END_YEAR]
+                           [--subreddits SUBREDDITS [SUBREDDITS ...]] [-v] [--cache-dir CACHE_DIR]
+                           [--no-cache]
+                           data_dir
+
+Generate Reddit demographic stats table
+
+positional arguments:
+  data_dir              Directory containing parquet files
+
+options:
+  -h, --help            show this help message and exit
+  --start-year START_YEAR
+                        Start year (default: 2021)
+  --end-year END_YEAR   End year (default: 2025)
+  --subreddits SUBREDDITS [SUBREDDITS ...]
+                        Subreddits to process (default: predefined list)
+  -v, --verbose         Show detailed diagnostics
+  --cache-dir CACHE_DIR
+                        Directory to cache intermediate results (default:
+                        data_dir/.demographics_cache)
+  --no-cache            Ignore cached results and recompute all
+```
