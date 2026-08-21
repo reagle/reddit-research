@@ -5,8 +5,10 @@
 # ///
 """Calculate percent of extant BORU submissions containing thanks.
 
-Search selftext of non-deleted/removed submissions in r/BestofRedditorUpdates and r/BORUpdates through 2025-12-31 for \\bthank.
-Exclude narrative and non-social variants (thanked, thanking, thankful, thankfully, thanksgiving, thank god/goodness/heaven/the lord).
+Search selftext of non-deleted/removed submissions in r/BestofRedditorUpdates
+and r/BORUpdates through 2025-12-31 for \\bthank.
+Exclude narrative and non-social variants (thanked, thanking, thankful,
+thankfully, thanksgiving, thank god/goodness/heaven/the lord).
 Remove lines containing 'u/' to filter BORU compiler thanks to other BORU members.
 ~95% precision against manual review.
 """

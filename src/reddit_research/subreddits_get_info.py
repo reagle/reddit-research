@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Create a csv wherein each row corresponds to the queried subreddit name, its creation date in format YYYY-MM-DD, and its current number of members.
+"""Create a csv of queried subreddits, one row each.
 
-Resulting CSV can be used with `subreddit-plot`.
+Columns are the subreddit name, its creation date in format YYYY-MM-DD, and its
+current number of members. Resulting CSV can be used with `subreddit-plot`.
 """
 
 __author__ = "Joseph Reagle"

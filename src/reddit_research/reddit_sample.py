@@ -212,7 +212,7 @@ def main():
         f"   across {len(offsets)} offsets,"
         f" at {PUSHSHIFT_LIMIT} messages per offset,"
         f" for {sample_size} message samples\n"
-        f"   a {sample_size/total:.0%} sample"
+        f"   a {sample_size / total:.0%} sample"
     )
 
     import doctest
