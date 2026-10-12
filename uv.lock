@@ -12,6 +12,7 @@ exclude-newer-span = "P14D"
 
 [options.exclude-newer-package]
 certifi = false
+pyarrow = false
 soupsieve = "2026-11-05T00:00:00Z"
 
 [[package]]
