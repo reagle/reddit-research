@@ -132,7 +132,7 @@ def get_cacheable_randos(size: int, samples: int, seed: int):
     >>> get_cacheable_randos(50, 10, seed=7)
     [3, 4, 6, 9, 20, 23, 25, 34, 37, 41]
     >>> get_cacheable_randos(50, 15, seed=7)
-    [2, 3, 4, 5, 6, 9, 13, 20, 23, 25, 32, 34, 37, 41, 45].
+    [2, 3, 4, 5, 6, 9, 13, 20, 23, 25, 32, 34, 37, 41, 45]
     """
     # TODO: Replace with low-discrepancy, quasi-random numbers
     # (qmc.Sobol.integers() is forthcoming in scipy 1.9)
