@@ -22,6 +22,7 @@ import cachier
 import jsonlines
 import praw
 import zstandard as zstd
+from praw.models import Comment
 from rapidfuzz import fuzz
 from tqdm import tqdm  # type: ignore
 
@@ -126,7 +127,7 @@ def api_get_commenters(url: str) -> list[str]:
     usernames = [
         comment.author.name
         for comment in submission.comments.list()
-        if isinstance(comment, praw.models.Comment) and comment.author  # type: ignore
+        if isinstance(comment, Comment) and comment.author
     ]
     return usernames
 

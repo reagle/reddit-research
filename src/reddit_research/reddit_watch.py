@@ -16,7 +16,9 @@ import logging as log
 import pprint
 import sys
 import zipfile  # https://docs.python.org/3/library/zipfile.html
+from collections.abc import Iterable
 from pathlib import Path
+from typing import Any, cast
 
 import pandas as pd
 import pendulum  # https://pendulum.eustace.io/docs/
@@ -53,10 +55,14 @@ def init_watch_pushshift(subreddit: str, hours: int) -> Path:
     hours_ago_as_timestamp = hours_ago.int_timestamp
     print(f"fetching initial posts from {subreddit}")
     pushshift = psaw.PushshiftAPI()
-    submissions = pushshift.search_submissions(
-        after=hours_ago_as_timestamp,
-        subreddit=subreddit,
-        filter=["id", "subreddit", "author", "created_utc"],
+    # psaw's inferred return type is wrong; it yields submission objects
+    submissions = cast(
+        Iterable[Any],
+        pushshift.search_submissions(
+            after=hours_ago_as_timestamp,
+            subreddit=subreddit,
+            filter=["id", "subreddit", "author", "created_utc"],
+        ),
     )
 
     submissions_d = collections.defaultdict(list)

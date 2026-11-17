@@ -12,6 +12,7 @@ exclude-newer-span = "P14D"
 
 [options.exclude-newer-package]
 certifi = false
+dnspython = "2026-11-04T00:00:00Z"
 pyarrow = false
 soupsieve = "2026-11-05T00:00:00Z"
 
@@ -775,6 +776,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pandas-stubs"
+version = "3.1.0.261029"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f9/f8/0346629264426a6693affbc9a0fb52143acfa38112d569f68da514ea503a/pandas_stubs-3.1.0.261029.tar.gz", hash = "sha256:dcfb5b14d399beae72cce558db6d2a0d89c10301275557f1c00d5393e9cb190e", size = 119466, upload-time = "2026-10-29T17:09:31.352Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/2c/ecbc04b2a8d05d737351a54398f843223cb66edf42ec5c0fcc6198f17d3a/pandas_stubs-3.1.0.261029-py3-none-any.whl", hash = "sha256:70f631f2d0781c4500b1cd5f84cab7d7279a3d114674d69655536a4a99a3a67f", size = 179851, upload-time = "2026-10-29T17:09:30.112Z" },
+]
+
+[[package]]
 name = "parso"
 version = "0.8.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1306,6 +1319,11 @@ dependencies = [
     { name = "zstandard" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pandas-stubs" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "adjusttext", specifier = ">=1.2.0" },
@@ -1334,6 +1352,9 @@ requires-dist = [
     { name = "tqdm", specifier = ">=4.66.5" },
     { name = "zstandard", specifier = ">=0.23.0" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pandas-stubs", specifier = ">=3.1.0.261029" }]
 
 [[package]]
 name = "requests"

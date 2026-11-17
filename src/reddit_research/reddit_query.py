@@ -428,14 +428,14 @@ def process_args(argv) -> argparse.Namespace:
 def main() -> None:
     """Set up arguments and call functions."""
     # syntactical tweaks to filename
-    after = before = date_str = None
+    before: pendulum.DateTime | None = None
     args = process_args(sys.argv[1:])
     if args.after and args.before:
-        after: pendulum.DateTime = pendulum.parse(args.after)
-        before: pendulum.DateTime = pendulum.parse(args.before)
+        after = rs.parse_datetime(args.after)
+        before = rs.parse_datetime(args.before)
         date_str = f"{after.format('YYYYMMDD')}-{before.format('YYYYMMDD')}"
     elif args.after:
-        after = pendulum.parse(args.after)
+        after = rs.parse_datetime(args.after)
         date_str = f"{after.format('YYYYMMDD')}-{NOW_STR}"
     elif args.before:
         raise ValueError("--before cannot be used without --after")

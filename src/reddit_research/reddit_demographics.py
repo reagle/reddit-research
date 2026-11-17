@@ -104,10 +104,13 @@ def process_subreddit(
     if verbose:
         print(f"  Extracting demographics from '{text_source}'...")
         texts = df[text_col].tolist()
-        df["demo"] = [
-            extract_demographics(t)
-            for t in tqdm(texts, desc=f"  {sub_name}", leave=False)
-        ]
+        df["demo"] = pd.Series(
+            [
+                extract_demographics(t)
+                for t in tqdm(texts, desc=f"  {sub_name}", leave=False)
+            ],
+            index=df.index,
+        )
     else:
         df["demo"] = df[text_col].apply(extract_demographics)
     matched = df.dropna(subset=["demo"])

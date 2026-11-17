@@ -147,3 +147,8 @@ pythonVersion = '3.13'
 # Exempt from the global 14-day quarantine: certifi for CA fixes;
 # pyarrow because the pre-26 releases have no Python 3.15 wheels
 exclude-newer-package = { certifi = false, pyarrow = false }
+
+[dependency-groups]
+dev = [
+    "pandas-stubs>=3.1.0.261029",
+]

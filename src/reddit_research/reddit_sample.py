@@ -100,7 +100,10 @@ def get_pushshift_total(
     # TODO: adapt to API change
     # https://www.reddit.com/r/pushshift/comments/109ckav/did_the_api_change/
     # https://www.reddit.com/r/pushshift/comments/zkggt0/update_on_colo_switchover_bug_fixes_reindexing/
-    results_total = web_utils.get_JSON(PUSHSHIFT_META_URL)["metadata"]["total_results"]
+    meta = web_utils.get_JSON(PUSHSHIFT_META_URL)
+    if not isinstance(meta, dict):
+        raise TypeError(f"unexpected Pushshift metadata: {meta!r}")
+    results_total = meta["metadata"]["total_results"]
     log.info(f"{results_total=}")
     return results_total
 
@@ -121,6 +124,18 @@ def get_cacheable_np_randos(size: int, samples: int, seed: int):
     """
     # random.seed(seed)
     return sorted(np.random.randint(low=0, high=size + 1, size=samples))
+
+
+def parse_datetime(text: str) -> pendulum.DateTime:
+    """Parse `text` as a pendulum DateTime, rejecting dates, times, and durations.
+
+    >>> parse_datetime("2022-01-01").year
+    2022
+    """
+    parsed = pendulum.parse(text)
+    if not isinstance(parsed, pendulum.DateTime):
+        raise ValueError(f"not a date-time: {text!r}")
+    return parsed
 
 
 def get_cacheable_randos(size: int, samples: int, seed: int):
@@ -195,9 +210,9 @@ def get_offsets(
 def main():
     start = "2022-01-01"
     end = "2022-06-10"
-    after: pendulum.DateTime = pendulum.parse(start)
-    before: pendulum.DateTime = pendulum.parse(end)
-    print(f"{before.timezone.name=}")
+    after = parse_datetime(start)
+    before = parse_datetime(end)
+    print(f"{before.timezone_name=}")
 
     sample_size = 5000
     PUSHSHIFT_LIMIT = 100
